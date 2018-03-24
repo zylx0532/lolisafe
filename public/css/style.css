@@ -78,20 +78,6 @@ section#home div#uploads { margin-bottom: 25px; }
     PANEL
 ------------------ */
 
-/*
-section#login input, section#login p.control a.button {
-  border-left: 0px;
-    border-top: 0px;
-    border-right: 0px;
-    border-radius: 0px;
-    box-shadow: 0 0 0;
-}
-
-section#login p.control a.button { margin-left: 10px; }
-section#login p.control a#loginBtn { border-right: 0px; }
-section#login p.control a#registerBtn { border-left: 0px; }
-*/
-
 section#auth, section#dashboard { display: none }
 section#auth input { background: rgba(0, 0, 0, 0); }
 section#auth input, section#auth a {
@@ -102,17 +88,15 @@ section#auth input, section#auth a {
     box-shadow: 0 0 0;
 }
 
-section#dashboard .table { font-size: 12px }
-section#dashboard div#table div.column { display:flex; /* width: 200px; height: 200px; */ margin: 9px; background: #f9f9f9; overflow: hidden; align-items: center; }
-section#dashboard div#table div.column a { width: 100%; }
-section#dashboard div#table div.column a img { width:200px; }
-
 .select-wrapper {
   text-align: center;
   margin-bottom: 10px;
 }
 
-/** Colors based on KDE Breeze Dark **/
+/* ------------------
+    COLORS BASED ON
+    KDE BREEZE DARK
+------------------ */
 
 .hero {
   background-color: #232629;
@@ -157,12 +141,6 @@ hr {
   overflow-x: auto;
 }
 
-/*
-.textarea, .input {
-  border-width: 2px;
-}
-*/
-
 #login .input {
   border-top: 0;
   border-right: 0;
@@ -176,7 +154,14 @@ hr {
   border-radius: 0;
 }
 
-.input.is-active, .input.is-focused, .input:active, .input:focus, .textarea.is-active, .textarea.is-focused, .textarea:active, .textarea:focus {
+.input.is-active,
+.input.is-focused,
+.input:active,
+.input:focus,
+.textarea.is-active,
+.textarea.is-focused,
+.textarea:active,
+.textarea:focus {
   border-color: #2980b9;
 }
 
@@ -184,28 +169,18 @@ hr {
   background-color: #da4453;
 }
 
-.button.is-danger.is-hovered, .button.is-danger:hover {
+.button.is-danger.is-hovered,
+.button.is-danger:hover {
   background-color: #3daee9;
 }
-
-/*
-.table.is-striped tbody tr:not(.is-selected):nth-child(2n) {
-  background-color: #383c41;
-}
-*/
 
 .table.is-hoverable tbody tr:not(.is-selected):hover {
   background-color: #4d4d4d;
 }
 
-.table td, .table th {
+.table td,
+.table th {
   vertical-align: middle;
-}
-
-section#dashboard div#table div.column .title {
-  width: 200px;
-  line-height: 200px;
-  font-weight: normal;
 }
 
 .help {

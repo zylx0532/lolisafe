@@ -259,7 +259,7 @@ uploadsController.list = async (req, res) => {
     .orderBy('id', 'DESC')
     .limit(25)
     .offset(25 * offset)
-    .select('id', 'albumid', 'timestamp', 'name', 'userid')
+    .select('id', 'albumid', 'timestamp', 'name', 'userid', 'size')
 
   const albums = await db.table('albums')
   let basedomain = config.domain
@@ -269,6 +269,7 @@ uploadsController.list = async (req, res) => {
     file.file = `${basedomain}/${file.name}`
     file.date = new Date(file.timestamp * 1000)
     file.date = utils.getPrettyDate(file.date)
+    file.size = utils.getPrettyBytes(parseInt(file.size))
 
     file.album = ''
 

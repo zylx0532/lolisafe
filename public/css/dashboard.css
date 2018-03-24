@@ -1,4 +1,8 @@
-/** Colors based on KDE Breeze Dark **/
+/* ------------------
+    COLORS BASED ON
+    KDE BREEZE DARK
+------------------ */
+
 html {
   background-color: #232629;
 }
@@ -25,7 +29,8 @@ html {
   background-color: #2980b9;
 }
 
-.button.is-primary.is-hovered, .button.is-primary:hover {
+.button.is-primary.is-hovered,
+.button.is-primary:hover {
   background-color: #2980b9;
 }
 
@@ -35,7 +40,9 @@ html {
   background-color: #31363b;
 }
 
-.pagination-link:hover, .pagination-next:hover, .pagination-previous:hover {
+.pagination-link:hover,
+.pagination-next:hover,
+.pagination-previous:hover {
   color: #eff0f1;
   border-color: #3daee9;
   background-color: #31363b;
@@ -50,15 +57,19 @@ html {
   background-color: #31363b;
 }
 
-.table tr:hover, .table.is-striped tbody tr:nth-child(2n) {
+.table tr:hover,
+.table.is-striped tbody tr:nth-child(2n) {
   background: none;
 }
 
-.table.is-striped tbody tr:hover, .table.is-striped tbody tr:nth-child(2n):hover, .tag {
+.table.is-striped tbody tr:hover,
+.table.is-striped tbody tr:nth-child(2n):hover,
+.tag {
   background-color: #4d4d4d;
 }
 
-.table thead td, .table thead th {
+.table thead td,
+.table thead th {
   color: #eff0f1;
   background-color: #ff3860;
 }
@@ -67,14 +78,57 @@ html {
   color: #eff0f1;
 }
 
-.table td, .table th {
+.table td,
+.table th {
   border: 0;
-}
-
-section#dashboard div#table div.column {
-  background-color: #31363b;
 }
 
 .menu-list li ul {
   border-left-color: #898b8d;
+}
+
+section#dashboard .table {
+  font-size: 12px
+}
+
+section#dashboard div#table div.column {
+  display:flex;
+  /*
+  width: 200px;
+  height: 200px;
+  */
+  margin: 9px;
+  background-color: #31363b;
+  overflow: hidden;
+  align-items: center;
+}
+
+section#dashboard div#table div.column .title {
+  width: 200px;
+  line-height: 200px;
+  font-weight: normal;
+}
+
+section#dashboard div#table div.column a.image {
+  width: 100%;
+}
+
+section#dashboard div#table div.column a.image img {
+  width:200px;
+}
+
+section#dashboard div#table div.column.image-container {
+  position: relative;
+}
+
+section#dashboard div#table div.column a.button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #31363b;
+}
+
+section#dashboard div#table div.column a.button:hover,
+section#dashboard div#table div.column a.button:active {
+  background-color: #ff3860;
 }

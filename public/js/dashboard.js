@@ -118,7 +118,7 @@ panel.getUploads = function (album = undefined, page = undefined) {
               <i class="fa icon-list-bullet"></i>
             </span>
           </a>
-          <a class="button is-small is-outlined is-danger" title="List view" onclick="panel.setFilesView('thumbs', ${album}, ${page})">
+          <a class="button is-small is-outlined is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', ${album}, ${page})">
             <span class="icon is-small">
               <i class="fa icon-th-large"></i>
             </span>
@@ -143,12 +143,19 @@ panel.getUploads = function (album = undefined, page = undefined) {
 
       for (item of response.data.files) {
         var div = document.createElement('div')
-        div.className = 'column is-narrow'
+        div.className = 'image-container column is-narrow'
         if (item.thumb !== undefined) {
-          div.innerHTML = `<a href="${item.file}" target="_blank"><img src="${item.thumb}"/></a>`
+          div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><img src="${item.thumb}"/></a>`
         } else {
-          div.innerHTML = `<a href="${item.file}" target="_blank"><h1 class="title">.${item.file.split('.').pop()}</h1></a>`
+          div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><h1 class="title">.${item.file.split('.').pop()}</h1></a>`
         }
+        div.innerHTML += `
+          <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id})">
+            <span class="icon is-small">
+              <i class="fa icon-trash"></i>
+            </span>
+          </a>
+        `
         table.appendChild(div)
       }
     } else {
@@ -165,6 +172,7 @@ panel.getUploads = function (album = undefined, page = undefined) {
               <tr>
                   <th>File</th>
                   <th>${albumOrUser}</th>
+                  <th>Size</th>
                   <th>Date</th>
                   <th></th>
               </tr>
@@ -193,6 +201,7 @@ panel.getUploads = function (album = undefined, page = undefined) {
           <tr>
             <th><a href="${item.file}" target="_blank">${item.file}</a></th>
             <th>${displayAlbumOrUser}</th>
+            <td>${item.size}</td>
             <td>${item.date}</td>
             <td>
               <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id})">
@@ -475,19 +484,19 @@ panel.changeFileLength = function () {
       }
 
       panel.page.innerHTML = `
-        <h2 class="subtitle">Preferred file length</h2>
+        <h2 class="subtitle">Preferred file name length</h2>
 
         <div class="field">
-          <label class="label">Your current file length:</label>
+          <label class="label">Your current file name length:</label>
           <div class="field has-addons">
             <div class="control is-expanded">
               <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${response.data.fileLength ? Math.min(Math.max(response.data.fileLength, response.data.config.min), response.data.config.max) : response.data.config.default}">
             </div>
             <div class="control">
-              <a id="setFileLength" class="button is-primary">Set file length</a>
+              <a id="setFileLength" class="button is-primary">Set file name length</a>
             </div>
           </div>
-          <p class="help">Default file length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file length is disabled at the moment.'}</p>
+          <p class="help">Default file name length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file name length is disabled at the moment.'}</p>
         </div>
       `
 

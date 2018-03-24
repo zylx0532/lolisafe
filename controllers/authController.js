@@ -97,17 +97,17 @@ authController.getFileLengthConfig = async (req, res, next) => {
 
 authController.changeFileLength = async (req, res, next) => {
   if (config.uploads.fileLength.userChangeable === false) {
-    return res.json({ success: false, description: 'Changing file length is disabled at the moment.' })
+    return res.json({ success: false, description: 'Changing file name length is disabled at the moment.' })
   }
 
   const user = await utils.authorize(req, res)
 
   let fileLength = parseInt(req.body.fileLength)
-  if (fileLength === undefined) return res.json({ success: false, description: 'No file length provided.' })
-  if (isNaN(fileLength)) return res.json({ success: false, description: 'File length is not a valid number.' })
+  if (fileLength === undefined) return res.json({ success: false, description: 'No file name length provided.' })
+  if (isNaN(fileLength)) return res.json({ success: false, description: 'File name length is not a valid number.' })
 
   if (fileLength < config.uploads.fileLength.min || fileLength > config.uploads.fileLength.max) {
-    return res.json({ success: false, description: `File length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters` })
+    return res.json({ success: false, description: `File name length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters` })
   }
 
   if (fileLength === user.fileLength) {
