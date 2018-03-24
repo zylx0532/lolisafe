@@ -106,8 +106,8 @@ panel.getUploads = function (album = undefined, page = undefined) {
 
     var pagination = `
       <nav class="pagination is-centered">
-        <a class="pagination-previous" onclick="panel.getUploads(${album}, ${prevPage} )">Previous</a>
-        <a class="pagination-next" onclick="panel.getUploads(${album}, ${nextPage} )">Next page</a>
+        <a class="pagination-previous" onclick="panel.getUploads(${album}, ${prevPage})">Previous</a>
+        <a class="pagination-next" onclick="panel.getUploads(${album}, ${nextPage})">Next page</a>
       </nav>
     `
     var listType = `
@@ -150,7 +150,7 @@ panel.getUploads = function (album = undefined, page = undefined) {
           div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><h1 class="title">.${item.file.split('.').pop()}</h1></a>`
         }
         div.innerHTML += `
-          <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id})">
+          <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
             <span class="icon is-small">
               <i class="fa icon-trash"></i>
             </span>
@@ -191,7 +191,6 @@ panel.getUploads = function (album = undefined, page = undefined) {
         var tr = document.createElement('tr')
 
         var displayAlbumOrUser = item.album
-        console.log(item)
         if (panel.username === 'root') {
           displayAlbumOrUser = ''
           if (item.username !== undefined) { displayAlbumOrUser = item.username }
@@ -204,7 +203,7 @@ panel.getUploads = function (album = undefined, page = undefined) {
             <td>${item.size}</td>
             <td>${item.date}</td>
             <td>
-              <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id})">
+              <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
                 <span class="icon is-small">
                   <i class="fa icon-trash"></i>
                 </span>
@@ -229,10 +228,10 @@ panel.setFilesView = function (view, album, page) {
   panel.getUploads(album, page)
 }
 
-panel.deleteFile = function (id) {
+panel.deleteFile = function (id, album = undefined, page = undefined) {
   swal({
     title: 'Are you sure?',
-    text: 'You wont be able to recover the file!',
+    text: 'You won\'t be able to recover the file!',
     icon: 'warning',
     dangerMode: true,
     buttons: {
@@ -254,7 +253,7 @@ panel.deleteFile = function (id) {
         }
 
         swal('Deleted!', 'The file has been deleted.', 'success')
-        panel.getUploads()
+        panel.getUploads(album, page)
       })
       .catch(function (error) {
         console.log(error)

@@ -16,13 +16,15 @@ tokenController.verify = async (req, res, next) => {
 
 tokenController.list = async (req, res, next) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
   return res.json({ success: true, token: user.token })
 }
 
 tokenController.change = async (req, res, next) => {
   const user = await utils.authorize(req, res)
-  const newtoken = randomstring.generate(64)
+  if (!user) return
 
+  const newtoken = randomstring.generate(64)
   await db.table('users').where('token', user.token).update({
     token: newtoken,
     timestamp: Math.floor(Date.now() / 1000)

@@ -41,11 +41,14 @@ utilsController.getPrettyBytes = function (num) {
 
 utilsController.authorize = async (req, res) => {
   const token = req.headers.token
-  if (token === undefined) return res.status(401).json({ success: false, description: 'No token provided.' })
+  if (token === undefined) {
+    res.status(401).json({ success: false, description: 'No token provided.' })
+    return
+  }
 
   const user = await db.table('users').where('token', token).first()
-  if (!user) return res.status(401).json({ success: false, description: 'Invalid token.' })
-  return user
+  if (user) return user
+  res.status(401).json({ success: false, description: 'Invalid token.' })
 }
 
 utilsController.generateThumbs = function (file, basedomain) {

@@ -2,7 +2,7 @@ module.exports = {
 
   /*
     If set to true the user will need to specify the auto-generated token
-    on each API call, meaning random strangers wont be able to use the service
+    on each API call, meaning random strangers won't be able to use the service
     unless they have the token loli-safe provides you with.
     If it's set to false, then upload will be public for anyone to use.
   */

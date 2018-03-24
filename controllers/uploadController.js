@@ -48,12 +48,14 @@ const upload = multer({
 }).array('files[]')
 
 uploadsController.upload = async (req, res, next) => {
+  let user
   if (config.private === true) {
-    await utils.authorize(req, res)
+    user = await utils.authorize(req, res)
+    if (!user) return
+  } else if (req.headers.token) {
+    user = await db.table('users').where('token', req.headers.token).first()
   }
 
-  const token = req.headers.token || ''
-  const user = await db.table('users').where('token', token).first()
   if (user && (user.enabled === false || user.enabled === 0)) {
     return res.json({
       success: false,
@@ -78,7 +80,7 @@ uploadsController.upload = async (req, res, next) => {
   return uploadsController.actuallyUpload(req, res, user, albumid)
 }
 
-uploadsController.actuallyUpload = async (req, res, userid, album) => {
+uploadsController.actuallyUpload = async (req, res, user, album) => {
   upload(req, res, async err => {
     if (err) {
       console.error(err)
@@ -104,8 +106,8 @@ uploadsController.actuallyUpload = async (req, res, userid, album) => {
         const fileHash = hash.digest('hex')
         const dbFile = await db.table('files')
           .where(function () {
-            if (userid === undefined) this.whereNull('userid')
-            else this.where('userid', userid.id)
+            if (user === undefined) this.whereNull('userid')
+            else this.where('userid', user.id)
           })
           .where({
             hash: fileHash,
@@ -122,7 +124,7 @@ uploadsController.actuallyUpload = async (req, res, userid, album) => {
             hash: fileHash,
             ip: req.ip,
             albumid: album,
-            userid: userid !== undefined ? userid.id : null,
+            userid: user !== undefined ? user.id : null,
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
@@ -184,6 +186,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 
 uploadsController.delete = async (req, res) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
   const id = req.body.id
   if (id === undefined || id === '') {
     return res.json({ success: false, description: 'No file specified.' })
@@ -244,6 +247,7 @@ uploadsController.deleteFile = function (file) {
 
 uploadsController.list = async (req, res) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   let offset = req.params.page
   if (offset === undefined) offset = 0

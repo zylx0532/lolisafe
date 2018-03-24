@@ -71,6 +71,7 @@ authController.register = async (req, res, next) => {
 
 authController.changePassword = async (req, res, next) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   let password = req.body.password
   if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
@@ -92,6 +93,7 @@ authController.changePassword = async (req, res, next) => {
 
 authController.getFileLengthConfig = async (req, res, next) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
   return res.json({ success: true, fileLength: user.fileLength, config: config.uploads.fileLength })
 }
 
@@ -101,13 +103,14 @@ authController.changeFileLength = async (req, res, next) => {
   }
 
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   let fileLength = parseInt(req.body.fileLength)
   if (fileLength === undefined) return res.json({ success: false, description: 'No file name length provided.' })
   if (isNaN(fileLength)) return res.json({ success: false, description: 'File name length is not a valid number.' })
 
   if (fileLength < config.uploads.fileLength.min || fileLength > config.uploads.fileLength.max) {
-    return res.json({ success: false, description: `File name length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters` })
+    return res.json({ success: false, description: `File name length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters.` })
   }
 
   if (fileLength === user.fileLength) {

@@ -10,6 +10,7 @@ const albumsController = {}
 albumsController.list = async (req, res, next) => {
   const albumDomain = config.albumDomain || config.domain
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   const fields = ['id', 'name']
   if (req.params.sidebar === undefined) {
@@ -43,6 +44,7 @@ albumsController.list = async (req, res, next) => {
 
 albumsController.create = async (req, res, next) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   const name = req.body.name
   if (name === undefined || name === '') {
@@ -74,6 +76,7 @@ albumsController.create = async (req, res, next) => {
 
 albumsController.delete = async (req, res, next) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   const id = req.body.id
   if (id === undefined || id === '') {
@@ -86,6 +89,7 @@ albumsController.delete = async (req, res, next) => {
 
 albumsController.rename = async (req, res, next) => {
   const user = await utils.authorize(req, res)
+  if (!user) return
 
   const id = req.body.id
   if (id === undefined || id === '') {

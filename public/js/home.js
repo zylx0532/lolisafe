@@ -153,10 +153,11 @@ upload.prepareDropzone = function () {
 
   dropzone.on('success', (file, response) => {
     // Handle the responseText here. For example, add the text to the preview element:
+    file.previewTemplate.querySelector('.progress').style.display = 'none'
 
     if (response.success === false) {
       var span = document.createElement('span')
-      span.innerHTML = response.description
+      span.innerHTML = response.description || response
       file.previewTemplate.querySelector('.link').appendChild(span)
       return
     }
@@ -166,7 +167,10 @@ upload.prepareDropzone = function () {
     a.target = '_blank'
     a.innerHTML = response.files[0].url
     file.previewTemplate.querySelector('.link').appendChild(a)
+  })
 
+  dropzone.on('error', (file, error) => {
+    console.error(error)
     file.previewTemplate.querySelector('.progress').style.display = 'none'
   })
 
