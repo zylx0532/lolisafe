@@ -63,6 +63,10 @@ panel.prepareDashboard = function () {
     panel.setActiveMenu(this)
   })
 
+  document.getElementById('itemFileLength').addEventListener('click', function () {
+    panel.setActiveMenu(this)
+  })
+
   document.getElementById('itemTokens').addEventListener('click', function () {
     panel.setActiveMenu(this)
   })
