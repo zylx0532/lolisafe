@@ -18,8 +18,10 @@ const storage = multer.diskStorage({
     cb(null, uploadDir)
   },
   filename: function (req, file, cb) {
+    // If the user has a preferred file length, make sure it follows the allowed range
+    const fileLength = req.params.fileLength ? Math.min(Math.max(req.params.fileLength, config.uploads.fileLength.min), config.uploads.fileLength.max) : config.uploads.fileLength.default
     const access = i => {
-      const name = randomstring.generate(config.uploads.fileLength) + path.extname(file.originalname)
+      const name = randomstring.generate(fileLength) + path.extname(file.originalname)
       fs.access(path.join(uploadDir, name), err => {
         if (err) return cb(null, name)
         console.log(`A file named "${name}" already exists (${++i}/${maxTries}).`)
@@ -36,12 +38,10 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: config.uploads.maxSize },
   fileFilter: function (req, file, cb) {
-    if (config.blockedExtensions !== undefined) {
-      if (config.blockedExtensions.some(extension => path.extname(file.originalname).toLowerCase() === extension)) {
-        // eslint-disable-next-line standard/no-callback-literal
-        return cb('This file extension is not allowed')
-      }
-      return cb(null, true)
+    if (config.blockedExtensions === undefined) return cb(null, true)
+    if (config.blockedExtensions.some(extension => path.extname(file.originalname).toLowerCase() === extension)) {
+      // eslint-disable-next-line standard/no-callback-literal
+      return cb('This file extension is not allowed.')
     }
     return cb(null, true)
   }
@@ -57,8 +57,11 @@ uploadsController.upload = async (req, res, next) => {
   if (user && (user.enabled === false || user.enabled === 0)) {
     return res.json({
       success: false,
-      description: 'This account has been disabled'
+      description: 'This account has been disabled.'
     })
+  }
+  if (user && user.fileLength) {
+    req.params.fileLength = user.fileLength
   }
   const albumid = req.headers.albumid || req.params.albumid
 
@@ -67,7 +70,7 @@ uploadsController.upload = async (req, res, next) => {
     if (!album) {
       return res.json({
         success: false,
-        description: 'Album doesn\'t exist or it doesn\'t belong to the user'
+        description: 'Album doesn\'t exist or it doesn\'t belong to the user.'
       })
     }
     return uploadsController.actuallyUpload(req, res, user, albumid)
@@ -167,14 +170,14 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 
   for (let file of files) {
     let ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateImageThumbnails && utils.imageExtensions.includes(ext)) || (config.uploads.generateVideoThumbnails && utils.videoExtensions.includes(ext))) {
+    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
       utils.generateThumbs(file)
     }
 
     if (file.albumid) {
       db.table('albums').where('id', file.albumid).update('editedAt', file.timestamp).then(() => {})
-        .catch(error => { console.log(error); res.json({ success: false, description: 'Error updating album' }) })
+        .catch(error => { console.log(error); res.json({ success: false, description: 'Error updating album.' }) })
     }
   }
 }
@@ -183,7 +186,7 @@ uploadsController.delete = async (req, res) => {
   const user = await utils.authorize(req, res)
   const id = req.body.id
   if (id === undefined || id === '') {
-    return res.json({ success: false, description: 'No file specified' })
+    return res.json({ success: false, description: 'No file specified.' })
   }
 
   const file = await db.table('files')
@@ -285,7 +288,7 @@ uploadsController.list = async (req, res) => {
     }
 
     let ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateImageThumbnails && utils.imageExtensions.includes(ext)) || (config.uploads.generateVideoThumbnails && utils.videoExtensions.includes(ext))) {
+    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
     }
   }

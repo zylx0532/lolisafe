@@ -7,10 +7,10 @@ const tokenController = {}
 
 tokenController.verify = async (req, res, next) => {
   const token = req.body.token
-  if (token === undefined) return res.status(401).json({ success: false, description: 'No token provided' })
+  if (token === undefined) return res.status(401).json({ success: false, description: 'No token provided.' })
 
   const user = await db.table('users').where('token', token).first()
-  if (!user) return res.status(401).json({ success: false, description: 'Invalid token' })
+  if (!user) return res.status(401).json({ success: false, description: 'Invalid token.' })
   return res.json({ success: true, username: user.username })
 }
 

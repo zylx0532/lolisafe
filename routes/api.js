@@ -33,5 +33,7 @@ routes.get('/albums/test', (req, res, next) => albumsController.test(req, res, n
 routes.get('/tokens', (req, res, next) => tokenController.list(req, res, next))
 routes.post('/tokens/verify', (req, res, next) => tokenController.verify(req, res, next))
 routes.post('/tokens/change', (req, res, next) => tokenController.change(req, res, next))
+routes.get('/fileLength/config', (req, res, next) => authController.getFileLengthConfig(req, res, next))
+routes.post('/fileLength/change', (req, res, next) => authController.changeFileLength(req, res, next))
 
 module.exports = routes

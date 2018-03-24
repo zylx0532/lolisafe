@@ -462,6 +462,63 @@ panel.getAlbum = function (item) {
   panel.getUploads(item.id)
 }
 
+panel.changeFileLength = function () {
+  axios.get('api/fileLength/config')
+    .then(function (response) {
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
+        else return swal('An error occurred', response.data.description, 'error')
+      }
+
+      panel.page.innerHTML = `
+        <h2 class="subtitle">Preferred file length</h2>
+
+        <div class="field">
+          <label class="label">Your current file length:</label>
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${response.data.fileLength ? Math.min(Math.max(response.data.fileLength, response.data.config.min), response.data.config.max) : response.data.config.default}">
+            </div>
+            <div class="control">
+              <a id="setFileLength" class="button is-primary">Set file length</a>
+            </div>
+          </div>
+          <p class="help">Default file length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file length is disabled at the moment.'}</p>
+        </div>
+      `
+
+      document.getElementById('setFileLength').addEventListener('click', function () {
+        panel.setFileLength(document.getElementById('fileLength').value)
+      })
+    })
+    .catch(function (error) {
+      console.log(error)
+      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+}
+
+panel.setFileLength = function (fileLength) {
+  axios.post('api/fileLength/change', { fileLength })
+    .then(function (response) {
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
+        else return swal('An error occurred', response.data.description, 'error')
+      }
+
+      swal({
+        title: 'Woohoo!',
+        text: 'Your file length was successfully changed.',
+        icon: 'success'
+      }).then(() => {
+        location.reload()
+      })
+    })
+    .catch(function (error) {
+      console.log(error)
+      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+}
+
 panel.changeToken = function () {
   axios.get('api/tokens')
     .then(function (response) {
@@ -506,7 +563,7 @@ panel.getNewToken = function () {
 
       swal({
         title: 'Woohoo!',
-        text: 'Your token was changed successfully.',
+        text: 'Your token was successfully changed.',
         icon: 'success'
       }).then(() => {
         localStorage.token = response.data.token
@@ -567,7 +624,7 @@ panel.sendNewPassword = function (pass) {
 
       swal({
         title: 'Woohoo!',
-        text: 'Your password was changed successfully.',
+        text: 'Your password was successfully changed.',
         icon: 'success'
       }).then(() => {
         location.reload()

@@ -19,7 +19,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
     file.file = `${basedomain}/${file.name}`
 
     let ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateImageThumbnails && utils.imageExtensions.includes(ext)) || (config.uploads.generateVideoThumbnails && utils.videoExtensions.includes(ext))) {
+    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
 
       /*

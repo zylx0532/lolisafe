@@ -64,8 +64,21 @@ module.exports = {
     */
     maxSize: '512MB',
 
-    // The length of the random generated name for the uploaded files
-    fileLength: 32,
+    /*
+      The length of the random generated name for the uploaded files.
+      If "userChangeable" is set to true, registered users will be able to change
+      their preferred file name length from the dashboard. The allowed range will
+      be set by "min" and "max". Otherwise it will use "default".
+      Technically it's possible to have "default" outside of the "min" and "max" range,
+      but please not. Once a user has changed to a number within the range, the user will
+      no longer be able to use the default value.
+    */
+    fileLength: {
+      min: 4,
+      max: 32,
+      default: 32,
+      userChangeable: false
+    },
 
     /*
       This option will limit how many times it will try to generate random names
@@ -79,8 +92,10 @@ module.exports = {
       to install a separate binary called graphicsmagick (http://www.graphicsmagick.org)
       for images and ffmpeg (https://ffmpeg.org/) for video files
     */
-    generateImageThumbnails: true,
-    generateVideoThumbnails: false,
+    generateThumbnails: {
+      image: true,
+      video: false
+    },
 
     /*
       Allows users to download a .zip file of all files in an album.

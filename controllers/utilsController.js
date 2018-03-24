@@ -23,10 +23,10 @@ utilsController.getPrettyDate = function (date) {
 
 utilsController.authorize = async (req, res) => {
   const token = req.headers.token
-  if (token === undefined) return res.status(401).json({ success: false, description: 'No token provided' })
+  if (token === undefined) return res.status(401).json({ success: false, description: 'No token provided.' })
 
   const user = await db.table('users').where('token', token).first()
-  if (!user) return res.status(401).json({ success: false, description: 'Invalid token' })
+  if (!user) return res.status(401).json({ success: false, description: 'Invalid token.' })
   return user
 }
 
@@ -36,8 +36,8 @@ utilsController.generateThumbs = function (file, basedomain) {
   const isImageExt = utilsController.imageExtensions.includes(ext)
 
   if (!isVideoExt && !isImageExt) return
-  if (isVideoExt && config.uploads.generateVideoThumbnails !== true) return
-  if (isImageExt && config.uploads.generateImageThumbnails !== true) return
+  if (isVideoExt && config.uploads.generateThumbnails.video !== true) return
+  if (isImageExt && config.uploads.generateThumbnails.image !== true) return
 
   let thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
   fs.access(thumbname, err => {
