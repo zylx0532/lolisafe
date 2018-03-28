@@ -233,7 +233,7 @@ upload.appendLink = (file, url) => {
   const clipboard = file.previewTemplate.querySelector('.clipboard-mobile > .clipboard-js')
 
   a.href = a.innerHTML = clipboard.dataset['clipboardText'] = url
-  a.parentElement.style = ''
+  a.parentElement.style = clipboard.parentElement.style = ''
 }
 
 upload.showThumbnail = (file, url) => {

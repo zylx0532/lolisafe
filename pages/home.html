@@ -17,7 +17,7 @@
     <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/axios/axios.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=8FbubjpYRC"></script>
-    <script type="text/javascript" src="js/home.js?v=F3pjG5g7vZ"></script>
+    <script type="text/javascript" src="js/home.js?v=BN63JuN6My"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -54,6 +54,14 @@
     <style>
       #dropzone * {
         pointer-events: none;
+      }
+
+      img[data-dz-thumbnail] {
+        max-width: 200px;
+      }
+
+      .clipboard-mobile {
+        margin-top: 5px;
       }
     </style>
 
@@ -94,12 +102,12 @@
               <div class="column is-hidden-mobile"></div>
               <div class="column">
                 <progress class="progress is-small is-danger" value="0" max="100"></progress>
-                <img class="is-unselectable" style="max-width: 200px" data-dz-thumbnail>
+                <img class="is-unselectable" data-dz-thumbnail>
                 <p class="error"></p>
                 <p class="link" style="display: none">
                   <a target="_blank"></a>
                 </p>
-                <p class="clipboard-mobile is-hidden-desktop" style="margin-top: 5px">
+                <p class="clipboard-mobile is-hidden-desktop" style="display: none">
                   <a class="button is-info is-outlined clipboard-js" style="display: flex">
                     <span class="icon">
                       <i class="icon-attach"></i>
