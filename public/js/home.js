@@ -230,11 +230,9 @@ upload.prepareDropzone = () => {
 
 upload.appendLink = (file, url) => {
   const a = file.previewTemplate.querySelector('.link > a')
-  const clipTablet = file.previewTemplate.querySelector('.link > .clipboard-js')
-  const clipMobile = file.previewTemplate.querySelector('.clipboard-mobile > .clipboard-js')
+  const clipboard = file.previewTemplate.querySelector('.clipboard-mobile > .clipboard-js')
 
-  console.log(url)
-  a.href = a.innerHTML = clipTablet.dataset['clipboardText'] = clipMobile.dataset['clipboardText'] = url
+  a.href = a.innerHTML = clipboard.dataset['clipboardText'] = url
   a.parentElement.style = ''
 }
 
