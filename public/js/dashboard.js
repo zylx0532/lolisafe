@@ -225,7 +225,7 @@ panel.getUploads = (album, page, element) => {
 
         tr.innerHTML = `
           <tr>
-            <th><a href="${item.file}" target="_blank" onclick="event.stopPropagation()">${item.file}</a></th>
+            <th><a href="${item.file}" target="_blank">${item.file}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${item.size}</td>
             <td>${item.date}</td>
@@ -235,7 +235,7 @@ panel.getUploads = (album, page, element) => {
                   <i class="icon-attach"></i>
                 </span>
               </a>
-              <a class="button is-small is-danger is-outlined" title="Delete album" panel.deleteFile(${item.id}, ${album}, ${page})">
+              <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
                 <span class="icon is-small">
                   <i class="icon-trash-1"></i>
                 </span>
