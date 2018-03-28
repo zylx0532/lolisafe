@@ -85,6 +85,10 @@ panel.logout = () => {
   location.reload('.')
 }
 
+panel.closeModal = () => {
+  document.getElementById('modal').className = 'modal'
+}
+
 panel.getUploads = (album, page) => {
   if (page === undefined) page = 0
 
@@ -207,12 +211,12 @@ panel.getUploads = (album, page) => {
 
         tr.innerHTML = `
           <tr>
-            <th><a href="${item.file}" target="_blank">${item.file}</a></th>
+            <th><a href="${item.file}" target="_blank" onclick="event.stopPropagation()">${item.file}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${item.size}</td>
             <td>${item.date}</td>
             <td>
-              <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
+              <a class="button is-small is-danger is-outlined" title="Delete album" onclick="event.stopPropagation(); panel.deleteFile(${item.id}, ${album}, ${page})">
                 <span class="icon is-small">
                   <i class="fa icon-trash"></i>
                 </span>
@@ -222,6 +226,13 @@ panel.getUploads = (album, page) => {
         `
 
         table.appendChild(tr)
+
+        if (item.thumb) {
+          tr.addEventListener('click', function (event) {
+            document.getElementById('modalImage').src = item.thumb
+            document.getElementById('modal').className += ' is-active'
+          })
+        }
       }
     }
   })

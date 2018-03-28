@@ -13,10 +13,10 @@
     <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=K6t86DbYuR">
     <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=V2RnA3Mwhh">
     <link rel="stylesheet" type="text/css" href="css/style.css?v=XcTZuW9fFV">
-    <link rel="stylesheet" type="text/css" href="css/dashboard.css?v=K6t86DbYuR">
+    <link rel="stylesheet" type="text/css" href="css/dashboard.css?v=GBG98Tjuxh">
     <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=K6t86DbYuR"></script>
     <script type="text/javascript" src="libs/axios/axios.min.js?v=V2RnA3Mwhh"></script>
-    <script type="text/javascript" src="js/dashboard.js?v=K6t86DbYuR"></script>
+    <script type="text/javascript" src="js/dashboard.js?v=GBG98Tjuxh"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -54,7 +54,7 @@
 
   <body>
 
-    <section id='auth' class="hero is-light is-fullheight">
+    <section id="auth" class="hero is-light is-fullheight">
 
       <div class="hero-body">
         <div class="container">
@@ -63,8 +63,8 @@
           </h1>
           <h2 class="subtitle">
             <p class="control has-addons">
-              <input id='token' class="input is-danger" type="text" placeholder="Your admin token">
-              <a id='tokenSubmit' class="button is-danger is-outlined">Check</a>
+              <input id="token" class="input is-danger" type="text" placeholder="Your admin token">
+              <a id="tokenSubmit" class="button is-danger is-outlined">Check</a>
             </p>
           </h2>
         </div>
@@ -86,7 +86,7 @@
 
         <div class="columns">
           <div class="column is-one-quarter">
-            <aside class="menu" id="menu">
+            <aside id="menu" class="menu">
               <p class="menu-label">General</p>
               <ul class="menu-list">
                 <li>
@@ -102,7 +102,7 @@
                   <a id="itemManageGallery" onclick="panel.getAlbums()">Manage your albums</a>
                 </li>
                 <li>
-                  <ul id='albumsContainer'></ul>
+                  <ul id="albumsContainer"></ul>
                 </li>
               </ul>
               <p class="menu-label">Administration</p>
@@ -122,7 +122,7 @@
               </ul>
             </aside>
           </div>
-          <div class="column has-text-centered is-third-quarters" id='page'>
+          <div id="page" class="column has-text-centered is-third-quarters">
             <img src="images/logo.png">
           </div>
         </div>
@@ -130,5 +130,16 @@
       </div>
 
     </section>
+
+    <div id="modal" class="modal">
+      <div class="modal-background" onclick="panel.closeModal()"></div>
+      <div class="modal-content" style="background-color: #31363b; border-radius: 5px; box-shadow: 0 2px 3px rgba(10,10,10,.1),0 0 0 1px rgba(10,10,10,.1); padding: 20px; width: auto;">
+        <figure class="image" style="width: 200px; height: 200px; display: flex; align-items: center;">
+          <img id="modalImage">
+        </figure>
+      </div>
+      <button class="modal-close is-large" aria-label="close" onclick="panel.closeModal()"></button>
+    </div>
+
   </body>
 </html>
