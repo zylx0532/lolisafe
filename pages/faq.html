@@ -68,14 +68,16 @@
           <h2 class='subtitle'>What is safe.fiery.me?</h2>
           <article class="message">
             <div class="message-body">
-              safe.fiery.me is merely another clone of lolisafe. lolisafe itself is an easy to use, open source and completely free file upload service. We accept your files, photos, documents, anything, and give you back a shareable link for you to send to others. On a side note, this site was originally made for personal usage but I disabled private mode in the end, so yeah, feel free..
+              safe.fiery.me is merely another clone of lolisafe.<br>
+              lolisafe itself is an easy to use, open source and completely free file upload service. We accept your files, photos, documents, anything, and give you back a shareable link for you to send to others.<br>
+              On a side note, this site was originally made for personal use but I figured it would be rather lonely, so yeah, feel free..
             </div>
           </article>
 
           <h2 class='subtitle'>Will you keep my files forever?</h2>
           <article class="message">
             <div class="message-body">
-              Unless we receive a copyright complain or some other bullshit, we will.
+              Unless I receive a copyright complain or some other bullshit, I will.
             </div>
           </article>
 
@@ -93,14 +95,14 @@
             <div class="message-body">
               Albums are a simple way of sorting uploads together. Right now you can create albums through the dashboard and use them <s>only</s>* with <a target="_blank" href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj">our chrome extension</a> which will enable you to <strong>right click -> send to lolisafe</strong> or to a desired album if you have any. You will probably have to change some things involving https://safe.fiery.me/api/upload.<br>
               <br>
-              * You are no longer required to use the chrome extension to utilize albums. As long as you are logged in, you will be able to choose your albums from the upload page (of course the albums had to be created first from the dashboard).
+              * You are no longer required to use the chrome extension to utilize albums. As long as you are logged in, you will be able to choose your albums from the upload page (of course the albums have to be created beforehand through the dashboard).
             </div>
           </article>
 
           <h2 class='subtitle'>Why should I use this?</h2>
           <article class="message">
             <div class="message-body">
-              I don't know ¯\_(ツ)_/¯.
+              I don't know.
             </div>
           </article>
 
@@ -111,12 +113,16 @@
             </div>
           </article>
 
-          <h2 class='subtitle'>Chunked uploads?</h2>
+          <h2 class='subtitle'>Do you support chunked uploads?</h2>
           <article class="message">
             <div class="message-body">
-              Yes. Just add two text fields containing the file's UUID and the chunk's index, named "uuid" and "chunkindex" respectively, to the multipart/form-data that you POST to https://safe.fiery.me/api/upload. Once all chunks have been successfully uploaded, then you can POST a JSON request to https://safe.fiery.me/api/upload containing the file's UUID, original filename, original size, mime type and chunk counts, with keys "uuid", "original", "size", "type" and "count" respectively.<br>
+              Yes. Just add three text fields containing the file's UUID, the chunk's index and the total amount of chunks, named "uuid", "chunkindex" and "totalchunkcount" respectively, into the multipart/form-data that you POST to https://safe.fiery.me/api/upload.<br>
+              Once all chunks have been successfully uploaded, then you have to POST a JSON request to https://safe.fiery.me/api/upload/finishchunks containing the file's UUID, original filename, original size, mime type and chunk counts, with keys "uuid", "original", "size", "type" and "count" respectively (make sure the object is inside an array named "files").<br>
+              Check out <a href="https://gist.github.com/BobbyWibowo/de9ef40426421ae6c5e2999556e70521" target="_blank">this gist</a> for an example POST request.<br>
               <br>
-              If that sounds too complicated, then just try to trigger chunked uploads with the home page's uploader and inspect the HTTP requests.
+              If that sounds too complicated, then just try to trigger chunked uploads with the home page's uploader and inspect the HTTP requests...<br>
+              <br>
+              By the way, "totalchunkcount" can be omitted if the amount of chunks is only 10 or less.
             </div>
           </article>
 

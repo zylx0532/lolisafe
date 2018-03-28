@@ -49,8 +49,11 @@ const storage = multer.diskStorage({
       return uploadsController.getUniqueRandomName(length, extension, cb)
     }
 
-    // index.extension (ei. 0.jpg, 1.jpg)
-    return cb(null, req.body.chunkindex + extension)
+    // index.extension (e.i. 0.jpg, 1.jpg, ..., n.jpg - will prepend zeros depending on the amount of chunks)
+    const digits = req.body.totalchunkcount !== undefined ? String(req.body.totalchunkcount - 1).length : 1
+    const zeros = new Array(digits + 1).join('0')
+    const name = (zeros + req.body.chunkindex).slice(-digits)
+    return cb(null, name + extension)
   }
 })
 
