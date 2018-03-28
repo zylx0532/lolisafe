@@ -10,7 +10,7 @@ const albumsController = {}
 albumsController.list = async (req, res, next) => {
   const albumDomain = config.albumDomain || config.domain
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   const fields = ['id', 'name']
   if (req.params.sidebar === undefined) {
@@ -35,16 +35,16 @@ albumsController.list = async (req, res, next) => {
   const files = await db.table('files').whereIn('albumid', ids).select('albumid')
   const albumsCount = {}
 
-  for (let id of ids) albumsCount[id] = 0
-  for (let file of files) albumsCount[file.albumid] += 1
-  for (let album of albums) album.files = albumsCount[album.id]
+  for (let id of ids) { albumsCount[id] = 0 }
+  for (let file of files) { albumsCount[file.albumid] += 1 }
+  for (let album of albums) { album.files = albumsCount[album.id] }
 
   return res.json({ success: true, albums })
 }
 
 albumsController.create = async (req, res, next) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   const name = req.body.name
   if (name === undefined || name === '') {
@@ -76,7 +76,7 @@ albumsController.create = async (req, res, next) => {
 
 albumsController.delete = async (req, res, next) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   const id = req.body.id
   if (id === undefined || id === '') {
@@ -89,7 +89,7 @@ albumsController.delete = async (req, res, next) => {
 
 albumsController.rename = async (req, res, next) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   const id = req.body.id
   if (id === undefined || id === '') {
@@ -112,10 +112,10 @@ albumsController.rename = async (req, res, next) => {
 
 albumsController.get = async (req, res, next) => {
   const identifier = req.params.identifier
-  if (identifier === undefined) return res.status(401).json({ success: false, description: 'No identifier provided.' })
+  if (identifier === undefined) { return res.status(401).json({ success: false, description: 'No identifier provided.' }) }
 
   const album = await db.table('albums').where({ identifier, enabled: 1 }).first()
-  if (!album) return res.json({ success: false, description: 'Album not found.' })
+  if (!album) { return res.json({ success: false, description: 'Album not found.' }) }
 
   const title = album.name
   const files = await db.table('files').select('name').where('albumid', album.id).orderBy('id', 'DESC')
@@ -139,11 +139,11 @@ albumsController.get = async (req, res, next) => {
 
 albumsController.generateZip = async (req, res, next) => {
   const identifier = req.params.identifier
-  if (identifier === undefined) return res.status(401).json({ success: false, description: 'No identifier provided.' })
-  if (!config.uploads.generateZips) return res.status(401).json({ success: false, description: 'Zip generation disabled.' })
+  if (identifier === undefined) { return res.status(401).json({ success: false, description: 'No identifier provided.' }) }
+  if (!config.uploads.generateZips) { return res.status(401).json({ success: false, description: 'Zip generation disabled.' }) }
 
   const album = await db.table('albums').where({ identifier, enabled: 1 }).first()
-  if (!album) return res.json({ success: false, description: 'Album not found.' })
+  if (!album) { return res.json({ success: false, description: 'Album not found.' }) }
 
   if (album.zipGeneratedAt > album.editedAt) {
     const filePath = path.join(config.uploads.folder, 'zips', `${identifier}.zip`)
@@ -152,7 +152,7 @@ albumsController.generateZip = async (req, res, next) => {
   } else {
     console.log(`Generating zip for album identifier: ${identifier}`)
     const files = await db.table('files').select('name').where('albumid', album.id)
-    if (files.length === 0) return res.json({ success: false, description: 'There are no files in the album.' })
+    if (files.length === 0) { return res.json({ success: false, description: 'There are no files in the album.' }) }
 
     const zipPath = path.join(__dirname, '..', config.uploads.folder, 'zips', `${album.identifier}.zip`)
     let archive = new Zip()

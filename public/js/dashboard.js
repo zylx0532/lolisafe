@@ -89,16 +89,29 @@ panel.closeModal = () => {
   document.getElementById('modal').className = 'modal'
 }
 
-panel.getUploads = (album, page) => {
-  if (page === undefined) page = 0
+panel.isLoading = (element, state) => {
+  if (!element) { return }
+  if (state && !element.className.includes(' is-loading')) {
+    element.className += ' is-loading'
+  } else if (!state && element.className.includes(' is-loading')) {
+    element.className = element.className.replace(' is-loading', '')
+  }
+}
+
+panel.getUploads = (album, page, element) => {
+  if (element) { panel.isLoading(element, true) }
+  if (page === undefined) { page = 0 }
 
   let url = 'api/uploads/' + page
   if (album !== undefined) { url = 'api/album/' + album + '/' + page }
 
   axios.get(url).then(response => {
     if (response.data.success === false) {
-      if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-      else return swal('An error occurred', response.data.description, 'error')
+      if (response.data.description === 'No token provided') {
+        return panel.verifyToken(panel.token)
+      } else {
+        return swal('An error occurred', response.data.description, 'error')
+      }
     }
 
     let prevPage = 0
@@ -106,23 +119,23 @@ panel.getUploads = (album, page) => {
 
     if (response.data.files.length < 25) { nextPage = page }
 
-    if (page > 0) prevPage = page - 1
+    if (page > 0) { prevPage = page - 1 }
 
     const pagination = `
       <nav class="pagination is-centered">
-        <a class="pagination-previous" onclick="panel.getUploads(${album}, ${prevPage})">Previous</a>
-        <a class="pagination-next" onclick="panel.getUploads(${album}, ${nextPage})">Next page</a>
+        <a class="button pagination-previous" onclick="panel.getUploads(${album}, ${prevPage}, this)">Previous</a>
+        <a class="button pagination-next" onclick="panel.getUploads(${album}, ${nextPage}, this)">Next page</a>
       </nav>
     `
     const listType = `
       <div class="columns">
         <div class="column">
-          <a class="button is-small is-outlined is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page})">
+          <a class="button is-small is-outlined is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page}, this)">
             <span class="icon is-small">
               <i class="fa icon-list-bullet"></i>
             </span>
           </a>
-          <a class="button is-small is-outlined is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', ${album}, ${page})">
+          <a class="button is-small is-outlined is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', ${album}, ${page}, this)">
             <span class="icon is-small">
               <i class="fa icon-th-large"></i>
             </span>
@@ -242,10 +255,10 @@ panel.getUploads = (album, page) => {
     })
 }
 
-panel.setFilesView = (view, album, page) => {
+panel.setFilesView = (view, album, page, element) => {
   localStorage.filesView = view
   panel.filesView = view
-  panel.getUploads(album, page)
+  panel.getUploads(album, page, element)
 }
 
 panel.deleteFile = (id, album, page) => {
@@ -262,14 +275,17 @@ panel.deleteFile = (id, album, page) => {
       }
     }
   }).then(value => {
-    if (!value) return
+    if (!value) { return }
     axios.post('api/upload/delete', {
       id: id
     })
       .then(response => {
         if (response.data.success === false) {
-          if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-          else return swal('An error occurred', response.data.description, 'error')
+          if (response.data.description === 'No token provided') {
+            return panel.verifyToken(panel.token)
+          } else {
+            return swal('An error occurred', response.data.description, 'error')
+          }
         }
 
         swal('Deleted!', 'The file has been deleted.', 'success')
@@ -285,8 +301,11 @@ panel.deleteFile = (id, album, page) => {
 panel.getAlbums = () => {
   axios.get('api/albums').then(response => {
     if (response.data.success === false) {
-      if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-      else return swal('An error occurred', response.data.description, 'error')
+      if (response.data.description === 'No token provided') {
+        return panel.verifyToken(panel.token)
+      } else {
+        return swal('An error occurred', response.data.description, 'error')
+      }
     }
 
     panel.page.innerHTML = `
@@ -349,7 +368,7 @@ panel.getAlbums = () => {
     }
 
     document.getElementById('submitAlbum').addEventListener('click', function () {
-      panel.submitAlbum()
+      panel.submitAlbum(this)
     })
   })
     .catch(err => {
@@ -376,16 +395,14 @@ panel.renameAlbum = id => {
       }
     }
   }).then(value => {
-    if (!value) return swal.close()
+    if (!value) { return swal.close() }
     axios.post('api/albums/rename', {
       id: id,
       name: value
     })
       .then(response => {
         if (response.data.success === false) {
-          if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-          else if (response.data.description === 'Name already in use') swal.showInputError('That name is already in use!')
-          else swal('An error occurred', response.data.description, 'error')
+          if (response.data.description === 'No token provided') { return panel.verifyToken(panel.token) } else if (response.data.description === 'Name already in use') { swal.showInputError('That name is already in use!') } else { swal('An error occurred', response.data.description, 'error') }
           return
         }
 
@@ -414,14 +431,17 @@ panel.deleteAlbum = id => {
       }
     }
   }).then(value => {
-    if (!value) return
+    if (!value) { return }
     axios.post('api/albums/delete', {
       id: id
     })
       .then(response => {
         if (response.data.success === false) {
-          if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-          else return swal('An error occurred', response.data.description, 'error')
+          if (response.data.description === 'No token provided') {
+            return panel.verifyToken(panel.token)
+          } else {
+            return swal('An error occurred', response.data.description, 'error')
+          }
         }
 
         swal('Deleted!', 'Your album has been deleted.', 'success')
@@ -435,14 +455,19 @@ panel.deleteAlbum = id => {
   })
 }
 
-panel.submitAlbum = () => {
+panel.submitAlbum = element => {
+  panel.isLoading(element, true)
   axios.post('api/albums', {
     name: document.getElementById('albumName').value
   })
-    .then(response => {
+    .then(async response => {
+      panel.setLoading(element, false)
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       swal('Woohoo!', 'Album was added successfully', 'success')
@@ -451,6 +476,7 @@ panel.submitAlbum = () => {
     })
     .catch(err => {
       console.log(err)
+      panel.setLoading(element, false)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
@@ -459,14 +485,17 @@ panel.getAlbumsSidebar = () => {
   axios.get('api/albums/sidebar')
     .then(response => {
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       const albumsContainer = document.getElementById('albumsContainer')
       albumsContainer.innerHTML = ''
 
-      if (response.data.albums === undefined) return
+      if (response.data.albums === undefined) { return }
 
       for (const album of response.data.albums) {
         const li = document.createElement('li')
@@ -497,8 +526,11 @@ panel.changeFileLength = () => {
   axios.get('api/filelength/config')
     .then(response => {
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       panel.page.innerHTML = `
@@ -519,7 +551,7 @@ panel.changeFileLength = () => {
       `
 
       document.getElementById('setFileLength').addEventListener('click', function () {
-        panel.setFileLength(document.getElementById('fileLength').value)
+        panel.setFileLength(document.getElementById('fileLength').value, this)
       })
     })
     .catch(err => {
@@ -528,12 +560,17 @@ panel.changeFileLength = () => {
     })
 }
 
-panel.setFileLength = fileLength => {
+panel.setFileLength = (fileLength, element) => {
+  panel.isLoading(element, true)
   axios.post('api/filelength/change', { fileLength })
     .then(response => {
+      panel.isLoading(element, false)
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       swal({
@@ -546,6 +583,7 @@ panel.setFileLength = fileLength => {
     })
     .catch(err => {
       console.log(err)
+      panel.isLoading(element, false)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
@@ -554,8 +592,11 @@ panel.changeToken = () => {
   axios.get('api/tokens')
     .then(response => {
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       panel.page.innerHTML = `
@@ -575,7 +616,7 @@ panel.changeToken = () => {
       `
 
       document.getElementById('getNewToken').addEventListener('click', function () {
-        panel.getNewToken()
+        panel.getNewToken(this)
       })
     })
     .catch(err => {
@@ -584,12 +625,17 @@ panel.changeToken = () => {
     })
 }
 
-panel.getNewToken = () => {
+panel.getNewToken = element => {
+  panel.isLoading(element, true)
   axios.post('api/tokens/change')
     .then(response => {
+      panel.isLoading(element, false)
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       swal({
@@ -603,6 +649,7 @@ panel.getNewToken = () => {
     })
     .catch(err => {
       console.log(err)
+      panel.isLoading(element, false)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
@@ -632,7 +679,7 @@ panel.changePassword = () => {
 
   document.getElementById('sendChangePassword').addEventListener('click', function () {
     if (document.getElementById('password').value === document.getElementById('passwordConfirm').value) {
-      panel.sendNewPassword(document.getElementById('password').value)
+      panel.sendNewPassword(document.getElementById('password').value, this)
     } else {
       swal({
         title: 'Password mismatch!',
@@ -645,12 +692,17 @@ panel.changePassword = () => {
   })
 }
 
-panel.sendNewPassword = pass => {
-  axios.post('api/password/change', {password: pass})
+panel.sendNewPassword = (pass, element) => {
+  panel.isLoading(element, true)
+  axios.post('api/password/change', { password: pass })
     .then(response => {
+      panel.isLoading(element, false)
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
-        else return swal('An error occurred', response.data.description, 'error')
+        if (response.data.description === 'No token provided') {
+          return panel.verifyToken(panel.token)
+        } else {
+          return swal('An error occurred', response.data.description, 'error')
+        }
       }
 
       swal({
@@ -663,6 +715,7 @@ panel.sendNewPassword = pass => {
     })
     .catch(err => {
       console.log(err)
+      panel.isLoading(element, false)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }

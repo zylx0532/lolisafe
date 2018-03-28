@@ -10,5 +10,6 @@ npm-debug.log
 pages/custom/**
 migrate.js
 yarn.lock
+yarn-error.log
 package-lock.json
 .vscode/

@@ -26,11 +26,11 @@ utilsController.getPrettyDate = function (date) {
 utilsController.getPrettyBytes = function (num) {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-  if (!Number.isFinite(num)) return num
+  if (!Number.isFinite(num)) { return num }
 
   const neg = num < 0
-  if (neg) num = -num
-  if (num < 1) return (neg ? '-' : '') + num + ' B'
+  if (neg) { num = -num }
+  if (num < 1) { return (neg ? '-' : '') + num + ' B' }
 
   const exponent = Math.min(Math.floor(Math.log10(num) / 3), units.length - 1)
   const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
@@ -47,7 +47,7 @@ utilsController.authorize = async (req, res) => {
   }
 
   const user = await db.table('users').where('token', token).first()
-  if (user) return user
+  if (user) { return user }
   res.status(401).json({ success: false, description: 'Invalid token.' })
 }
 
@@ -56,9 +56,9 @@ utilsController.generateThumbs = function (file, basedomain) {
   const isVideoExt = utilsController.videoExtensions.includes(ext)
   const isImageExt = utilsController.imageExtensions.includes(ext)
 
-  if (!isVideoExt && !isImageExt) return
-  if (isVideoExt && config.uploads.generateThumbnails.video !== true) return
-  if (isImageExt && config.uploads.generateThumbnails.image !== true) return
+  if (!isVideoExt && !isImageExt) { return }
+  if (isVideoExt && config.uploads.generateThumbnails.video !== true) { return }
+  if (isImageExt && config.uploads.generateThumbnails.image !== true) { return }
 
   let thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
   fs.access(thumbname, err => {
@@ -83,7 +83,7 @@ utilsController.generateThumbs = function (file, basedomain) {
           .extent(size.width, size.height)
           .background('transparent')
           .write(thumbname, error => {
-            if (error) console.log('Error - ', error)
+            if (error) { console.log('Error - ', error) }
           })
       }
     }

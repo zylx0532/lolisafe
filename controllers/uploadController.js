@@ -28,11 +28,11 @@ const storage = multer.diskStorage({
     const uuidDir = path.join(chunksDir, req.body.uuid)
     fs.access(uuidDir, err => {
       // If it exists, callback
-      if (!err) return cb(null, uuidDir)
+      if (!err) { return cb(null, uuidDir) }
       // It it doesn't, then make it first
       fs.mkdir(uuidDir, err => {
         // If there was no error, callback
-        if (!err) return cb(null, uuidDir)
+        if (!err) { return cb(null, uuidDir) }
         // Otherwise, log it
         console.log(err)
         // eslint-disable-next-line standard/no-callback-literal
@@ -81,7 +81,7 @@ const upload = multer({
       const keys = Object.keys(req.body)
       if (keys.length) {
         for (const key of keys) {
-          if (!/^dz/.test(key)) continue
+          if (!/^dz/.test(key)) { continue }
           req.body[key.replace(/^dz/, '')] = req.body[key]
           delete req.body[key]
         }
@@ -114,11 +114,11 @@ uploadsController.getUniqueRandomName = (length, extension, cb) => {
     const name = randomstring.generate(length) + extension
     fs.access(path.join(uploadDir, name), err => {
       // If a file with the same name does not exist
-      if (err) return cb(null, name)
+      if (err) { return cb(null, name) }
       // If a file with the same name already exists, log to console
       console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
       // If it still haven't reached allowed maximum tries, then try again
-      if (i < maxTries) return access(i)
+      if (i < maxTries) { return access(i) }
       // eslint-disable-next-line standard/no-callback-literal
       return cb('Could not allocate a unique random name. Try again?')
     })
@@ -131,7 +131,7 @@ uploadsController.upload = async (req, res, next) => {
   let user
   if (config.private === true) {
     user = await utils.authorize(req, res)
-    if (!user) return
+    if (!user) { return }
   } else if (req.headers.token) {
     user = await db.table('users').where('token', req.headers.token).first()
   }
@@ -172,12 +172,12 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
   }
 
   upload(req, res, async err => {
-    if (err) return erred(err)
+    if (err) { return erred(err) }
 
-    if (req.files.length === 0) return erred(new Error('No files.'))
+    if (req.files.length === 0) { return erred(new Error('No files.')) }
 
     // If chunked uploads is enabeld and the uploaded file is a chunk, then just say that it was a success
-    if (chunkedUploads && req.body.uuid) return res.json({ success: true })
+    if (chunkedUploads && req.body.uuid) { return res.json({ success: true }) }
 
     const infoMap = req.files.map(file => {
       return {
@@ -206,7 +206,7 @@ uploadsController.finishChunks = async (req, res, next) => {
   let user
   if (config.private === true) {
     user = await utils.authorize(req, res)
-    if (!user) return
+    if (!user) { return }
   } else if (req.headers.token) {
     user = await db.table('users').where('token', req.headers.token).first()
   }
@@ -247,25 +247,25 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   }
 
   const files = req.body.files
-  if (!files) return erred(new Error('Missing files array.'))
+  if (!files) { return erred(new Error('Missing files array.')) }
 
   let iteration = 0
   const infoMap = []
   files.forEach(file => {
     const { uuid, count } = file
-    if (!uuid || !count) return erred(new Error('Missing UUID and/or chunks count.'))
+    if (!uuid || !count) { return erred(new Error('Missing UUID and/or chunks count.')) }
 
     const chunksDirUuid = path.join(chunksDir, uuid)
 
     fs.readdir(chunksDirUuid, async (err, chunks) => {
-      if (err) return erred(err)
-      if (count < chunks.length) return erred(new Error('Chunks count mismatch.'))
+      if (err) { return erred(err) }
+      if (count < chunks.length) { return erred(new Error('Chunks count mismatch.')) }
 
       const extension = path.extname(chunks[0])
       const length = uploadsController.getFileNameLength(req)
 
       uploadsController.getUniqueRandomName(length, extension, async (err, name) => {
-        if (err) return erred(err)
+        if (err) { return erred(err) }
 
         const destination = path.join(uploadDir, name)
         const destFileStream = fs.createWriteStream(destination, { flags: 'a' })
@@ -280,7 +280,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
           }
         })
 
-        if (!appended) return
+        if (!appended) { return }
 
         infoMap.push({
           path: destination,
@@ -348,8 +348,11 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
         const fileHash = hash.digest('hex')
         const dbFile = await db.table('files')
           .where(function () {
-            if (user === undefined) this.whereNull('userid')
-            else this.where('userid', user.id)
+            if (user === undefined) {
+              this.whereNull('userid')
+            } else {
+              this.where('userid', user.id)
+            }
           })
           .where({
             hash: fileHash,
@@ -433,7 +436,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 
 uploadsController.delete = async (req, res) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
   const id = req.body.id
   if (id === undefined || id === '') {
     return res.json({ success: false, description: 'No file specified.' })
@@ -451,7 +454,7 @@ uploadsController.delete = async (req, res) => {
   try {
     await uploadsController.deleteFile(file.name).catch(err => {
       // ENOENT is missing file, for whatever reason, then just delete from db
-      if (err.code !== 'ENOENT') throw err
+      if (err.code !== 'ENOENT') { throw err }
     })
     await db.table('files').where('id', id).del()
     if (file.albumid) {
@@ -494,18 +497,21 @@ uploadsController.deleteFile = function (file) {
 
 uploadsController.list = async (req, res) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   let offset = req.params.page
-  if (offset === undefined) offset = 0
+  if (offset === undefined) { offset = 0 }
 
   const files = await db.table('files')
     .where(function () {
-      if (req.params.id === undefined) this.where('id', '<>', '')
-      else this.where('albumid', req.params.id)
+      if (req.params.id === undefined) {
+        this.where('id', '<>', '')
+      } else {
+        this.where('albumid', req.params.id)
+      }
     })
     .where(function () {
-      if (user.username !== 'root') this.where('userid', user.id)
+      if (user.username !== 'root') { this.where('userid', user.id) }
     })
     .orderBy('id', 'DESC')
     .limit(25)
@@ -546,10 +552,10 @@ uploadsController.list = async (req, res) => {
   }
 
   // If we are a normal user, send response
-  if (user.username !== 'root') return res.json({ success: true, files })
+  if (user.username !== 'root') { return res.json({ success: true, files }) }
 
   // If we are root but there are no uploads attached to a user, send response
-  if (userids.length === 0) return res.json({ success: true, files })
+  if (userids.length === 0) { return res.json({ success: true, files }) }
 
   const users = await db.table('users').whereIn('id', userids)
   for (let dbUser of users) {

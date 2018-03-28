@@ -43,10 +43,10 @@ let init = function (db) {
         table.integer('timestamp')
       }).then(() => {
         db.table('users').where({username: 'root'}).then((user) => {
-          if (user.length > 0) return
+          if (user.length > 0) { return }
 
           require('bcrypt').hash('root', 10, function (err, hash) {
-            if (err) console.error('Error generating password hash for root')
+            if (err) { console.error('Error generating password hash for root') }
 
             db.table('users').insert({
               username: 'root',

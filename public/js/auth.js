@@ -33,7 +33,7 @@ page.do = dest => {
 
 page.onkeypress = function (event, element) {
   event = event || window.event
-  if (!event) return
+  if (!event) { return }
   if (event.keyCode === 13 || event.which === 13) {
     return this.do('login')
   }
@@ -41,7 +41,7 @@ page.onkeypress = function (event, element) {
 
 page.verify = () => {
   page.token = localStorage.token
-  if (page.token === undefined) return
+  if (page.token === undefined) { return }
 
   axios.post('api/tokens/verify', {
     token: page.token

@@ -1,18 +1,14 @@
-![loli-safe](https://s.fiery.me/rlpHkNJejaYKuVesQN1Gxtm43NokI8WQ.png)
+![loli-safe](https://s.fiery.me/cFUN.png)  
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://raw.githubusercontent.com/kanadeko/Kuro/master/LICENSE)
 [![Chat / Support](https://img.shields.io/badge/Chat%20%2F%20Support-discord-7289DA.svg?style=flat-square)](https://discord.gg/5g6vgwn)
 
 # lolisafe, a small safe worth protecting.
 
 ## What is `safe.fiery.me` branch?
-This branch is the one being used at https://safe.fiery.me. If you are looking for the original, head to `master` branch, or even better to [WeebDev/lolisafe](https://github.com/WeebDev/lolisafe).
-
-## What's new in v3.0.0
-- Backend rewrite to make it faster, better and easier to extend
-- Album downloads (Thanks to [PascalTemel](https://github.com/PascalTemel))
-- See releases for changelog
-
-If you're upgrading from a version prior to v3.0.0 make sure to run **ONCE** `node database/migration.js` to create the missing columns on the database.
+[![JavaScript Style Guide](https://cdn.rawgit.com/standard/standard/master/badge.svg)](https://github.com/standard/standard)  
+This branch is the one being used at https://safe.fiery.me. If you are looking for the original, head to `master` branch, or even better to [WeebDev/lolisafe](https://github.com/WeebDev/lolisafe).  
+If you want to use an existing lolisafe database with this branch, make sure to run `node database/migration.js` at least once to create some new columns introduced in this branch. You can ignore any errors about duplicate columns.  
+Configuration file of lolisafe, `config.js`, is not 100% compatible with this branch. There are some options that had been renamed and/or restructured. Please make sure your config matches the sample in `config.sample.js` before starting.
 
 ## Running
 1. Ensure you have at least version 7.6.0 of node installed

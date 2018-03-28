@@ -10,11 +10,11 @@ authController.verify = async (req, res, next) => {
   const username = req.body.username
   const password = req.body.password
 
-  if (username === undefined) return res.json({ success: false, description: 'No username provided.' })
-  if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
+  if (username === undefined) { return res.json({ success: false, description: 'No username provided.' }) }
+  if (password === undefined) { return res.json({ success: false, description: 'No password provided.' }) }
 
   const user = await db.table('users').where('username', username).first()
-  if (!user) return res.json({ success: false, description: 'Username doesn\'t exist.' })
+  if (!user) { return res.json({ success: false, description: 'Username doesn\'t exist.' }) }
   if (user.enabled === false || user.enabled === 0) {
     return res.json({
       success: false,
@@ -27,7 +27,7 @@ authController.verify = async (req, res, next) => {
       console.log(err)
       return res.json({ success: false, description: 'There was an error.' })
     }
-    if (result === false) return res.json({ success: false, description: 'Wrong password.' })
+    if (result === false) { return res.json({ success: false, description: 'Wrong password.' }) }
     return res.json({ success: true, token: user.token })
   })
 }
@@ -40,8 +40,8 @@ authController.register = async (req, res, next) => {
   const username = req.body.username
   const password = req.body.password
 
-  if (username === undefined) return res.json({ success: false, description: 'No username provided.' })
-  if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
+  if (username === undefined) { return res.json({ success: false, description: 'No username provided.' }) }
+  if (password === undefined) { return res.json({ success: false, description: 'No password provided.' }) }
 
   if (username.length < 4 || username.length > 32) {
     return res.json({ success: false, description: 'Username must have 4-32 characters.' })
@@ -51,7 +51,7 @@ authController.register = async (req, res, next) => {
   }
 
   const user = await db.table('users').where('username', username).first()
-  if (user) return res.json({ success: false, description: 'Username already exists.' })
+  if (user) { return res.json({ success: false, description: 'Username already exists.' }) }
 
   bcrypt.hash(password, 10, async (err, hash) => {
     if (err) {
@@ -71,10 +71,10 @@ authController.register = async (req, res, next) => {
 
 authController.changePassword = async (req, res, next) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   let password = req.body.password
-  if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
+  if (password === undefined) { return res.json({ success: false, description: 'No password provided.' }) }
 
   if (password.length < 6 || password.length > 64) {
     return res.json({ success: false, description: 'Password must have 6-64 characters.' })
@@ -93,7 +93,7 @@ authController.changePassword = async (req, res, next) => {
 
 authController.getFileLengthConfig = async (req, res, next) => {
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
   return res.json({ success: true, fileLength: user.fileLength, config: config.uploads.fileLength })
 }
 
@@ -103,11 +103,11 @@ authController.changeFileLength = async (req, res, next) => {
   }
 
   const user = await utils.authorize(req, res)
-  if (!user) return
+  if (!user) { return }
 
   let fileLength = parseInt(req.body.fileLength)
-  if (fileLength === undefined) return res.json({ success: false, description: 'No file name length provided.' })
-  if (isNaN(fileLength)) return res.json({ success: false, description: 'File name length is not a valid number.' })
+  if (fileLength === undefined) { return res.json({ success: false, description: 'No file name length provided.' }) }
+  if (isNaN(fileLength)) { return res.json({ success: false, description: 'File name length is not a valid number.' }) }
 
   if (fileLength < config.uploads.fileLength.min || fileLength > config.uploads.fileLength.max) {
     return res.json({ success: false, description: `File name length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters.` })

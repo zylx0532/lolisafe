@@ -84,7 +84,7 @@ upload.prepareUpload = () => {
 
         // If the user doesn't have any albums we don't really need to display
         // an album selection
-        if (albums.length === 0) return
+        if (albums.length === 0) { return }
 
         // Loop through the albums and create an option for each album
         for (let i = 0; i < albums.length; i++) {
@@ -190,18 +190,18 @@ upload.prepareDropzone = () => {
 
   // Add the selected albumid, if an album is selected, as a header
   upload.dropzone.on('sending', (file, xhr, formData) => {
-    if (upload.album) xhr.setRequestHeader('albumid', upload.album)
+    if (upload.album) { xhr.setRequestHeader('albumid', upload.album) }
   })
 
   // Update the total progress bar
   upload.dropzone.on('uploadprogress', (file, progress, bytesSent) => {
-    if (file.upload.chunked && progress === 100) return
+    if (file.upload.chunked && progress === 100) { return }
     file.previewElement.querySelector('.progress').setAttribute('value', progress)
     file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
   })
 
   upload.dropzone.on('success', (file, response) => {
-    if (!response) return
+    if (!response) { return }
     file.previewTemplate.querySelector('.progress').style.display = 'none'
 
     if (response.success === false) {
