@@ -186,3 +186,19 @@ hr {
 .help {
   color: #7f8c8d;
 }
+
+.input::-moz-placeholder {
+  color: #7f8c8d;
+}
+
+.input::-webkit-input-placeholder {
+  color: #7f8c8d;
+}
+
+.input:-moz-placeholder {
+  color: #7f8c8d;
+}
+
+.input:-ms-input-placeholder {
+  color: #7f8c8d;
+}

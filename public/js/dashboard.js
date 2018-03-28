@@ -1,11 +1,12 @@
 /* eslint-disable no-unused-expressions */
-/* global swal, axios */
+/* global swal, axios, ClipboardJS */
 
 const panel = {
   page: undefined,
   username: undefined,
   token: localStorage.token,
-  filesView: localStorage.filesView
+  filesView: localStorage.filesView,
+  clipboardJS: undefined
 }
 
 panel.preparePage = () => {
@@ -132,12 +133,12 @@ panel.getUploads = (album, page, element) => {
         <div class="column">
           <a class="button is-small is-outlined is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page}, this)">
             <span class="icon is-small">
-              <i class="fa icon-list-bullet"></i>
+              <i class="icon-th-list"></i>
             </span>
           </a>
           <a class="button is-small is-outlined is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', ${album}, ${page}, this)">
             <span class="icon is-small">
-              <i class="fa icon-th-large"></i>
+              <i class="icon-th-large"></i>
             </span>
           </a>
         </div>
@@ -175,7 +176,7 @@ panel.getUploads = (album, page, element) => {
         div.innerHTML += `
           <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
             <span class="icon is-small">
-              <i class="fa icon-trash"></i>
+              <i class="icon-trash-1"></i>
             </span>
           </a>
           <div class="name">
@@ -228,10 +229,15 @@ panel.getUploads = (album, page, element) => {
             <th>${displayAlbumOrUser}</th>
             <td>${item.size}</td>
             <td>${item.date}</td>
-            <td>
-              <a class="button is-small is-danger is-outlined" title="Delete album" onclick="event.stopPropagation(); panel.deleteFile(${item.id}, ${album}, ${page})">
+            <td style="text-align: right">
+              <a class="button is-small is-info is-outlined clipboard-js" title="Copy link to clipboard" data-clipboard-text="${item.file}">
                 <span class="icon is-small">
-                  <i class="fa icon-trash"></i>
+                  <i class="icon-attach"></i>
+                </span>
+              </a>
+              <a class="button is-small is-danger is-outlined" title="Delete album" panel.deleteFile(${item.id}, ${album}, ${page})">
+                <span class="icon is-small">
+                  <i class="icon-trash-1"></i>
                 </span>
               </a>
             </td>
@@ -242,6 +248,8 @@ panel.getUploads = (album, page, element) => {
 
         if (item.thumb) {
           tr.addEventListener('click', function (event) {
+            if (event.target.tagName.toLowerCase() === 'a') { return }
+            if (event.target.className.includes('icon')) { return }
             document.getElementById('modalImage').src = item.thumb
             document.getElementById('modal').className += ' is-active'
           })
@@ -349,15 +357,20 @@ panel.getAlbums = () => {
           <th>${item.files}</th>
           <td>${item.date}</td>
           <td><a href="${item.identifier}" target="_blank">${item.identifier}</a></td>
-          <td>
+          <td style="text-align: right">
             <a class="button is-small is-primary is-outlined" title="Edit name" onclick="panel.renameAlbum(${item.id})">
               <span class="icon is-small">
-                <i class="fa icon-pencil"></i>
+                <i class="icon-edit"></i>
+              </span>
+            </a>
+            <a class="button is-small is-info is-outlined clipboard-js" title="Copy link to clipboard" data-clipboard-text="${item.identifier}">
+              <span class="icon is-small">
+                <i class="icon-attach"></i>
               </span>
             </a>
             <a class="button is-small is-danger is-outlined" title="Delete album" onclick="panel.deleteAlbum(${item.id})">
               <span class="icon is-small">
-                <i class="fa icon-trash"></i>
+                <i class="icon-trash-1"></i>
               </span>
             </a>
           </td>
@@ -735,5 +748,17 @@ window.onload = () => {
   if (!('ontouchstart' in document.documentElement)) {
     document.documentElement.className += ' no-touch'
   }
+
   panel.preparePage()
+
+  panel.clipboardJS = new ClipboardJS('.clipboard-js')
+
+  panel.clipboardJS.on('success', () => {
+    return swal('Copied!', 'The link has been copied to clipboard.', 'success')
+  })
+
+  panel.clipboardJS.on('error', event => {
+    console.error(event)
+    return swal('An error occurred', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
+  })
 }

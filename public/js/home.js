@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-/* global swal, axios, Dropzone */
+/* global swal, axios, Dropzone, ClipboardJS */
 
 const upload = {
   isPrivate: true,
@@ -8,7 +8,8 @@ const upload = {
   chunkedUploads: undefined,
   // Add the album let to the upload so we can store the album id in there
   album: undefined,
-  dropzone: undefined
+  dropzone: undefined,
+  clipboardJS: undefined
 }
 
 const imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
@@ -32,8 +33,10 @@ upload.preparePage = () => {
     if (upload.token) {
       return upload.verifyToken(upload.token, true)
     } else {
-      document.getElementById('loginToUpload').innerText = 'Running in private mode. Log in to upload.'
-      document.getElementById('loginToUpload').style.display = 'inline-flex' // ???
+      const button = document.getElementById('loginToUpload')
+      button.href = 'auth'
+      button.innerText = 'Running in private mode. Log in to upload.'
+      button.className = button.className.replace(' is-loading', '')
     }
   } else {
     return upload.prepareUpload()
@@ -104,7 +107,13 @@ upload.prepareUpload = () => {
 
   const div = document.createElement('div')
   div.id = 'dropzone'
-  div.innerHTML = 'Click here or drag and drop files'
+  div.className = 'button'
+  div.innerHTML = `
+    <span class="icon">
+      <i class="icon-upload-cloud"></i>
+    </span>
+    <span>Click here or drag and drop files</span>
+  `
   div.style.display = 'flex'
 
   document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${upload.maxFileSize}`
@@ -132,7 +141,7 @@ upload.prepareDropzone = () => {
     parallelUploads: 2,
     uploadMultiple: false,
     previewsContainer: 'div#uploads',
-    previewTemplate: previewTemplate,
+    previewTemplate,
     createImageThumbnails: false,
     maxFiles: 1000,
     autoProcessQueue: true,
@@ -176,10 +185,8 @@ upload.prepareDropzone = () => {
         return done()
       }
 
-      const a = file.previewTemplate.querySelector('.link > a')
-      a.href = a.innerHTML = response.files[0].url
-      a.style = ''
-      upload.showThumbnail(file, a.href)
+      upload.appendLink(file, response.files[0].url)
+      upload.showThumbnail(file, response.files[0].url)
       return done()
     }
   })
@@ -209,10 +216,8 @@ upload.prepareDropzone = () => {
       return
     }
 
-    const a = file.previewTemplate.querySelector('.link > a')
-    a.href = a.innerHTML = response.files[0].url
-    a.style = ''
-    upload.showThumbnail(file, a.href)
+    upload.appendLink(file, response.files[0].url)
+    upload.showThumbnail(file, response.files[0].url)
   })
 
   upload.dropzone.on('error', (file, error) => {
@@ -221,6 +226,16 @@ upload.prepareDropzone = () => {
   })
 
   upload.prepareShareX()
+}
+
+upload.appendLink = (file, url) => {
+  const a = file.previewTemplate.querySelector('.link > a')
+  const clipTablet = file.previewTemplate.querySelector('.link > .clipboard-js')
+  const clipMobile = file.previewTemplate.querySelector('.clipboard-mobile > .clipboard-js')
+
+  console.log(url)
+  a.href = a.innerHTML = clipTablet.dataset['clipboardText'] = clipMobile.dataset['clipboardText'] = url
+  a.parentElement.style = ''
 }
 
 upload.showThumbnail = (file, url) => {
@@ -270,4 +285,15 @@ window.addEventListener('paste', event => {
 
 window.onload = () => {
   upload.checkIfPublic()
+
+  upload.clipboardJS = new ClipboardJS('.clipboard-js')
+
+  upload.clipboardJS.on('success', () => {
+    return swal('Copied!', 'The link has been copied to clipboard.', 'success')
+  })
+
+  upload.clipboardJS.on('error', event => {
+    console.error(event)
+    return swal('An error occurred', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
+  })
 }

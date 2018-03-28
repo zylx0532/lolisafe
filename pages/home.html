@@ -10,11 +10,13 @@
     <title>safe.fiery.me &#8211; A small safe worth protecting.</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=K6t86DbYuR">
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=XcTZuW9fFV">
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=8FbubjpYRC">
+    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=8FbubjpYRC">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=8FbubjpYRC">
     <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/axios/axios.min.js?v=8FbubjpYRC"></script>
+    <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="js/home.js?v=8FbubjpYRC"></script>
 
     <!-- Open Graph tags -->
@@ -49,6 +51,12 @@
     <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=V2RnA3Mwhh">
     <meta name="theme-color" content="#232629">
 
+    <style>
+      #dropzone * {
+        pointer-events: none;
+      }
+    </style>
+
   </head>
 
   <body>
@@ -67,7 +75,7 @@
           <div class="columns">
             <div class="column is-hidden-mobile"></div>
             <div class="column" id="uploadContainer">
-              <a id="loginToUpload" href="auth" class="button is-danger">Loading&hellip;</a>
+              <a id="loginToUpload" class="button is-danger is-loading" style="display: flex"></a>
               <div class="field" id="albumDiv" style="display: none">
                 <p class="control select-wrapper">
                   <span class="select">
@@ -86,9 +94,24 @@
               <div class="column is-hidden-mobile"></div>
               <div class="column">
                 <progress class="progress is-small is-danger" value="0" max="100"></progress>
-                <img data-dz-thumbnail style="max-width: 200px" />
+                <img class="is-unselectable" style="max-width: 200px" data-dz-thumbnail>
                 <p class="error"></p>
-                <p class="link"><a target="_blank" style="display: none"></a></p>
+                <p class="link" style="display: none">
+                  <a target="_blank"></a>
+                  <a class="has-text-info is-outlined is-hidden-touch is-unselectable clipboard-js" title="Copy link to clipboard">
+                    <span class="icon is-small">
+                      <i class="icon-attach"></i>
+                    </span>
+                  </a>
+                </p>
+                <p class="clipboard-mobile is-hidden-desktop" style="margin-top: 5px">
+                  <a class="button is-info is-outlined clipboard-js" style="display: flex">
+                    <span class="icon">
+                      <i class="icon-attach"></i>
+                    </span>
+                    <span>Copy link to clipboard</span>
+                  </a>
+                </p>
               </div>
               <div class="column is-hidden-mobile"></div>
             </div>
