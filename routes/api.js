@@ -8,7 +8,8 @@ const authController = require('../controllers/authController')
 routes.get('/check', (req, res, next) => {
   return res.json({
     private: config.private,
-    maxFileSize: config.uploads.maxSize
+    maxFileSize: config.uploads.maxSize,
+    chunkedUploads: config.uploads.chunkedUploads
   })
 })
 
@@ -19,6 +20,7 @@ routes.get('/uploads', (req, res, next) => uploadController.list(req, res, next)
 routes.get('/uploads/:page', (req, res, next) => uploadController.list(req, res, next))
 routes.post('/upload', (req, res, next) => uploadController.upload(req, res, next))
 routes.post('/upload/delete', (req, res, next) => uploadController.delete(req, res, next))
+routes.post('/upload/finishchunks', (req, res, next) => uploadController.finishChunks(req, res, next))
 routes.post('/upload/:albumid', (req, res, next) => uploadController.upload(req, res, next))
 routes.get('/album/get/:identifier', (req, res, next) => albumsController.get(req, res, next))
 routes.get('/album/zip/:identifier', (req, res, next) => albumsController.generateZip(req, res, next))
@@ -33,7 +35,7 @@ routes.get('/albums/test', (req, res, next) => albumsController.test(req, res, n
 routes.get('/tokens', (req, res, next) => tokenController.list(req, res, next))
 routes.post('/tokens/verify', (req, res, next) => tokenController.verify(req, res, next))
 routes.post('/tokens/change', (req, res, next) => tokenController.change(req, res, next))
-routes.get('/fileLength/config', (req, res, next) => authController.getFileLengthConfig(req, res, next))
-routes.post('/fileLength/change', (req, res, next) => authController.changeFileLength(req, res, next))
+routes.get('/filelength/config', (req, res, next) => authController.getFileLengthConfig(req, res, next))
+routes.post('/filelength/change', (req, res, next) => authController.changeFileLength(req, res, next))
 
 module.exports = routes

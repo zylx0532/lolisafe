@@ -65,6 +65,18 @@ module.exports = {
     maxSize: '512MB',
 
     /*
+      Chunked uploads.
+      If this is enabled, maximum size for individual files (uploads.maxSize) will be overriden
+      by uploads.chunkedUploads.maxSize option (this also needs to be in MB).
+      uploads.maxSize will only then be used to check the combined size of all the chunks.
+      NOTICE: Make sure you have a folder named "chunks" inside your uploads folder.
+    */
+    chunkedUploads: {
+      enabled: true,
+      maxSize: '10MB'
+    },
+
+    /*
       The length of the random generated name for the uploaded files.
       If "userChangeable" is set to true, registered users will be able to change
       their preferred file name length from the dashboard. The allowed range will

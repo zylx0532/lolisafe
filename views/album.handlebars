@@ -10,9 +10,9 @@
     <title>{{ title }}</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="../libs/bulma/bulma.min.css?v=V2RnA3Mwhh">
+    <link rel="stylesheet" type="text/css" href="../libs/bulma/bulma.min.css?v=K6t86DbYuR">
     <link rel="stylesheet" type="text/css" href="../css/style.css?v=XcTZuW9fFV">
-    <script type="text/javascript" src="../libs/sweetalert/sweetalert.min.js?v=V2RnA3Mwhh"></script>
+    <script type="text/javascript" src="../libs/sweetalert/sweetalert.min.js?v=K6t86DbYuR"></script>
     <script type="text/javascript" src="../libs/axios/axios.min.js?v=V2RnA3Mwhh"></script>
 
     <!-- Open Graph tags -->
@@ -42,38 +42,52 @@
     <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=V2RnA3Mwhh">
     <meta name="theme-color" content="#232629">
 
+    <style>
+      /* ------------------
+          COLORS BASED ON
+          KDE BREEZE DARK
+      ------------------ */
+
+      html {
+        background-color: #232629;
+      }
+
+      .section {
+        background: none;
+      }
+    </style>
+
 	</head>
 
 	<body>
 
-		<section class="hero is-fullheight">
-			<div class="hero-head">
-				<div class="container">
-					<div class="columns">
-						<div class="column is-9">
-							<h1 class="title" id='title' style='margin-top: 1.5rem;'>{{ title }}</h1>
-							<h1 class="subtitle" id='count'>{{ count }} files</h1>
-						</div>
-						<div class="column is-3" style="text-align: right; padding-top: 45px;">
-							{{#if enableDownload}}
-								<a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}">Download Album</a>
-							{{/if}}
-						</div>
-					</div>
-					<hr>
-				</div>
-			</div>
-			<div class="hero-body">
-				<div class="container" id='container'>
-					<div class="columns is-multiline is-mobile" id="table">
-						{{#each files}}
-						<div class="column is-2">
-							<a href="{{ this.file }}" target="_blank">{{{ this.thumb }}}</a>
-						</div>
-						{{/each}}
-					</div>
-				</div>
-			</div>
+		<section class="section">
+
+      <div class="container">
+
+        <h1 id='title' class="title">
+          {{ title }}
+        </h1>
+        <h1 id='count' class="subtitle">
+          {{ count }} files
+        </h1>
+
+        {{#if enableDownload}}
+        <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}">Download Album</a>
+        {{/if}}
+
+        <hr>
+
+        <div id='table' class="columns is-multiline is-mobile is-centered">
+          {{#each files}}
+          <div class="column is-narrow">
+            <a href="{{ this.file }}" target="_blank">{{{ this.thumb }}}</a>
+          </div>
+          {{/each}}
+        </div>
+
+      </div>
+
 		</section>
 
 	</body>

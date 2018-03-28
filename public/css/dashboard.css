@@ -125,10 +125,38 @@ section#dashboard div#table div.column a.button {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #31363b;
+  background-color: rgba(49, 54, 59, .75);
+}
+
+section#dashboard div#table div.column div.name {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(49, 54, 59, .75);
+  color: #eff0f1;
+  padding: 10px;
+  font-size: .75rem;
+}
+
+section#dashboard div#table div.column div.name span {
+  font-weight: 800;
 }
 
 section#dashboard div#table div.column a.button:hover,
 section#dashboard div#table div.column a.button:active {
   background-color: #ff3860;
+}
+
+/* Make extra info appear on hover only on non-touch devices */
+
+.no-touch section#dashboard div#table div.column a.button,
+.no-touch section#dashboard div#table div.column div.name {
+  opacity: 0;
+  transition: opacity .25s;
+}
+
+.no-touch section#dashboard div#table div.column:hover a.button,
+.no-touch section#dashboard div#table div.column:hover div.name {
+  opacity: 1;
 }

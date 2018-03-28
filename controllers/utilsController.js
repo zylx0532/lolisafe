@@ -8,8 +8,8 @@ const db = require('knex')(config.database)
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
 const utilsController = {}
-utilsController.imageExtensions = ['.jpg', '.jpeg', '.bmp', '.gif', '.png']
-utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov']
+utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
+utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv']
 
 utilsController.getPrettyDate = function (date) {
   return date.getFullYear() + '-' +
@@ -66,7 +66,7 @@ utilsController.generateThumbs = function (file, basedomain) {
       if (isVideoExt) {
         ffmpeg(path.join(__dirname, '..', config.uploads.folder, file.name))
           .thumbnail({
-            timestamps: [0],
+            timestamps: ['1%'],
             filename: '%b.png',
             folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
             size: '200x?'

@@ -1,21 +1,21 @@
 /* eslint-disable no-unused-expressions */
 /* global swal, axios */
 
-let panel = {}
+const panel = {
+  page: undefined,
+  username: undefined,
+  token: localStorage.token,
+  filesView: localStorage.filesView
+}
 
-panel.page
-panel.username
-panel.token = localStorage.token
-panel.filesView = localStorage.filesView
-
-panel.preparePage = function () {
+panel.preparePage = () => {
   if (!panel.token) {
     window.location = 'auth'
   }
   panel.verifyToken(panel.token, true)
 }
 
-panel.verifyToken = function (token, reloadOnError) {
+panel.verifyToken = (token, reloadOnError) => {
   if (reloadOnError === undefined) {
     reloadOnError = false
   }
@@ -23,7 +23,7 @@ panel.verifyToken = function (token, reloadOnError) {
   axios.post('api/tokens/verify', {
     token: token
   })
-    .then(function (response) {
+    .then(response => {
       if (response.data.success === false) {
         swal({
           title: 'An error occurred',
@@ -44,13 +44,13 @@ panel.verifyToken = function (token, reloadOnError) {
       panel.username = response.data.username
       return panel.prepareDashboard()
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.prepareDashboard = function () {
+panel.prepareDashboard = () => {
   panel.page = document.getElementById('page')
   document.getElementById('auth').style.display = 'none'
   document.getElementById('dashboard').style.display = 'block'
@@ -80,37 +80,37 @@ panel.prepareDashboard = function () {
   panel.getAlbumsSidebar()
 }
 
-panel.logout = function () {
+panel.logout = () => {
   localStorage.removeItem('token')
   location.reload('.')
 }
 
-panel.getUploads = function (album = undefined, page = undefined) {
+panel.getUploads = (album, page) => {
   if (page === undefined) page = 0
 
   let url = 'api/uploads/' + page
   if (album !== undefined) { url = 'api/album/' + album + '/' + page }
 
-  axios.get(url).then(function (response) {
+  axios.get(url).then(response => {
     if (response.data.success === false) {
       if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
       else return swal('An error occurred', response.data.description, 'error')
     }
 
-    var prevPage = 0
-    var nextPage = page + 1
+    let prevPage = 0
+    let nextPage = page + 1
 
     if (response.data.files.length < 25) { nextPage = page }
 
     if (page > 0) prevPage = page - 1
 
-    var pagination = `
+    const pagination = `
       <nav class="pagination is-centered">
         <a class="pagination-previous" onclick="panel.getUploads(${album}, ${prevPage})">Previous</a>
         <a class="pagination-next" onclick="panel.getUploads(${album}, ${nextPage})">Next page</a>
       </nav>
     `
-    var listType = `
+    const listType = `
       <div class="columns">
         <div class="column">
           <a class="button is-small is-outlined is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page})">
@@ -127,7 +127,6 @@ panel.getUploads = function (album = undefined, page = undefined) {
       </div>
     `
 
-    var table, item
     if (panel.filesView === 'thumbs') {
       panel.page.innerHTML = `
         ${pagination}
@@ -139,10 +138,17 @@ panel.getUploads = function (album = undefined, page = undefined) {
         ${pagination}
       `
 
-      table = document.getElementById('table')
+      const table = document.getElementById('table')
 
-      for (item of response.data.files) {
-        var div = document.createElement('div')
+      for (const item of response.data.files) {
+        const div = document.createElement('div')
+
+        let displayAlbumOrUser = item.album
+        if (panel.username === 'root') {
+          displayAlbumOrUser = ''
+          if (item.username !== undefined) { displayAlbumOrUser = item.username }
+        }
+
         div.className = 'image-container column is-narrow'
         if (item.thumb !== undefined) {
           div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><img src="${item.thumb}"/></a>`
@@ -155,11 +161,14 @@ panel.getUploads = function (album = undefined, page = undefined) {
               <i class="fa icon-trash"></i>
             </span>
           </a>
+          <div class="name">
+            <p><span>${item.name}</span></p>
+            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${item.size}</div>
         `
         table.appendChild(div)
       }
     } else {
-      var albumOrUser = 'Album'
+      let albumOrUser = 'Album'
       if (panel.username === 'root') { albumOrUser = 'User' }
 
       panel.page.innerHTML = `
@@ -185,12 +194,12 @@ panel.getUploads = function (album = undefined, page = undefined) {
         ${pagination}
       `
 
-      table = document.getElementById('table')
+      const table = document.getElementById('table')
 
-      for (item of response.data.files) {
-        var tr = document.createElement('tr')
+      for (const item of response.data.files) {
+        const tr = document.createElement('tr')
 
-        var displayAlbumOrUser = item.album
+        let displayAlbumOrUser = item.album
         if (panel.username === 'root') {
           displayAlbumOrUser = ''
           if (item.username !== undefined) { displayAlbumOrUser = item.username }
@@ -216,19 +225,19 @@ panel.getUploads = function (album = undefined, page = undefined) {
       }
     }
   })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.setFilesView = function (view, album, page) {
+panel.setFilesView = (view, album, page) => {
   localStorage.filesView = view
   panel.filesView = view
   panel.getUploads(album, page)
 }
 
-panel.deleteFile = function (id, album = undefined, page = undefined) {
+panel.deleteFile = (id, album, page) => {
   swal({
     title: 'Are you sure?',
     text: 'You won\'t be able to recover the file!',
@@ -246,7 +255,7 @@ panel.deleteFile = function (id, album = undefined, page = undefined) {
     axios.post('api/upload/delete', {
       id: id
     })
-      .then(function (response) {
+      .then(response => {
         if (response.data.success === false) {
           if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
           else return swal('An error occurred', response.data.description, 'error')
@@ -255,15 +264,15 @@ panel.deleteFile = function (id, album = undefined, page = undefined) {
         swal('Deleted!', 'The file has been deleted.', 'success')
         panel.getUploads(album, page)
       })
-      .catch(function (error) {
-        console.log(error)
+      .catch(err => {
+        console.log(err)
         return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
 }
 
-panel.getAlbums = function () {
-  axios.get('api/albums').then(function (response) {
+panel.getAlbums = () => {
+  axios.get('api/albums').then(response => {
     if (response.data.success === false) {
       if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
       else return swal('An error occurred', response.data.description, 'error')
@@ -300,10 +309,10 @@ panel.getAlbums = function () {
       </div>
     `
 
-    var table = document.getElementById('table')
+    const table = document.getElementById('table')
 
-    for (var item of response.data.albums) {
-      var tr = document.createElement('tr')
+    for (const item of response.data.albums) {
+      const tr = document.createElement('tr')
       tr.innerHTML = `
         <tr>
           <th>${item.name}</th>
@@ -332,13 +341,13 @@ panel.getAlbums = function () {
       panel.submitAlbum()
     })
   })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.renameAlbum = function (id) {
+panel.renameAlbum = id => {
   swal({
     title: 'Rename album',
     text: 'New name you want to give the album:',
@@ -361,7 +370,7 @@ panel.renameAlbum = function (id) {
       id: id,
       name: value
     })
-      .then(function (response) {
+      .then(response => {
         if (response.data.success === false) {
           if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
           else if (response.data.description === 'Name already in use') swal.showInputError('That name is already in use!')
@@ -373,14 +382,14 @@ panel.renameAlbum = function (id) {
         panel.getAlbumsSidebar()
         panel.getAlbums()
       })
-      .catch(function (error) {
-        console.log(error)
+      .catch(err => {
+        console.log(err)
         return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
 }
 
-panel.deleteAlbum = function (id) {
+panel.deleteAlbum = id => {
   swal({
     title: 'Are you sure?',
     text: 'This won\'t delete your files, only the album!',
@@ -398,7 +407,7 @@ panel.deleteAlbum = function (id) {
     axios.post('api/albums/delete', {
       id: id
     })
-      .then(function (response) {
+      .then(response => {
         if (response.data.success === false) {
           if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
           else return swal('An error occurred', response.data.description, 'error')
@@ -408,18 +417,18 @@ panel.deleteAlbum = function (id) {
         panel.getAlbumsSidebar()
         panel.getAlbums()
       })
-      .catch(function (error) {
-        console.log(error)
+      .catch(err => {
+        console.log(err)
         return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
 }
 
-panel.submitAlbum = function () {
+panel.submitAlbum = () => {
   axios.post('api/albums', {
     name: document.getElementById('albumName').value
   })
-    .then(function (response) {
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
@@ -429,29 +438,28 @@ panel.submitAlbum = function () {
       panel.getAlbumsSidebar()
       panel.getAlbums()
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.getAlbumsSidebar = function () {
+panel.getAlbumsSidebar = () => {
   axios.get('api/albums/sidebar')
-    .then(function (response) {
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
       }
 
-      var albumsContainer = document.getElementById('albumsContainer')
+      const albumsContainer = document.getElementById('albumsContainer')
       albumsContainer.innerHTML = ''
 
       if (response.data.albums === undefined) return
 
-      var li, a
-      for (var album of response.data.albums) {
-        li = document.createElement('li')
-        a = document.createElement('a')
+      for (const album of response.data.albums) {
+        const li = document.createElement('li')
+        const a = document.createElement('a')
         a.id = album.id
         a.innerHTML = album.name
 
@@ -463,20 +471,20 @@ panel.getAlbumsSidebar = function () {
         albumsContainer.appendChild(li)
       }
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.getAlbum = function (item) {
+panel.getAlbum = item => {
   panel.setActiveMenu(item)
   panel.getUploads(item.id)
 }
 
-panel.changeFileLength = function () {
-  axios.get('api/fileLength/config')
-    .then(function (response) {
+panel.changeFileLength = () => {
+  axios.get('api/filelength/config')
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
@@ -503,15 +511,15 @@ panel.changeFileLength = function () {
         panel.setFileLength(document.getElementById('fileLength').value)
       })
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.setFileLength = function (fileLength) {
-  axios.post('api/fileLength/change', { fileLength })
-    .then(function (response) {
+panel.setFileLength = fileLength => {
+  axios.post('api/filelength/change', { fileLength })
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
@@ -525,15 +533,15 @@ panel.setFileLength = function (fileLength) {
         location.reload()
       })
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.changeToken = function () {
+panel.changeToken = () => {
   axios.get('api/tokens')
-    .then(function (response) {
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
@@ -559,15 +567,15 @@ panel.changeToken = function () {
         panel.getNewToken()
       })
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.getNewToken = function () {
+panel.getNewToken = () => {
   axios.post('api/tokens/change')
-    .then(function (response) {
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
@@ -582,13 +590,13 @@ panel.getNewToken = function () {
         location.reload()
       })
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.changePassword = function () {
+panel.changePassword = () => {
   panel.page.innerHTML = `
     <h2 class="subtitle">Change your password</h2>
 
@@ -626,9 +634,9 @@ panel.changePassword = function () {
   })
 }
 
-panel.sendNewPassword = function (pass) {
+panel.sendNewPassword = pass => {
   axios.post('api/password/change', {password: pass})
-    .then(function (response) {
+    .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') return panel.verifyToken(panel.token)
         else return swal('An error occurred', response.data.description, 'error')
@@ -642,20 +650,26 @@ panel.sendNewPassword = function (pass) {
         location.reload()
       })
     })
-    .catch(function (error) {
-      console.log(error)
+    .catch(err => {
+      console.log(err)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.setActiveMenu = function (item) {
-  var menu = document.getElementById('menu')
-  var items = menu.getElementsByTagName('a')
-  for (var i = 0; i < items.length; i++) { items[i].className = '' }
+panel.setActiveMenu = item => {
+  const menu = document.getElementById('menu')
+  const items = menu.getElementsByTagName('a')
+  for (let i = 0; i < items.length; i++) {
+    items[i].className = ''
+  }
 
   item.className = 'is-active'
 }
 
-window.onload = function () {
+window.onload = () => {
+  // Add 'no-touch' class to non-touch devices
+  if (!('ontouchstart' in document.documentElement)) {
+    document.documentElement.className += ' no-touch'
+  }
   panel.preparePage()
 }

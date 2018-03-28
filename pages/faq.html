@@ -10,7 +10,7 @@
     <title>safe.fiery.me &#8211; A small safe worth protecting.</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=V2RnA3Mwhh">
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=K6t86DbYuR">
     <link rel="stylesheet" type="text/css" href="css/style.css?v=XcTZuW9fFV">
 
     <!-- Open Graph tags -->
@@ -108,6 +108,15 @@
           <article class="message">
             <div class="message-body">
                Send a strongly worded email to <a href="mailto:bobby@fiery.me">bobby@fiery.me</a> and I will <i>try</i> to get back to you within 24 hours.
+            </div>
+          </article>
+
+          <h2 class='subtitle'>Chunked uploads?</h2>
+          <article class="message">
+            <div class="message-body">
+              Yes. Just add two text fields containing the file's UUID and the chunk's index, named "uuid" and "chunkindex" respectively, to the multipart/form-data that you POST to https://safe.fiery.me/api/upload. Once all chunks have been successfully uploaded, then you can POST a JSON request to https://safe.fiery.me/api/upload containing the file's UUID, original filename, original size, mime type and chunk counts, with keys "uuid", "original", "size", "type" and "count" respectively.<br>
+              <br>
+              If that sounds too complicated, then just try to trigger chunked uploads with the home page's uploader and inspect the HTTP requests.
             </div>
           </article>
 
