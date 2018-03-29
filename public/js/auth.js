@@ -25,8 +25,8 @@ page.do = dest => {
       localStorage.token = response.data.token
       window.location = 'dashboard'
     })
-    .catch(err => {
-      console.log(err)
+    .catch(error => {
+      console.log(error)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
@@ -53,8 +53,8 @@ page.verify = () => {
 
       window.location = 'dashboard'
     })
-    .catch(err => {
-      console.log(err)
+    .catch(error => {
+      console.log(error)
       return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }

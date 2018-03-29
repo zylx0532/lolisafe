@@ -63,17 +63,17 @@ for (let page of config.pages) {
 safe.use((req, res, next) => {
   res.status(404).sendFile('HTTP404.html', { root: '../HttpErrorPages/dist/' })
 })
-safe.use((err, req, res, next) => {
-  console.error(err)
+safe.use((error, req, res, next) => {
+  console.error(error)
   res.status(500).sendFile('HTTP505.html', { root: '../HttpErrorPages/dist/' })
 })
 
 safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))
 
-process.on('uncaughtException', err => {
-  console.error(`Uncaught Exception:\n${err.stack}`)
+process.on('uncaughtException', error => {
+  console.error(`Uncaught Exception:\n${error.stack}`)
 })
 
-process.on('unhandledRejection', err => {
-  console.error(`Unhandled Rejection (Promise):\n${err.stack}`)
+process.on('unhandledRejection', error => {
+  console.error(`Unhandled Rejection (Promise):\n${error.stack}`)
 })

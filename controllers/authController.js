@@ -22,9 +22,9 @@ authController.verify = async (req, res, next) => {
     })
   }
 
-  bcrypt.compare(password, user.password, (err, result) => {
-    if (err) {
-      console.log(err)
+  bcrypt.compare(password, user.password, (error, result) => {
+    if (error) {
+      console.log(error)
       return res.json({ success: false, description: 'There was an error.' })
     }
     if (result === false) { return res.json({ success: false, description: 'Wrong password.' }) }
@@ -53,9 +53,9 @@ authController.register = async (req, res, next) => {
   const user = await db.table('users').where('username', username).first()
   if (user) { return res.json({ success: false, description: 'Username already exists.' }) }
 
-  bcrypt.hash(password, 10, async (err, hash) => {
-    if (err) {
-      console.log(err)
+  bcrypt.hash(password, 10, async (error, hash) => {
+    if (error) {
+      console.log(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
     const token = randomstring.generate(64)
@@ -80,9 +80,9 @@ authController.changePassword = async (req, res, next) => {
     return res.json({ success: false, description: 'Password must have 6-64 characters.' })
   }
 
-  bcrypt.hash(password, 10, async (err, hash) => {
-    if (err) {
-      console.log(err)
+  bcrypt.hash(password, 10, async (error, hash) => {
+    if (error) {
+      console.log(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
 

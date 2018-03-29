@@ -61,8 +61,8 @@ utilsController.generateThumbs = function (file, basedomain) {
   if (isImageExt && config.uploads.generateThumbnails.image !== true) { return }
 
   let thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
-  fs.access(thumbname, err => {
-    if (err && err.code === 'ENOENT') {
+  fs.access(thumbname, error => {
+    if (error && error.code === 'ENOENT') {
       if (isVideoExt) {
         ffmpeg(path.join(__dirname, '..', config.uploads.folder, file.name))
           .thumbnail({

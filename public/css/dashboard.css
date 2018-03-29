@@ -3,6 +3,32 @@
     KDE BREEZE DARK
 ------------------ */
 
+.button.is-breeze {
+  background-color: #2980b9;
+  border-color: transparent;
+  color: #fff;
+}
+
+.button.is-breeze.is-hovered,
+.button.is-breeze:hover {
+  background-color: #3daee9;
+  border-color: transparent;
+  color: #fff;
+}
+
+.button.is-breeze.is-active,
+.button.is-breeze:active {
+  background-color: #3daee9;
+  border-color: transparent;
+  color: #fff;
+}
+
+.button.is-breeze.is-focus,
+.button.is-breeze:focus {
+  border-color: transparent;
+  color: #fff;
+}
+
 html {
   background-color: #232629;
 }
@@ -22,15 +48,6 @@ html {
 
 .menu-list a.is-active {
   color: #eff0f1;
-  background-color: #2980b9;
-}
-
-.button.is-primary {
-  background-color: #2980b9;
-}
-
-.button.is-primary.is-hovered,
-.button.is-primary:hover {
   background-color: #2980b9;
 }
 
@@ -76,6 +93,7 @@ html {
 
 .table th {
   color: #eff0f1;
+  height: 2.25em;
 }
 
 .table td,
@@ -88,7 +106,7 @@ html {
 }
 
 section#dashboard .table {
-  font-size: 12px
+  font-size: .75rem;
 }
 
 section#dashboard div#table div.column {
@@ -113,21 +131,29 @@ section#dashboard div#table div.column.image-container {
   position: relative;
 }
 
-section#dashboard div#table div.column a.button {
+section#dashboard div#table div.column div.controls {
+  display: flex;
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: .75rem;
+  right: .75rem;
+}
+
+section#dashboard div#table div.column div.controls a.button {
+  border-radius: 0;
+}
+
+section#dashboard div#table div.column div.controls a.button:not(:active):not(:hover) {
   background-color: rgba(49, 54, 59, .75);
 }
 
 section#dashboard div#table div.column div.name {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  right: 0;
+  left: .75rem;
+  bottom: .75rem;
+  right: .75rem;
   background-color: rgba(49, 54, 59, .75);
   color: #eff0f1;
-  padding: 10px;
+  padding: .25rem;
   font-size: .75rem;
 }
 
@@ -135,20 +161,35 @@ section#dashboard div#table div.column div.name span {
   font-weight: 800;
 }
 
-section#dashboard div#table div.column a.button:hover,
+/*
+section#dashboard div#table div.column div.controls a.button:hover,
 section#dashboard div#table div.column a.button:active {
   background-color: #ff3860;
 }
+*/
 
 /* Make extra info appear on hover only on non-touch devices */
 
-.no-touch section#dashboard div#table div.column a.button,
+.no-touch section#dashboard div#table div.column div.controls,
 .no-touch section#dashboard div#table div.column div.name {
   opacity: 0;
   transition: opacity .25s;
 }
 
-.no-touch section#dashboard div#table div.column:hover a.button,
+.no-touch section#dashboard div#table div.column:hover div.controls,
 .no-touch section#dashboard div#table div.column:hover div.name {
   opacity: 1;
+}
+
+#page {
+  /* fix overflow issue with flex */
+  min-width: 0;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.table-container > table {
+  min-width: 650px;
 }

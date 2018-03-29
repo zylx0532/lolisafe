@@ -6,10 +6,14 @@ const utils = require('../controllers/utilsController.js')
 
 routes.get('/a/:identifier', async (req, res, next) => {
   let identifier = req.params.identifier
-  if (identifier === undefined) return res.status(401).json({ success: false, description: 'No identifier provided' })
+  if (identifier === undefined) {
+    return res.status(401).json({ success: false, description: 'No identifier provided' })
+  }
 
   const album = await db.table('albums').where({ identifier, enabled: 1 }).first()
-  if (!album) return res.status(404).sendFile('404.html', { root: './pages/error/' })
+  if (!album) {
+    return res.status(404).sendFile('404.html', { root: './pages/error/' })
+  }
 
   const files = await db.table('files').select('name').where('albumid', album.id).orderBy('id', 'DESC')
   let thumb = ''
@@ -39,7 +43,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
   }
 
   let enableDownload = false
-  if (config.uploads.generateZips) enableDownload = true
+  if (config.uploads.generateZips) { enableDownload = true }
 
   return res.render('album', {
     layout: false,

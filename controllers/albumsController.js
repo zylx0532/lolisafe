@@ -161,8 +161,8 @@ albumsController.generateZip = async (req, res, next) => {
       try {
         // const exists = fs.statSync(path.join(__dirname, '..', config.uploads.folder, file.name))
         archive.file(file.name, fs.readFileSync(path.join(__dirname, '..', config.uploads.folder, file.name)))
-      } catch (err) {
-        console.log(err)
+      } catch (error) {
+        console.log(error)
       }
     }
 

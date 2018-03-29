@@ -26,15 +26,15 @@ const storage = multer.diskStorage({
 
     // Check for the existence of UUID dir in chunks dir
     const uuidDir = path.join(chunksDir, req.body.uuid)
-    fs.access(uuidDir, err => {
+    fs.access(uuidDir, error => {
       // If it exists, callback
-      if (!err) { return cb(null, uuidDir) }
+      if (!error) { return cb(null, uuidDir) }
       // It it doesn't, then make it first
-      fs.mkdir(uuidDir, err => {
+      fs.mkdir(uuidDir, error => {
         // If there was no error, callback
-        if (!err) { return cb(null, uuidDir) }
+        if (!error) { return cb(null, uuidDir) }
         // Otherwise, log it
-        console.log(err)
+        console.log(error)
         // eslint-disable-next-line standard/no-callback-literal
         return cb('Could not process the chunked upload. Try again?')
       })
@@ -112,9 +112,9 @@ uploadsController.getFileNameLength = req => {
 uploadsController.getUniqueRandomName = (length, extension, cb) => {
   const access = i => {
     const name = randomstring.generate(length) + extension
-    fs.access(path.join(uploadDir, name), err => {
+    fs.access(path.join(uploadDir, name), error => {
       // If a file with the same name does not exist
-      if (err) { return cb(null, name) }
+      if (error) { return cb(null, name) }
       // If a file with the same name already exists, log to console
       console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
       // If it still haven't reached allowed maximum tries, then try again
@@ -163,16 +163,16 @@ uploadsController.upload = async (req, res, next) => {
 }
 
 uploadsController.actuallyUpload = async (req, res, user, albumid) => {
-  const erred = err => {
-    console.log(err)
+  const erred = error => {
+    console.log(error)
     res.json({
       success: false,
-      description: err.toString()
+      description: error.toString()
     })
   }
 
-  upload(req, res, async err => {
-    if (err) { return erred(err) }
+  upload(req, res, async error => {
+    if (error) { return erred(error) }
 
     if (req.files.length === 0) { return erred(new Error('No files.')) }
 
@@ -238,11 +238,11 @@ uploadsController.finishChunks = async (req, res, next) => {
 }
 
 uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
-  const erred = err => {
-    console.log(err)
+  const erred = error => {
+    console.log(error)
     res.json({
       success: false,
-      description: err.toString()
+      description: error.toString()
     })
   }
 
@@ -257,15 +257,15 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
     const chunksDirUuid = path.join(chunksDir, uuid)
 
-    fs.readdir(chunksDirUuid, async (err, chunks) => {
-      if (err) { return erred(err) }
+    fs.readdir(chunksDirUuid, async (error, chunks) => {
+      if (error) { return erred(error) }
       if (count < chunks.length) { return erred(new Error('Chunks count mismatch.')) }
 
       const extension = path.extname(chunks[0])
       const length = uploadsController.getFileNameLength(req)
 
-      uploadsController.getUniqueRandomName(length, extension, async (err, name) => {
-        if (err) { return erred(err) }
+      uploadsController.getUniqueRandomName(length, extension, async (error, name) => {
+        if (error) { return erred(error) }
 
         const destination = path.join(uploadDir, name)
         const destFileStream = fs.createWriteStream(destination, { flags: 'a' })
@@ -274,9 +274,9 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
         const appended = await uploadsController.appendToStream(destFileStream, chunksDirUuid, chunks)
           .catch(erred)
 
-        rimraf(chunksDirUuid, err => {
-          if (err) {
-            console.log(err)
+        rimraf(chunksDirUuid, error => {
+          if (error) {
+            console.log(error)
           }
         })
 
@@ -314,10 +314,10 @@ uploadsController.appendToStream = async (destFileStream, chunksDirUuid, chunks)
           .on('end', () => {
             append(i + 1)
           })
-          .on('error', err => {
-            console.log(err)
+          .on('error', error => {
+            console.log(error)
             destFileStream.end()
-            return reject(err)
+            return reject(error)
           })
           .pipe(destFileStream, { end: false })
       } else {
@@ -373,7 +373,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
-          uploadsController.deleteFile(info.data.filename).then(() => {}).catch(err => console.log(err))
+          uploadsController.deleteFile(info.data.filename).then(() => {}).catch(error => console.log(error))
           existingFiles.push(dbFile)
         }
 
@@ -452,41 +452,91 @@ uploadsController.delete = async (req, res) => {
     .first()
 
   try {
-    await uploadsController.deleteFile(file.name).catch(err => {
-      // ENOENT is missing file, for whatever reason, then just delete from db
-      if (err.code !== 'ENOENT') { throw err }
+    await uploadsController.deleteFile(file.name).catch(error => {
+      // ENOENT is missing file, for whatever reason, then just delete from db anyways
+      if (error.code !== 'ENOENT') { throw error }
     })
     await db.table('files').where('id', id).del()
     if (file.albumid) {
       await db.table('albums').where('id', file.albumid).update('editedAt', Math.floor(Date.now() / 1000))
     }
-  } catch (err) {
-    console.log(err)
+  } catch (error) {
+    console.log(error)
   }
 
   return res.json({ success: true })
 }
 
+uploadsController.bulkDelete = async (req, res) => {
+  const user = await utils.authorize(req, res)
+  if (!user) { return }
+  const ids = req.body.ids
+  if (ids === undefined || !ids.length) {
+    return res.json({ success: false, description: 'No files specified.' })
+  }
+
+  const files = await db.table('files')
+    .whereIn('id', ids)
+    .where(function () {
+      if (user.username !== 'root') {
+        this.where('userid', user.id)
+      }
+    })
+
+  const failedIds = []
+
+  // First, we delete all the physical files
+  await Promise.all(files.map(file => {
+    return uploadsController.deleteFile(file.name).catch(error => {
+      // ENOENT is missing file, for whatever reason, then just delete from db anyways
+      if (error.code !== 'ENOENT') {
+        console.log(error)
+        failedIds.push(file.id)
+      }
+    })
+  }))
+
+  // Second, we filter out failed IDs
+  const successIds = files.filter(file => !failedIds.includes(file.id))
+  await Promise.all(successIds.map(file => {
+    return db.table('files').where('id', file.id).del()
+      .then(() => {
+        if (file.albumid) {
+          return db.table('albums').where('id', file.albumid).update('editedAt', Math.floor(Date.now() / 1000))
+        }
+      })
+      .catch(error => {
+        console.error(error)
+        failedIds.push(file.id)
+      })
+  }))
+
+  return res.json({
+    success: true,
+    failedIds
+  })
+}
+
 uploadsController.deleteFile = function (file) {
   const ext = path.extname(file).toLowerCase()
   return new Promise((resolve, reject) => {
-    fs.stat(path.join(__dirname, '..', config.uploads.folder, file), (err, stats) => {
-      if (err) { return reject(err) }
-      fs.unlink(path.join(__dirname, '..', config.uploads.folder, file), err => {
-        if (err) { return reject(err) }
+    fs.stat(path.join(__dirname, '..', config.uploads.folder, file), (error, stats) => {
+      if (error) { return reject(error) }
+      fs.unlink(path.join(__dirname, '..', config.uploads.folder, file), error => {
+        if (error) { return reject(error) }
         if (!utils.imageExtensions.includes(ext) && !utils.videoExtensions.includes(ext)) {
           return resolve()
         }
         file = file.substr(0, file.lastIndexOf('.')) + '.png'
-        fs.stat(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), (err, stats) => {
-          if (err) {
-            if (err.code !== 'ENOENT') {
-              console.log(err)
+        fs.stat(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), (error, stats) => {
+          if (error) {
+            if (error.code !== 'ENOENT') {
+              console.log(error)
             }
             return resolve()
           }
-          fs.unlink(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), err => {
-            if (err) { return reject(err) }
+          fs.unlink(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), error => {
+            if (error) { return reject(error) }
             return resolve()
           })
         })

@@ -45,8 +45,8 @@ let init = function (db) {
         db.table('users').where({username: 'root'}).then((user) => {
           if (user.length > 0) { return }
 
-          require('bcrypt').hash('root', 10, function (err, hash) {
-            if (err) { console.error('Error generating password hash for root') }
+          require('bcrypt').hash('root', 10, function (error, hash) {
+            if (error) { console.error('Error generating password hash for root') }
 
             db.table('users').insert({
               username: 'root',
