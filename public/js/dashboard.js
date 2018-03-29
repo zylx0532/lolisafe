@@ -131,7 +131,7 @@ panel.getUploads = (album, page, element) => {
     `
     const controls = `
       <div class="columns">
-        <div class="column"></div>
+        <div class="column is-hidden-mobile"></div>
         <div class="column" style="text-align: center">
           <a class="button is-small is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page}, this)">
             <span class="icon">
@@ -155,6 +155,7 @@ panel.getUploads = (album, page, element) => {
       </div>
     `
 
+    let allFilesSelected = true
     if (panel.filesView === 'thumbs') {
       panel.page.innerHTML = `
         ${pagination}
@@ -169,6 +170,9 @@ panel.getUploads = (album, page, element) => {
       const table = document.getElementById('table')
 
       for (const item of response.data.files) {
+        const selected = panel.selectedFiles.includes(item.id)
+        if (!selected && allFilesSelected) { allFilesSelected = false }
+
         const div = document.createElement('div')
 
         let displayAlbumOrUser = item.album
@@ -184,6 +188,7 @@ panel.getUploads = (album, page, element) => {
           div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><h1 class="title">.${item.file.split('.').pop()}</h1></a>`
         }
         div.innerHTML += `
+          <input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${item.id}, this)"${selected ? ' checked' : ''}>
           <div class="controls">
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${item.file}">
               <span class="icon">
@@ -232,7 +237,6 @@ panel.getUploads = (album, page, element) => {
 
       const table = document.getElementById('table')
 
-      let allFilesSelected = true
       for (const item of response.data.files) {
         const selected = panel.selectedFiles.includes(item.id)
         if (!selected && allFilesSelected) { allFilesSelected = false }
@@ -274,10 +278,11 @@ panel.getUploads = (album, page, element) => {
 
         table.appendChild(tr)
       }
+    }
 
-      if (allFilesSelected && response.data.files.length) {
-        document.getElementById('selectAll').checked = true
-      }
+    if (allFilesSelected && response.data.files.length) {
+      const selectAll = document.getElementById('selectAll')
+      if (selectAll) { selectAll.checked = true }
     }
   }).catch(error => {
     console.log(error)

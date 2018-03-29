@@ -105,11 +105,11 @@ html {
   border-left-color: #898b8d;
 }
 
-section#dashboard .table {
+.table {
   font-size: .75rem;
 }
 
-section#dashboard div#table div.column {
+.image-container {
   display: flex;
   width: 200px;
   height: 200px;
@@ -119,34 +119,40 @@ section#dashboard div#table div.column {
   align-items: center;
 }
 
-section#dashboard div#table div.column .title {
+.image-container .title {
   font-weight: normal;
 }
 
-section#dashboard div#table div.column a.image {
+.image-container .image {
   width: 100%;
 }
 
-section#dashboard div#table div.column.image-container {
+.image-container {
   position: relative;
 }
 
-section#dashboard div#table div.column div.controls {
+.image-container .file-checkbox {
+  position: absolute;
+  top: .75rem;
+  left: .75rem;
+}
+
+.image-container .controls {
   display: flex;
   position: absolute;
   top: .75rem;
   right: .75rem;
 }
 
-section#dashboard div#table div.column div.controls a.button {
+.image-container .controls .button {
   border-radius: 0;
 }
 
-section#dashboard div#table div.column div.controls a.button:not(:active):not(:hover) {
+.image-container .controls .button:not(:active):not(:hover) {
   background-color: rgba(49, 54, 59, .75);
 }
 
-section#dashboard div#table div.column div.name {
+.image-container .name {
   position: absolute;
   left: .75rem;
   bottom: .75rem;
@@ -157,27 +163,26 @@ section#dashboard div#table div.column div.name {
   font-size: .75rem;
 }
 
-section#dashboard div#table div.column div.name span {
+.image-container .name span {
   font-weight: 800;
 }
 
-/*
-section#dashboard div#table div.column div.controls a.button:hover,
-section#dashboard div#table div.column a.button:active {
-  background-color: #ff3860;
-}
-*/
-
 /* Make extra info appear on hover only on non-touch devices */
 
-.no-touch section#dashboard div#table div.column div.controls,
-.no-touch section#dashboard div#table div.column div.name {
+.no-touch .image-container .file-checkbox {
+  opacity: .25;
+  transition: opacity .25s;
+}
+
+.no-touch .image-container .controls,
+.no-touch .image-container .name {
   opacity: 0;
   transition: opacity .25s;
 }
 
-.no-touch section#dashboard div#table div.column:hover div.controls,
-.no-touch section#dashboard div#table div.column:hover div.name {
+.no-touch .image-container:hover .file-checkbox,
+.no-touch .image-container:hover .controls,
+.no-touch .image-container:hover .name {
   opacity: 1;
 }
 
