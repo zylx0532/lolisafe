@@ -149,6 +149,7 @@ html {
 }
 
 .image-container .controls .button:not(:active):not(:hover) {
+  color: #fff;
   background-color: rgba(49, 54, 59, .75);
 }
 

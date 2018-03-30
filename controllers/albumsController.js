@@ -18,15 +18,20 @@ albumsController.list = async (req, res, next) => {
     fields.push('identifier')
   }
 
-  const albums = await db.table('albums').select(fields).where({ enabled: 1, userid: user.id })
+  const albums = await db.table('albums')
+    .select(fields)
+    .where({
+      enabled: 1,
+      userid: user.id
+    })
+
   if (req.params.sidebar !== undefined) {
     return res.json({ success: true, albums })
   }
 
   let ids = []
   for (let album of albums) {
-    album.date = new Date(album.timestamp * 1000)
-    album.date = utils.getPrettyDate(album.date)
+    album.date = utils.getPrettyDate(new Date(album.timestamp * 1000))
 
     album.identifier = `${albumDomain}/a/${album.identifier}`
     ids.push(album.id)
@@ -51,18 +56,20 @@ albumsController.create = async (req, res, next) => {
     return res.json({ success: false, description: 'No album name specified.' })
   }
 
-  const album = await db.table('albums').where({
-    name: name,
-    enabled: 1,
-    userid: user.id
-  }).first()
+  const album = await db.table('albums')
+    .where({
+      name,
+      enabled: 1,
+      userid: user.id
+    })
+    .first()
 
   if (album) {
     return res.json({ success: false, description: 'There\'s already an album with that name.' })
   }
 
   await db.table('albums').insert({
-    name: name,
+    name,
     enabled: 1,
     userid: user.id,
     identifier: randomstring.generate(8),
@@ -79,12 +86,42 @@ albumsController.delete = async (req, res, next) => {
   if (!user) { return }
 
   const id = req.body.id
+  const purge = req.body.purge
   if (id === undefined || id === '') {
     return res.json({ success: false, description: 'No album specified.' })
   }
 
-  await db.table('albums').where({ id: id, userid: user.id }).update({ enabled: 0 })
-  return res.json({ success: true })
+  let ids = []
+  let failedIds = []
+  if (purge) {
+    const files = await db.table('files')
+      .where({
+        albumid: id,
+        userid: user.id
+      })
+
+    ids = files.map(file => file.id)
+    failedIds = await utils.bulkDeleteFilesByIds(ids, user)
+
+    if (failedIds.length === ids.length) {
+      return res.json({
+        success: false,
+        description: 'Could not delete any of the files associated with the album.'
+      })
+    }
+  }
+
+  await db.table('albums')
+    .where({
+      id,
+      userid: user.id
+    })
+    .update({ enabled: 0 })
+
+  return res.json({
+    success: true,
+    failedIds
+  })
 }
 
 albumsController.rename = async (req, res, next) => {
@@ -101,12 +138,26 @@ albumsController.rename = async (req, res, next) => {
     return res.json({ success: false, description: 'No name specified.' })
   }
 
-  const album = await db.table('albums').where({ name: name, userid: user.id }).first()
+  const album = await db.table('albums')
+    .where({
+      name,
+      userid: user.id
+    })
+    .first()
+
   if (album) {
     return res.json({ success: false, description: 'Name already in use.' })
   }
 
-  await db.table('albums').where({ id: id, userid: user.id }).update({ name: name })
+  await db.table('albums')
+    .where({
+      id,
+      userid: user.id
+    })
+    .update({
+      name
+    })
+
   return res.json({ success: true })
 }
 
@@ -131,7 +182,7 @@ albumsController.get = async (req, res, next) => {
 
   return res.json({
     success: true,
-    title: title,
+    title,
     count: files.length,
     files
   })
@@ -151,7 +202,9 @@ albumsController.generateZip = async (req, res, next) => {
     return res.download(filePath, fileName)
   } else {
     console.log(`Generating zip for album identifier: ${identifier}`)
-    const files = await db.table('files').select('name').where('albumid', album.id)
+    const files = await db.table('files')
+      .select('name')
+      .where('albumid', album.id)
     if (files.length === 0) { return res.json({ success: false, description: 'There are no files in the album.' }) }
 
     const zipPath = path.join(__dirname, '..', config.uploads.folder, 'zips', `${album.identifier}.zip`)
@@ -180,6 +233,73 @@ albumsController.generateZip = async (req, res, next) => {
         return res.download(filePath, fileName)
       })
   }
+}
+
+albumsController.addFiles = async (req, res, next) => {
+  const user = await utils.authorize(req, res)
+  if (!user) { return }
+
+  const ids = req.body.ids
+  if (ids === undefined || !ids.length) {
+    return res.json({ success: false, description: 'No files specified.' })
+  }
+
+  let albumid = req.body.albumid
+  if (typeof albumid !== 'number') { albumid = parseInt(albumid) }
+  if (isNaN(albumid) || (albumid === undefined) || (albumid < 0)) { albumid = null }
+
+  if (albumid !== null) {
+    const album = await db.table('albums')
+      .where({
+        id: albumid,
+        userid: user.id
+      })
+      .first()
+
+    if (!album) {
+      return res.json({
+        success: false,
+        description: 'Album doesn\'t exist or it doesn\'t belong to the user.'
+      })
+    }
+  }
+
+  const files = await db.table('files')
+    .whereIn('id', ids)
+    .where(function () {
+      if (user.username !== 'root') {
+        this.where('userid', user.id)
+      }
+    })
+
+  const failedIds = ids.filter(id => !files.find(file => file.id === id))
+
+  await Promise.all(files.map(file => {
+    return db.table('files')
+      .where('id', file.id)
+      .update('albumid', albumid)
+      .catch(error => {
+        console.error(error)
+        failedIds.push(file.id)
+      })
+  }))
+
+  if (failedIds.length < ids.length) {
+    if (albumid !== null) {
+      await db.table('albums')
+        .where('id', albumid)
+        .update('editedAt', Math.floor(Date.now() / 1000))
+    }
+    return res.json({
+      success: true,
+      failedIds
+    })
+  }
+
+  return res.json({
+    success: false,
+    description: `Could not ${albumid === null ? 'add' : 'remove'} any of the selected files ${albumid === null ? 'to' : 'from'} the album.`
+  })
 }
 
 module.exports = albumsController

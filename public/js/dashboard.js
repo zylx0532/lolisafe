@@ -7,7 +7,8 @@ const panel = {
   token: localStorage.token,
   filesView: localStorage.filesView,
   clipboardJS: undefined,
-  selectedFiles: []
+  selectedFiles: [],
+  selectAlbumContainer: undefined
 }
 
 panel.preparePage = () => {
@@ -28,7 +29,7 @@ panel.verifyToken = (token, reloadOnError) => {
     .then(response => {
       if (response.data.success === false) {
         swal({
-          title: 'An error occurred',
+          title: 'An error occurred!',
           text: response.data.description,
           icon: 'error'
         }).then(() => {
@@ -48,7 +49,7 @@ panel.verifyToken = (token, reloadOnError) => {
     })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -112,7 +113,7 @@ panel.getUploads = (album, page, element) => {
       if (response.data.description === 'No token provided') {
         return panel.verifyToken(panel.token)
       } else {
-        return swal('An error occurred', response.data.description, 'error')
+        return swal('An error occurred!', response.data.description, 'error')
       }
     }
 
@@ -145,11 +146,17 @@ panel.getUploads = (album, page, element) => {
           </a>
         </div>
         <div class="column" style="text-align: right">
-          <a class="button is-small is-danger" title="Delete selected files" onclick="panel.deleteSelectedFiles()">
+          <a class="button is-small is-warning" title="Add to album" onclick="panel.addSelectedFilesToAlbum(${album})">
+            <span class="icon">
+              <i class="icon-plus"></i>
+            </span>
+            <span>Add to album</span>
+          </a>
+          <a class="button is-small is-danger" title="Bulk delete" onclick="panel.deleteSelectedFiles(${album})">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
-            <span class="is-mobile-hidden">Delete selected files</span>
+            <span>Bulk delete</span>
           </a>
         </div>
       </div>
@@ -169,41 +176,46 @@ panel.getUploads = (album, page, element) => {
 
       const table = document.getElementById('table')
 
-      for (const item of response.data.files) {
-        const selected = panel.selectedFiles.includes(item.id)
+      for (const file of response.data.files) {
+        const selected = panel.selectedFiles.includes(file.id)
         if (!selected && allFilesSelected) { allFilesSelected = false }
 
         const div = document.createElement('div')
 
-        let displayAlbumOrUser = item.album
+        let displayAlbumOrUser = file.album
         if (panel.username === 'root') {
           displayAlbumOrUser = ''
-          if (item.username !== undefined) { displayAlbumOrUser = item.username }
+          if (file.username !== undefined) { displayAlbumOrUser = file.username }
         }
 
         div.className = 'image-container column is-narrow'
-        if (item.thumb !== undefined) {
-          div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><img src="${item.thumb}"/></a>`
+        if (file.thumb !== undefined) {
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><img src="${file.thumb}"/></a>`
         } else {
-          div.innerHTML = `<a class="image" href="${item.file}" target="_blank"><h1 class="title">.${item.file.split('.').pop()}</h1></a>`
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><h1 class="title">.${file.file.split('.').pop()}</h1></a>`
         }
         div.innerHTML += `
-          <input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${item.id}, this)"${selected ? ' checked' : ''}>
+          <input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${file.id}, this)"${selected ? ' checked' : ''}>
           <div class="controls">
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${item.file}">
+            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
               <span class="icon">
                 <i class="icon-clipboard"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
+            <a class="button is-small is-warning" title="Add to album" onclick="panel.addToAlbum([${file.id}], ${album})">
+              <span class="icon">
+                <i class="icon-plus"></i>
+              </span>
+            </a>
+            <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id}, ${album}, ${page})">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
             </a>
           </div>
           <div class="name">
-            <p><span>${item.name}</span></p>
-            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${item.size}</div>
+            <p><span>${file.name}</span></p>
+            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</div>
         `
         table.appendChild(div)
       }
@@ -237,37 +249,42 @@ panel.getUploads = (album, page, element) => {
 
       const table = document.getElementById('table')
 
-      for (const item of response.data.files) {
-        const selected = panel.selectedFiles.includes(item.id)
+      for (const file of response.data.files) {
+        const selected = panel.selectedFiles.includes(file.id)
         if (!selected && allFilesSelected) { allFilesSelected = false }
 
         const tr = document.createElement('tr')
 
-        let displayAlbumOrUser = item.album
+        let displayAlbumOrUser = file.album
         if (panel.username === 'root') {
           displayAlbumOrUser = ''
-          if (item.username !== undefined) { displayAlbumOrUser = item.username }
+          if (file.username !== undefined) { displayAlbumOrUser = file.username }
         }
 
         tr.innerHTML = `
           <tr>
-            <th><input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${item.id}, this)"${selected ? ' checked' : ''}></th>
-            <th><a href="${item.file}" target="_blank">${item.file}</a></th>
+            <th><input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${file.id}, this)"${selected ? ' checked' : ''}></th>
+            <th><a href="${file.file}" target="_blank">${file.file}</a></th>
             <th>${displayAlbumOrUser}</th>
-            <td>${item.size}</td>
-            <td>${item.date}</td>
+            <td>${file.size}</td>
+            <td>${file.date}</td>
             <td style="text-align: right">
-              <a class="button is-small is-primary" title="View thumbnail" onclick="panel.displayThumbnailModal('${item.thumb}')">
+              <a class="button is-small is-primary" title="View thumbnail" onclick="panel.displayThumbnailModal('${file.thumb}')"${file.thumb ? '' : ' style="display: none"'}>
                 <span class="icon">
                   <i class="icon-picture-1"></i>
                 </span>
               </a>
-              <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${item.file}">
+              <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
                 <span class="icon">
                   <i class="icon-clipboard"></i>
                 </span>
               </a>
-              <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${item.id}, ${album}, ${page})">
+              <a class="button is-small is-warning" title="Add to album" onclick="panel.addToAlbum([${file.id}])">
+                <span class="icon">
+                  <i class="icon-plus"></i>
+                </span>
+              </a>
+              <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id}, ${album}, ${page})">
                 <span class="icon">
                   <i class="icon-trash"></i>
                 </span>
@@ -286,7 +303,7 @@ panel.getUploads = (album, page, element) => {
     }
   }).catch(error => {
     console.log(error)
-    return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
@@ -297,6 +314,7 @@ panel.setFilesView = (view, album, page, element) => {
 }
 
 panel.displayThumbnailModal = thumb => {
+  if (!thumb) { return }
   document.getElementById('modalImage').src = thumb
   document.getElementById('modal').className += ' is-active'
 }
@@ -345,7 +363,7 @@ panel.deleteFile = (id, album, page) => {
           if (response.data.description === 'No token provided') {
             return panel.verifyToken(panel.token)
           } else {
-            return swal('An error occurred', response.data.description, 'error')
+            return swal('An error occurred!', response.data.description, 'error')
           }
         }
 
@@ -354,15 +372,15 @@ panel.deleteFile = (id, album, page) => {
       })
       .catch(error => {
         console.log(error)
-        return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
 }
 
-panel.deleteSelectedFiles = () => {
+panel.deleteSelectedFiles = album => {
   const count = panel.selectedFiles.length
   if (!count) {
-    return swal('An error occurred', 'You have not selected any files.', 'error')
+    return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
   const suffix = `file${count === 1 ? '' : 's'}`
@@ -388,13 +406,13 @@ panel.deleteSelectedFiles = () => {
           if (response.data.description === 'No token provided') {
             return panel.verifyToken(panel.token)
           } else {
-            return swal('An error occurred', response.data.description, 'error')
+            return swal('An error occurred!', response.data.description, 'error')
           }
         }
 
-        let deletedCount = count
+        let deleted = count
         if (response.data.failedIds && response.data.failedIds.length) {
-          deletedCount -= response.data.failedIds.length
+          deleted -= response.data.failedIds.length
           panel.selectedFiles = panel.selectedFiles.filter(id => response.data.failedIds.includes(id))
         } else {
           panel.selectedFiles = []
@@ -402,14 +420,118 @@ panel.deleteSelectedFiles = () => {
 
         localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
 
-        swal('Deleted!', `${deletedCount} file${deletedCount === 1 ? ' has' : 's have'} been deleted.`, 'success')
-        panel.getUploads()
+        swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
+        panel.getUploads(album)
       })
       .catch(error => {
         console.log(error)
-        return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
+}
+
+panel.addSelectedFilesToAlbum = album => {
+  const count = panel.selectedFiles.length
+  if (!count) {
+    return swal('An error occurred!', 'You have not selected any files.', 'error')
+  }
+
+  return panel.addToAlbum(panel.selectedFiles, album)
+}
+
+panel.addToAlbum = async (ids, album) => {
+  const proceed = await swal({
+    title: 'Are you sure?',
+    text: 'You will be able to choose an album after confirming this.',
+    buttons: {
+      cancel: true,
+      confirm: {
+        text: 'Yes',
+        closeModal: false
+      }
+    }
+  })
+  if (!proceed) { return }
+
+  const list = await axios.get('api/albums')
+    .catch(error => {
+      console.log(error)
+      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!list) { return }
+
+  if (list.data.success === false) {
+    if (list.data.description === 'No token provided') {
+      return panel.verifyToken(panel.token)
+    } else {
+      return swal('An error occurred!', list.data.description, 'error')
+    }
+  }
+
+  if (!panel.selectAlbumContainer) {
+    // We want to this to be re-usable
+    panel.selectAlbumContainer = document.createElement('div')
+    panel.selectAlbumContainer.id = 'selectAlbum'
+    panel.selectAlbumContainer.className = 'select is-fullwidth'
+  }
+
+  const options = list.data.albums
+    .map(album => `<option value="${album.id}">${album.name}</option>`)
+    .join('\n')
+
+  panel.selectAlbumContainer.innerHTML = `
+    <select>
+      <option value="">Choose an album</option>
+      <option value="-1">Remove from album</option>
+      ${options}
+    </select>
+    <p class="help is-danger">If a file is already in an album, it will be moved.</p>
+  `
+
+  const choose = await swal({
+    content: panel.selectAlbumContainer,
+    buttons: {
+      cancel: true,
+      confirm: {
+        text: 'OK',
+        closeModal: false
+      }
+    }
+  })
+  if (!choose) { return }
+
+  let albumid = parseInt(panel.selectAlbumContainer.getElementsByTagName('select')[0].value)
+  if (isNaN(albumid)) {
+    return swal('An error occurred!', 'You did not choose an album.', 'error')
+  }
+
+  const add = await axios.post('api/albums/addfiles', { ids, albumid })
+    .catch(error => {
+      console.log(error)
+      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!add) { return }
+
+  if (add.data.success === false) {
+    if (add.data.description === 'No token provided') {
+      return panel.verifyToken(panel.token)
+    } else {
+      return swal('An error occurred!', add.data.description, 'error')
+    }
+  }
+
+  let added = ids.length
+  if (add.data.failedIds && add.data.failedIds.length) {
+    added -= add.data.failedIds.length
+  }
+  const suffix = `file${ids.length === 1 ? '' : 's'}`
+
+  if (!added) {
+    return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
+  }
+
+  swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
+  return panel.getUploads(album)
 }
 
 panel.getAlbums = () => {
@@ -418,7 +540,7 @@ panel.getAlbums = () => {
       if (response.data.description === 'No token provided') {
         return panel.verifyToken(panel.token)
       } else {
-        return swal('An error occurred', response.data.description, 'error')
+        return swal('An error occurred!', response.data.description, 'error')
       }
     }
 
@@ -460,26 +582,26 @@ panel.getAlbums = () => {
 
     const table = document.getElementById('table')
 
-    for (const item of response.data.albums) {
+    for (const album of response.data.albums) {
       const tr = document.createElement('tr')
       tr.innerHTML = `
         <tr>
-          <th>${item.name}</th>
-          <th>${item.files}</th>
-          <td>${item.date}</td>
-          <td><a href="${item.identifier}" target="_blank">${item.identifier}</a></td>
+          <th>${album.name}</th>
+          <th>${album.files}</th>
+          <td>${album.date}</td>
+          <td><a href="${album.identifier}" target="_blank">${album.identifier}</a></td>
           <td style="text-align: right">
-            <a class="button is-small is-primary" title="Edit name" onclick="panel.renameAlbum(${item.id})">
+            <a class="button is-small is-primary" title="Edit name" onclick="panel.renameAlbum(${album.id})">
               <span class="icon is-small">
                 <i class="icon-pencil-1"></i>
               </span>
             </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${item.identifier}">
+            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${album.identifier}">
               <span class="icon is-small">
                 <i class="icon-clipboard"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete album" onclick="panel.deleteAlbum(${item.id})">
+            <a class="button is-small is-danger" title="Delete album" onclick="panel.deleteAlbum(${album.id})">
               <span class="icon is-small">
                 <i class="icon-trash"></i>
               </span>
@@ -497,7 +619,7 @@ panel.getAlbums = () => {
   })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -526,7 +648,7 @@ panel.renameAlbum = id => {
     })
       .then(response => {
         if (response.data.success === false) {
-          if (response.data.description === 'No token provided') { return panel.verifyToken(panel.token) } else if (response.data.description === 'Name already in use') { swal.showInputError('That name is already in use!') } else { swal('An error occurred', response.data.description, 'error') }
+          if (response.data.description === 'No token provided') { return panel.verifyToken(panel.token) } else if (response.data.description === 'Name already in use') { swal.showInputError('That name is already in use!') } else { swal('An error occurred!', response.data.description, 'error') }
           return
         }
 
@@ -536,7 +658,7 @@ panel.renameAlbum = id => {
       })
       .catch(error => {
         console.log(error)
-        return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
 }
@@ -552,19 +674,26 @@ panel.deleteAlbum = id => {
       confirm: {
         text: 'Yes, delete it!',
         closeModal: false
+      },
+      purge: {
+        text: 'Umm, delete the files too please?',
+        value: 'purge',
+        className: 'swal-button--danger',
+        closeModal: false
       }
     }
   }).then(value => {
     if (!value) { return }
     axios.post('api/albums/delete', {
-      id: id
+      id: id,
+      purge: value === 'purge'
     })
       .then(response => {
         if (response.data.success === false) {
           if (response.data.description === 'No token provided') {
             return panel.verifyToken(panel.token)
           } else {
-            return swal('An error occurred', response.data.description, 'error')
+            return swal('An error occurred!', response.data.description, 'error')
           }
         }
 
@@ -574,7 +703,7 @@ panel.deleteAlbum = id => {
       })
       .catch(error => {
         console.log(error)
-        return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
       })
   })
 }
@@ -585,12 +714,12 @@ panel.submitAlbum = element => {
     name: document.getElementById('albumName').value
   })
     .then(async response => {
-      panel.setLoading(element, false)
+      panel.isLoading(element, false)
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -600,8 +729,8 @@ panel.submitAlbum = element => {
     })
     .catch(error => {
       console.log(error)
-      panel.setLoading(element, false)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      panel.isLoading(element, false)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -612,7 +741,7 @@ panel.getAlbumsSidebar = () => {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -637,13 +766,13 @@ panel.getAlbumsSidebar = () => {
     })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.getAlbum = item => {
-  panel.setActiveMenu(item)
-  panel.getUploads(item.id)
+panel.getAlbum = album => {
+  panel.setActiveMenu(album)
+  panel.getUploads(album.id)
 }
 
 panel.changeFileLength = () => {
@@ -653,7 +782,7 @@ panel.changeFileLength = () => {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -685,7 +814,7 @@ panel.changeFileLength = () => {
     })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -698,7 +827,7 @@ panel.setFileLength = (fileLength, element) => {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -713,7 +842,7 @@ panel.setFileLength = (fileLength, element) => {
     .catch(error => {
       console.log(error)
       panel.isLoading(element, false)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -724,7 +853,7 @@ panel.changeToken = () => {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -755,7 +884,7 @@ panel.changeToken = () => {
     })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -768,7 +897,7 @@ panel.getNewToken = element => {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -784,7 +913,7 @@ panel.getNewToken = element => {
     .catch(error => {
       console.log(error)
       panel.isLoading(element, false)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -840,7 +969,7 @@ panel.sendNewPassword = (pass, element) => {
         if (response.data.description === 'No token provided') {
           return panel.verifyToken(panel.token)
         } else {
-          return swal('An error occurred', response.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
@@ -855,7 +984,7 @@ panel.sendNewPassword = (pass, element) => {
     .catch(error => {
       console.log(error)
       panel.isLoading(element, false)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -876,7 +1005,6 @@ window.onload = () => {
   }
 
   const selectedFiles = localStorage.selectedFiles
-  console.log(selectedFiles)
   if (selectedFiles) {
     panel.selectedFiles = JSON.parse(selectedFiles)
   }
@@ -891,6 +1019,6 @@ window.onload = () => {
 
   panel.clipboardJS.on('error', event => {
     console.error(event)
-    return swal('An error occurred', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
+    return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
   })
 }

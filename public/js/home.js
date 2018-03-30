@@ -24,7 +24,7 @@ upload.checkIfPublic = () => {
     })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -50,7 +50,7 @@ upload.verifyToken = (token, reloadOnError) => {
     .then(response => {
       if (response.data.success === false) {
         swal({
-          title: 'An error occurred',
+          title: 'An error occurred!',
           text: response.data.description,
           icon: 'error'
         }).then(() => {
@@ -68,7 +68,7 @@ upload.verifyToken = (token, reloadOnError) => {
     })
     .catch(error => {
       console.log(error)
-      return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
@@ -101,7 +101,7 @@ upload.prepareUpload = () => {
       })
       .catch(e => {
         console.log(e)
-        return swal('An error occurred', 'There was an error with the request, please check the console for more information.', 'error')
+        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
       })
   }
 
@@ -292,6 +292,6 @@ window.onload = () => {
 
   upload.clipboardJS.on('error', event => {
     console.error(event)
-    return swal('An error occurred', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
+    return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
   })
 }

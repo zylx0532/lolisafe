@@ -11,7 +11,7 @@ const utilsController = {}
 utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv']
 
-utilsController.getPrettyDate = function (date) {
+utilsController.getPrettyDate = date => {
   return date.getFullYear() + '-' +
     (date.getMonth() + 1) + '-' +
     date.getDate() + ' ' +
@@ -23,7 +23,7 @@ utilsController.getPrettyDate = function (date) {
     date.getSeconds()
 }
 
-utilsController.getPrettyBytes = function (num) {
+utilsController.getPrettyBytes = num => {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
   if (!Number.isFinite(num)) { return num }
@@ -51,7 +51,7 @@ utilsController.authorize = async (req, res) => {
   res.status(401).json({ success: false, description: 'Invalid token.' })
 }
 
-utilsController.generateThumbs = function (file, basedomain) {
+utilsController.generateThumbs = (file, basedomain) => {
   const ext = path.extname(file.name).toLowerCase()
   const isVideoExt = utilsController.videoExtensions.includes(ext)
   const isImageExt = utilsController.imageExtensions.includes(ext)
@@ -88,6 +88,86 @@ utilsController.generateThumbs = function (file, basedomain) {
       }
     }
   })
+}
+
+utilsController.deleteFile = async file => {
+  const ext = path.extname(file).toLowerCase()
+  return new Promise((resolve, reject) => {
+    fs.stat(path.join(__dirname, '..', config.uploads.folder, file), (error, stats) => {
+      if (error) { return reject(error) }
+      fs.unlink(path.join(__dirname, '..', config.uploads.folder, file), error => {
+        if (error) { return reject(error) }
+        if (!utilsController.imageExtensions.includes(ext) && !utilsController.videoExtensions.includes(ext)) {
+          return resolve()
+        }
+        file = file.substr(0, file.lastIndexOf('.')) + '.png'
+        fs.stat(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), (error, stats) => {
+          if (error) {
+            if (error.code !== 'ENOENT') {
+              console.log(error)
+            }
+            return resolve()
+          }
+          fs.unlink(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), error => {
+            if (error) { return reject(error) }
+            return resolve()
+          })
+        })
+      })
+    })
+  })
+}
+
+// This will return an array of IDs that could not be deleted
+utilsController.bulkDeleteFilesByIds = async (ids, user) => {
+  if (!user) { return }
+  const files = await db.table('files')
+    .whereIn('id', ids)
+    .where(function () {
+      if (user.username !== 'root') {
+        this.where('userid', user.id)
+      }
+    })
+
+  const failedIds = ids.filter(id => !files.find(file => file.id === id))
+
+  // First, we delete all the physical files
+  await Promise.all(files.map(file => {
+    return utilsController.deleteFile(file.name).catch(error => {
+      // ENOENT is missing file, for whatever reason, then just delete from db anyways
+      if (error.code !== 'ENOENT') {
+        console.log(error)
+        failedIds.push(file.id)
+      }
+    })
+  }))
+
+  // Second, we filter out failed IDs
+  const albumIds = []
+  const successIds = files.filter(file => !failedIds.includes(file.id))
+  await Promise.all(successIds.map(file => {
+    return db.table('files')
+      .where('id', file.id)
+      .del()
+      .then(() => {
+        if (file.albumid && !albumIds.includes(file.albumid)) {
+          albumIds.push(file.albumid)
+        }
+      })
+      .catch(error => {
+        console.error(error)
+        failedIds.push(file.id)
+      })
+  }))
+
+  // Third, we update albums, if necessary
+  await Promise.all(albumIds.map(albumid => {
+    return db.table('albums')
+      .where('id', albumid)
+      .update('editedAt', Math.floor(Date.now() / 1000))
+  }))
+
+  return failedIds
 }
 
 module.exports = utilsController

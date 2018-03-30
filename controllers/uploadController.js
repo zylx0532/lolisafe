@@ -373,7 +373,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
-          uploadsController.deleteFile(info.data.filename).then(() => {}).catch(error => console.log(error))
+          utils.deleteFile(info.data.filename).then(() => {}).catch(error => console.log(error))
           existingFiles.push(dbFile)
         }
 
@@ -428,7 +428,10 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     }
 
     if (file.albumid) {
-      db.table('albums').where('id', file.albumid).update('editedAt', file.timestamp).then(() => {})
+      db.table('albums')
+        .where('id', file.albumid)
+        .update('editedAt', file.timestamp)
+        .then(() => {})
         .catch(error => { console.log(error); res.json({ success: false, description: 'Error updating album.' }) })
     }
   }
@@ -452,13 +455,17 @@ uploadsController.delete = async (req, res) => {
     .first()
 
   try {
-    await uploadsController.deleteFile(file.name).catch(error => {
+    await utils.deleteFile(file.name).catch(error => {
       // ENOENT is missing file, for whatever reason, then just delete from db anyways
       if (error.code !== 'ENOENT') { throw error }
     })
-    await db.table('files').where('id', id).del()
+    await db.table('files')
+      .where('id', id)
+      .del()
     if (file.albumid) {
-      await db.table('albums').where('id', file.albumid).update('editedAt', Math.floor(Date.now() / 1000))
+      await db.table('albums')
+        .where('id', file.albumid)
+        .update('editedAt', Math.floor(Date.now() / 1000))
     }
   } catch (error) {
     console.log(error)
@@ -475,73 +482,17 @@ uploadsController.bulkDelete = async (req, res) => {
     return res.json({ success: false, description: 'No files specified.' })
   }
 
-  const files = await db.table('files')
-    .whereIn('id', ids)
-    .where(function () {
-      if (user.username !== 'root') {
-        this.where('userid', user.id)
-      }
+  const failedIds = await utils.bulkDeleteFilesByIds(ids, user)
+  if (failedIds.length < ids.length) {
+    return res.json({
+      success: true,
+      failedIds
     })
-
-  const failedIds = []
-
-  // First, we delete all the physical files
-  await Promise.all(files.map(file => {
-    return uploadsController.deleteFile(file.name).catch(error => {
-      // ENOENT is missing file, for whatever reason, then just delete from db anyways
-      if (error.code !== 'ENOENT') {
-        console.log(error)
-        failedIds.push(file.id)
-      }
-    })
-  }))
-
-  // Second, we filter out failed IDs
-  const successIds = files.filter(file => !failedIds.includes(file.id))
-  await Promise.all(successIds.map(file => {
-    return db.table('files').where('id', file.id).del()
-      .then(() => {
-        if (file.albumid) {
-          return db.table('albums').where('id', file.albumid).update('editedAt', Math.floor(Date.now() / 1000))
-        }
-      })
-      .catch(error => {
-        console.error(error)
-        failedIds.push(file.id)
-      })
-  }))
+  }
 
   return res.json({
-    success: true,
-    failedIds
-  })
-}
-
-uploadsController.deleteFile = function (file) {
-  const ext = path.extname(file).toLowerCase()
-  return new Promise((resolve, reject) => {
-    fs.stat(path.join(__dirname, '..', config.uploads.folder, file), (error, stats) => {
-      if (error) { return reject(error) }
-      fs.unlink(path.join(__dirname, '..', config.uploads.folder, file), error => {
-        if (error) { return reject(error) }
-        if (!utils.imageExtensions.includes(ext) && !utils.videoExtensions.includes(ext)) {
-          return resolve()
-        }
-        file = file.substr(0, file.lastIndexOf('.')) + '.png'
-        fs.stat(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), (error, stats) => {
-          if (error) {
-            if (error.code !== 'ENOENT') {
-              console.log(error)
-            }
-            return resolve()
-          }
-          fs.unlink(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), error => {
-            if (error) { return reject(error) }
-            return resolve()
-          })
-        })
-      })
-    })
+    success: false,
+    description: 'Could not delete any of the selected files.'
   })
 }
 
