@@ -117,7 +117,7 @@ html {
   background-color: rgba(49, 54, 59, .75);
 }
 
-.image-container .name {
+.image-container .details {
   position: absolute;
   left: .75rem;
   bottom: .75rem;
@@ -128,7 +128,13 @@ html {
   font-size: .75rem;
 }
 
-.image-container .name span {
+.image-container .details p {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.image-container .details p span {
   font-weight: 800;
 }
 
@@ -140,14 +146,14 @@ html {
 }
 
 .no-touch .image-container .controls,
-.no-touch .image-container .name {
+.no-touch .image-container .details {
   opacity: 0;
   transition: opacity .25s;
 }
 
 .no-touch .image-container:hover .file-checkbox,
 .no-touch .image-container:hover .controls,
-.no-touch .image-container:hover .name {
+.no-touch .image-container:hover .details {
   opacity: 1;
 }
 
