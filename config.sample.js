@@ -66,9 +66,11 @@ module.exports = {
 
     /*
       Chunked uploads.
-      If this is enabled, maximum size for individual files (uploads.maxSize) will be overriden
-      by uploads.chunkedUploads.maxSize option (this also needs to be in MB).
-      uploads.maxSize will only then be used to check the combined size of all the chunks.
+      If this is enabled, every files uploaded from the home page will forcibly be chunked
+      by the size specified in uploads.chunkedUploads.maxSize. People will still be able to
+      upload bigger files through the API as long as they don't surpass the limit specified
+      in uploads.maxSize though.
+      Total size of the whole chunks will still be checked against uploads.maxSize too.
       NOTICE: Make sure you have a folder named "chunks" inside your uploads folder.
     */
     chunkedUploads: {
