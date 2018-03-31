@@ -269,7 +269,7 @@ panel.getUploads = (album, page, element) => {
             <td>${file.size}</td>
             <td>${file.date}</td>
             <td style="text-align: right">
-              <a class="button is-small is-primary" title="View thumbnail" onclick="panel.displayThumbnailModal('${file.thumb}')"${file.thumb ? '' : ' style="display: none"'}>
+              <a class="button is-small is-primary" title="View thumbnail" onclick="panel.displayThumbnailModal(${file.thumb ? `'${file.thumb}'` : null})"${file.thumb ? '' : ' disabled'}>
                 <span class="icon">
                   <i class="icon-picture-1"></i>
                 </span>
@@ -377,14 +377,14 @@ panel.deleteFile = (id, album, page) => {
   })
 }
 
-panel.deleteSelectedFiles = album => {
+panel.deleteSelectedFiles = async (ids, album) => {
   const count = panel.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
   const suffix = `file${count === 1 ? '' : 's'}`
-  swal({
+  const proceed = await swal({
     title: 'Are you sure?',
     text: `You won't be able to recover ${count} ${suffix}!`,
     icon: 'warning',
@@ -396,47 +396,53 @@ panel.deleteSelectedFiles = album => {
         closeModal: false
       }
     }
-  }).then(value => {
-    if (!value) { return }
-    axios.post('api/upload/bulkdelete', {
-      ids: panel.selectedFiles
-    })
-      .then(response => {
-        if (response.data.success === false) {
-          if (response.data.description === 'No token provided') {
-            return panel.verifyToken(panel.token)
-          } else {
-            return swal('An error occurred!', response.data.description, 'error')
-          }
-        }
-
-        let deleted = count
-        if (response.data.failedIds && response.data.failedIds.length) {
-          deleted -= response.data.failedIds.length
-          panel.selectedFiles = panel.selectedFiles.filter(id => response.data.failedIds.includes(id))
-        } else {
-          panel.selectedFiles = []
-        }
-
-        localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
-
-        swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
-        panel.getUploads(album)
-      })
-      .catch(error => {
-        console.log(error)
-        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-      })
   })
+  if (!proceed) { return }
+
+  const bulkdelete = await axios.post('api/upload/bulkdelete', {
+    ids: panel.selectedFiles
+  })
+    .catch(error => {
+      console.log(error)
+      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!bulkdelete) { return }
+
+  if (bulkdelete.data.success === false) {
+    if (bulkdelete.data.description === 'No token provided') {
+      return panel.verifyToken(panel.token)
+    } else {
+      return swal('An error occurred!', bulkdelete.data.description, 'error')
+    }
+  }
+
+  let deleted = count
+  if (bulkdelete.data.failedIds && bulkdelete.data.failedIds.length) {
+    deleted -= bulkdelete.data.failedIds.length
+    panel.selectedFiles = panel.selectedFiles.filter(id => bulkdelete.data.failedIds.includes(id))
+  } else {
+    panel.selectedFiles = []
+  }
+
+  localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+
+  swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
+  return panel.getUploads(album)
 }
 
-panel.addSelectedFilesToAlbum = album => {
+panel.addSelectedFilesToAlbum = async album => {
   const count = panel.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
-  return panel.addToAlbum(panel.selectedFiles, album)
+  const failedIds = await panel.addToAlbum(panel.selectedFiles, album)
+  if (failedIds && failedIds.length) {
+    panel.selectedFiles = panel.selectedFiles.filter(id => failedIds.includes(id))
+  } else {
+    panel.selectedFiles = []
+  }
+  localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
 }
 
 panel.addToAlbum = async (ids, album) => {
@@ -531,7 +537,8 @@ panel.addToAlbum = async (ids, album) => {
   }
 
   swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
-  return panel.getUploads(album)
+  panel.getUploads(album)
+  return add.data.failedIds
 }
 
 panel.getAlbums = () => {
