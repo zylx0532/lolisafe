@@ -377,7 +377,7 @@ panel.deleteFile = (id, album, page) => {
   })
 }
 
-panel.deleteSelectedFiles = async (ids, album) => {
+panel.deleteSelectedFiles = async album => {
   const count = panel.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
@@ -437,7 +437,8 @@ panel.addSelectedFilesToAlbum = async album => {
   }
 
   const failedIds = await panel.addToAlbum(panel.selectedFiles, album)
-  if (failedIds && failedIds.length) {
+  if (!(failedIds instanceof Array)) { return } // TODO: Make it so that I don't have to do this
+  if (failedIds.length) {
     panel.selectedFiles = panel.selectedFiles.filter(id => failedIds.includes(id))
   } else {
     panel.selectedFiles = []
@@ -446,9 +447,10 @@ panel.addSelectedFilesToAlbum = async album => {
 }
 
 panel.addToAlbum = async (ids, album) => {
+  const count = ids.length
   const proceed = await swal({
     title: 'Are you sure?',
-    text: 'You will be able to choose an album after confirming this.',
+    text: `You are about to move ${count} file${count === 1 ? '' : 's'} to an album.`,
     buttons: {
       cancel: true,
       confirm: {

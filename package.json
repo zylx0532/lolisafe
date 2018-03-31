@@ -54,6 +54,10 @@
       "curly": [
         "error",
         "all"
+      ],
+      "quotes": [
+        "error",
+        "single"
       ]
     }
   },
