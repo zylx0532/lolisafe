@@ -144,8 +144,8 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
 
   // Second, we filter out failed IDs
   const albumIds = []
-  const successIds = files.filter(file => !failedIds.includes(file.id))
-  await Promise.all(successIds.map(file => {
+  const updateDbIds = files.filter(file => !failedIds.includes(file.id))
+  await Promise.all(updateDbIds.map(file => {
     return db.table('files')
       .where('id', file.id)
       .del()

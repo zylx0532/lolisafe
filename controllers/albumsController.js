@@ -246,7 +246,7 @@ albumsController.addFiles = async (req, res, next) => {
 
   let albumid = req.body.albumid
   if (typeof albumid !== 'number') { albumid = parseInt(albumid) }
-  if (isNaN(albumid) || (albumid === undefined) || (albumid < 0)) { albumid = null }
+  if (isNaN(albumid) || (albumid < 0)) { albumid = null }
 
   if (albumid !== null) {
     const album = await db.table('albums')
