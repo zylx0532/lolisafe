@@ -11,6 +11,7 @@
 
     <!-- Stylesheets and scripts -->
     <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=8FbubjpYRC">
+    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=YBMnkTE6GB">
     <link rel="stylesheet" type="text/css" href="css/style.css?v=YBMnkTE6GB">
     <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/axios/axios.min.js?v=8FbubjpYRC"></script>
@@ -86,14 +87,24 @@
               </div>
               <div class="field is-grouped is-grouped-right">
                 <div class="control">
-                  <a id="registerBtn" class="button" onclick="page.do('register')">Register</a>
+                  <a id="registerBtn" class="button" onclick="page.do('register')">
+                    <span class="icon">
+                      <i class="icon-user-plus"></i>
+                    </span>
+                    <span>Register</span>
+                  </a>
                 </div>
                 <div class="control">
-                  <a id="loginBtn" class="button" onclick="page.do('login')">Log in</a>
+                  <a id="loginBtn" class="button" onclick="page.do('login')">
+                    <span class="icon">
+                      <i class="icon-login"></i>
+                    </span>
+                    <span>Log in</span>
+                  </a>
                 </div>
               </div>
             </div>
-            <div class="column is-one-third is-hidden-touch"></div>
+            <div class="column is-one-third is-hidden-mobile"></div>
           </div>
         </div>
       </div>
