@@ -8,6 +8,7 @@ const authController = require('../controllers/authController')
 routes.get('/check', (req, res, next) => {
   return res.json({
     private: config.private,
+    enableUserAccounts: config.enableUserAccounts,
     maxFileSize: config.uploads.maxSize,
     chunkedUploads: config.uploads.chunkedUploads
   })

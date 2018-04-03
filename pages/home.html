@@ -11,13 +11,13 @@
 
     <!-- Stylesheets and scripts -->
     <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=8FbubjpYRC">
-    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=ZnnW8U7YAv">
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=vZEyc9zyh6">
+    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=YBMnkTE6GB">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=YBMnkTE6GB">
     <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/axios/axios.min.js?v=8FbubjpYRC"></script>
     <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=8FbubjpYRC"></script>
-    <script type="text/javascript" src="js/home.js?v=qXMCPUL26R"></script>
+    <script type="text/javascript" src="js/home.js?v=YBMnkTE6GB"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -62,6 +62,17 @@
 
       .clipboard-mobile {
         margin-top: 5px;
+      }
+
+      #links {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #links a {
+        display: block;
+        margin: 5px;
       }
     </style>
 
@@ -110,7 +121,7 @@
                 <p class="clipboard-mobile is-hidden-desktop" style="display: none">
                   <a class="button is-info is-outlined clipboard-js" style="display: flex">
                     <span class="icon">
-                      <i class="icon-clipboard"></i>
+                      <i class="icon-clipboard-1"></i>
                     </span>
                     <span>Copy link to clipboard</span>
                   </a>
@@ -124,17 +135,41 @@
             <a href="auth" id="loginLinkText"></a>
           </h3>
           <h3 id="links">
-            <a href="https://fiery.me" class="is-danger">Home</a>
-            <span>|</span>
-            <a href="https://fiery.me/blog" class="is-danger">Blog</a>
-            <span>|</span>
-            <a id="ShareX" href="https://safe.fiery.me/sharex.txt">ShareX</a>
-            <span>|</span>
-            <a href="faq" class="is-danger">FAQ</a>
-            <span>|</span>
-            <a href="auth" class="is-danger">Dashboard</a>
-            <span>|</span>
-            <a href="https://github.com/BobbyWibowo/lolisafe" target="_blank" class="is-danger">GitHub</a>
+            <a href="https://fiery.me" title="Home">
+              <span class="icon is-medium">
+                <i class="icon-home icon-2x"></i>
+              </span>
+            </a>
+            <a href="https://fiery.me/blog" title="Blog">
+              <span class="icon is-medium">
+                <i class="icon-archive icon-2x"></i>
+              </span>
+            </a>
+            <a id="ShareX" href="https://safe.fiery.me/sharex.txt" title="ShareX">
+              <span class="icon is-medium">
+                <i class="icon-sharex icon-2x"></i>
+              </span>
+            </a>
+            <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj" title="Chrome extension">
+              <span class="icon is-medium">
+                <i class="icon-chrome icon-2x"></i>
+              </span>
+            </a>
+            <a href="faq" title="FAQ">
+              <span class="icon is-medium">
+                <i class="icon-help-circled icon-2x"></i>
+              </span>
+            </a>
+            <a href="auth" title="Dashboard">
+              <span class="icon is-medium">
+                <i class="icon-gauge icon-2x"></i>
+              </span>
+            </a>
+            <a href="https://github.com/BobbyWibowo/lolisafe" title="GitHub">
+              <span class="icon is-medium">
+                <i class="icon-github-circled icon-2x"></i>
+              </span>
+            </a>
           </h3>
 
         </div>

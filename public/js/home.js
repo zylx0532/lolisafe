@@ -2,7 +2,8 @@
 /* global swal, axios, Dropzone, ClipboardJS */
 
 const upload = {
-  isPrivate: true,
+  private: undefined,
+  enableUserAccounts: undefined,
   token: localStorage.token,
   maxFileSize: undefined,
   chunkedUploads: undefined,
@@ -17,7 +18,8 @@ const imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 upload.checkIfPublic = () => {
   axios.get('api/check')
     .then(response => {
-      upload.isPrivate = response.data.private
+      upload.private = response.data.private
+      upload.enableUserAccounts = response.data.enableUserAccounts
       upload.maxFileSize = response.data.maxFileSize
       upload.chunkedUploads = response.data.chunkedUploads
       upload.preparePage()
@@ -29,14 +31,19 @@ upload.checkIfPublic = () => {
 }
 
 upload.preparePage = () => {
-  if (upload.isPrivate) {
+  if (upload.private) {
     if (upload.token) {
       return upload.verifyToken(upload.token, true)
     } else {
       const button = document.getElementById('loginToUpload')
       button.href = 'auth'
-      button.innerText = 'Running in private mode. Log in to upload.'
       button.className = button.className.replace(' is-loading', '')
+
+      if (upload.enableUserAccounts) {
+        button.innerText = 'Anonymous upload is disabled. Log in to upload.'
+      } else {
+        button.innerText = 'Running in private mode. Log in to upload.'
+      }
     }
   } else {
     return upload.prepareUpload()
@@ -119,7 +126,7 @@ upload.prepareUpload = () => {
   document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${upload.maxFileSize}`
   document.getElementById('loginToUpload').style.display = 'none'
 
-  if (upload.token === undefined) {
+  if (upload.token === undefined && upload.enableUserAccounts) {
     document.getElementById('loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
   }
 
@@ -151,7 +158,7 @@ upload.prepareDropzone = () => {
     parallelChunkUploads: false, // when set to true, sometimes it often hangs with hundreds of parallel uploads
     chunksUploaded: async (file, done) => {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
-      file.previewElement.querySelector('.progress').innerHTML = `100%`
+      file.previewElement.querySelector('.progress').innerHTML = '100%'
 
       // The API supports an array of multiple files
       const response = await axios.post(

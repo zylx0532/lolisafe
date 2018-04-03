@@ -136,12 +136,12 @@ panel.getUploads = (album, page, element) => {
         <div class="column" style="text-align: center">
           <a class="button is-small is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page}, this)">
             <span class="icon">
-              <i class="icon-th-list-1"></i>
+              <i class="icon-th-list"></i>
             </span>
           </a>
           <a class="button is-small is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', ${album}, ${page}, this)">
             <span class="icon">
-              <i class="icon-th-large-1"></i>
+              <i class="icon-th-large"></i>
             </span>
           </a>
         </div>
@@ -203,7 +203,7 @@ panel.getUploads = (album, page, element) => {
           <div class="controls">
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
               <span class="icon">
-                <i class="icon-clipboard"></i>
+                <i class="icon-clipboard-1"></i>
               </span>
             </a>
             <a class="button is-small is-warning" title="Add to album" onclick="panel.addToAlbum([${file.id}], ${album})">
@@ -268,7 +268,7 @@ panel.getUploads = (album, page, element) => {
         tr.innerHTML = `
           <tr>
             <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this)"${selected ? ' checked' : ''}></th>
-            <th><a href="${file.file}" target="_blank">${file.file}</a></th>
+            <th><a href="${file.file}" target="_blank">${file.name}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${file.size}</td>
             <td>${file.date}</td>
@@ -280,7 +280,7 @@ panel.getUploads = (album, page, element) => {
               </a>
               <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
                 <span class="icon">
-                  <i class="icon-clipboard"></i>
+                  <i class="icon-clipboard-1"></i>
                 </span>
               </a>
               <a class="button is-small is-warning" title="Add to album" onclick="panel.addToAlbum([${file.id}])">
@@ -666,7 +666,7 @@ panel.getAlbums = () => {
             </a>
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${album.identifier}">
               <span class="icon is-small">
-                <i class="icon-clipboard"></i>
+                <i class="icon-clipboard-1"></i>
               </span>
             </a>
             <a class="button is-small is-danger" title="Delete album" onclick="panel.deleteAlbum(${album.id})">
