@@ -146,11 +146,15 @@ panel.getUploads = (album, page, element) => {
           </a>
         </div>
         <div class="column" style="text-align: right">
-          <a class="button is-small is-warning" title="Add to album" onclick="panel.addSelectedFilesToAlbum(${album})">
+          <a class="button is-small is-info" title="Clear selection" onclick="panel.clearSelection()">
+            <span class="icon">
+              <i class="icon-cancel"></i>
+            </span>
+          </a>
+          <a class="button is-small is-warning" title="Add selected files to album" onclick="panel.addSelectedFilesToAlbum(${album})">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
-            <span>Add to album</span>
           </a>
           <a class="button is-small is-danger" title="Bulk delete" onclick="panel.deleteSelectedFiles(${album})">
             <span class="icon">
@@ -195,7 +199,7 @@ panel.getUploads = (album, page, element) => {
           div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><h1 class="title">.${file.file.split('.').pop()}</h1></a>`
         }
         div.innerHTML += `
-          <input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${file.id}, this)"${selected ? ' checked' : ''}>
+          <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this)"${selected ? ' checked' : ''}>
           <div class="controls">
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
               <span class="icon">
@@ -263,7 +267,7 @@ panel.getUploads = (album, page, element) => {
 
         tr.innerHTML = `
           <tr>
-            <th><input type="checkbox" class="file-checkbox" title="Select this file" onclick="panel.selectFile(${file.id}, this)"${selected ? ' checked' : ''}></th>
+            <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this)"${selected ? ' checked' : ''}></th>
             <th><a href="${file.file}" target="_blank">${file.file}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${file.size}</td>
@@ -322,22 +326,77 @@ panel.displayThumbnailModal = thumb => {
 panel.selectAllFiles = element => {
   const table = document.getElementById('table')
   const checkboxes = table.getElementsByClassName('file-checkbox')
+
   for (const checkbox of checkboxes) {
+    const id = parseInt(checkbox.dataset.id)
+    if (isNaN(id)) { continue }
     if (checkbox.checked !== element.checked) {
-      checkbox.click()
+      checkbox.checked = element.checked
+      if (checkbox.checked) {
+        panel.selectedFiles.push(id)
+      } else {
+        panel.selectedFiles.splice(panel.selectedFiles.indexOf(id), 1)
+      }
     }
   }
+
+  if (panel.selectedFiles.length) {
+    localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  } else {
+    localStorage.removeItem('selectedFiles')
+  }
+
   element.title = element.checked ? 'Unselect all files' : 'Select all files'
 }
 
-panel.selectFile = (id, element) => {
+panel.selectFile = element => {
+  const id = parseInt(element.dataset.id)
+
+  if (isNaN(id)) { return }
+
   if (!panel.selectedFiles.includes(id) && element.checked) {
     panel.selectedFiles.push(id)
-    localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
   } else if (panel.selectedFiles.includes(id) && !element.checked) {
     panel.selectedFiles.splice(panel.selectedFiles.indexOf(id), 1)
-    localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
   }
+
+  if (panel.selectedFiles.length) {
+    localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  } else {
+    localStorage.removeItem('selectedFiles')
+  }
+}
+
+panel.clearSelection = async () => {
+  const count = panel.selectedFiles.length
+  if (!count) {
+    return swal('An error occurred!', 'You have not selected any files.', 'error')
+  }
+
+  const suffix = `file${count === 1 ? '' : 's'}`
+  const proceed = await swal({
+    title: 'Are you sure?',
+    text: `You are going to unselect ${count} ${suffix}.`,
+    buttons: true
+  })
+  if (!proceed) { return }
+
+  const table = document.getElementById('table')
+  const checkboxes = table.getElementsByClassName('file-checkbox')
+
+  for (const checkbox of checkboxes) {
+    if (checkbox.checked) {
+      checkbox.checked = false
+    }
+  }
+
+  panel.selectedFiles = []
+  localStorage.removeItem('selectedFiles')
+
+  const selectAll = document.getElementById('selectAll')
+  if (selectAll) { selectAll.checked = false }
+
+  return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
 }
 
 panel.deleteFile = (id, album, page) => {
