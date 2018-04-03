@@ -189,13 +189,13 @@ html {
   background-color: #ff3860;
 }
 
-.table th {
-  color: #eff0f1;
-  height: 2.25em;
-}
-
 .table td,
 .table th {
   border: 0;
   white-space: nowrap;
+}
+
+.table th {
+  color: #eff0f1;
+  height: 2.25em;
 }

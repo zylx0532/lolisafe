@@ -236,7 +236,7 @@ panel.getUploads = (album, page, element) => {
             <thead>
               <tr>
                   <th><input id="selectAll" type="checkbox" title="Select all files" onclick="panel.selectAllFiles(this)"></th>
-                  <th>File</th>
+                  <th style="width: 25%">File</th>
                   <th>${albumOrUser}</th>
                   <th>Size</th>
                   <th>Date</th>
