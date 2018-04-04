@@ -8,7 +8,9 @@ const panel = {
   filesView: localStorage.filesView,
   clipboardJS: undefined,
   selectedFiles: [],
-  selectAlbumContainer: undefined
+  selectAlbumContainer: undefined,
+  checkboxes: undefined,
+  lastSelected: undefined
 }
 
 panel.preparePage = () => {
@@ -199,7 +201,7 @@ panel.getUploads = (album, page, element) => {
           div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><h1 class="title">.${file.file.split('.').pop()}</h1></a>`
         }
         div.innerHTML += `
-          <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this)"${selected ? ' checked' : ''}>
+          <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}>
           <div class="controls">
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
               <span class="icon">
@@ -222,6 +224,7 @@ panel.getUploads = (album, page, element) => {
             <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</div>
         `
         table.appendChild(div)
+        panel.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
       }
     } else {
       let albumOrUser = 'Album'
@@ -267,7 +270,7 @@ panel.getUploads = (album, page, element) => {
 
         tr.innerHTML = `
           <tr>
-            <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this)"${selected ? ' checked' : ''}></th>
+            <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}></th>
             <th><a href="${file.file}" target="_blank" title="${file.file}">${file.name}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${file.size}</td>
@@ -298,6 +301,7 @@ panel.getUploads = (album, page, element) => {
         `
 
         table.appendChild(tr)
+        panel.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
       }
     }
 
@@ -349,7 +353,35 @@ panel.selectAllFiles = element => {
   element.title = element.checked ? 'Unselect all files' : 'Select all files'
 }
 
-panel.selectFile = element => {
+panel.selectInBetween = (element, lastElement) => {
+  if (!element || !lastElement) { return }
+  if (element === lastElement) { return }
+  if (!panel.checkboxes || !panel.checkboxes.length) { return }
+
+  let thisIndex = panel.checkboxes.indexOf(element)
+  let lastIndex = panel.checkboxes.indexOf(lastElement)
+
+  const distance = thisIndex - lastIndex
+  if (distance >= -1 && distance <= 1) { return }
+
+  for (let i = 0; i < panel.checkboxes.length; i++) {
+    if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
+      (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
+      panel.checkboxes[i].checked = true
+      panel.selectedFiles.push(parseInt(panel.checkboxes[i].dataset.id))
+    }
+  }
+
+  localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+}
+
+panel.selectFile = (element, event) => {
+  if (event.shiftKey && panel.lastSelected) {
+    panel.selectInBetween(element, panel.lastSelected)
+  } else {
+    panel.lastSelected = element
+  }
+
   const id = parseInt(element.dataset.id)
 
   if (isNaN(id)) { return }
