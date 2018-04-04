@@ -268,7 +268,7 @@ panel.getUploads = (album, page, element) => {
         tr.innerHTML = `
           <tr>
             <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this)"${selected ? ' checked' : ''}></th>
-            <th><a href="${file.file}" target="_blank">${file.name}</a></th>
+            <th><a href="${file.file}" target="_blank" data-tooltip="${file.file}" class="tooltip is-tooltip-right is-tooltip-multiline">${file.name}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${file.size}</td>
             <td>${file.date}</td>
@@ -637,7 +637,7 @@ panel.getAlbums = () => {
             <tr>
                 <th>Name</th>
                 <th>Files</th>
-                <th>Created At</th>
+                <th>Created at</th>
                 <th>Public link</th>
                 <th></th>
             </tr>
