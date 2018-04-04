@@ -1,6 +1,6 @@
 # lolisafe, a small safe worth protecting
 
-![loli-safe](https://s.fiery.me/5nYA.png)
+![lolisafe](https://s.fiery.me/5nYA.png)
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://raw.githubusercontent.com/kanadeko/Kuro/master/LICENSE)
 [![Chat / Support](https://img.shields.io/badge/Chat%20%2F%20Support-discord-7289DA.svg?style=flat-square)](https://discord.gg/5g6vgwn)
@@ -50,7 +50,7 @@ If you set `enableUserAccounts: true`, people will be able to create accounts on
 
 If you are running lolisafe behind Cloudflare there is support to make the NGINX logs have the users IP instead of Cloudflares IP. You will need to compile NGINX from source with `--with-http_realip_module` as well as uncomment the following line in the NGINX config: `include /path/to/lolisafe/real-ip-from-cf;`
 
-## Using loli-safe
+## Using lolisafe
 
 Once the service starts you can start hitting the upload endpoint at `/api/upload` with any file. If you're using the frontend to do so then you are pretty much set, but if using the API to upload make sure the form name is set to `files[]` and the form type to `multipart/form-data`. If the service is running in private mode, dont forget to send a header of type `token: YOUR-CLIENT-TOKEN` to validate the request.
 
@@ -68,9 +68,9 @@ To make it easier and better than any other service, you can download [our Chrom
 
 Because of how nodejs apps work, if you want it attached to a domain name you will need to make a reverse proxy for it.
 
-Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-16-04). Keep in mind that this is only a requirement if you want to access your loli-safe service by using a domain name (ex: `https://i.kanacchi.moe`), otherwise you can use the service just fine by accessing it from your server's IP.
+Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-16-04). Keep in mind that this is only a requirement if you want to access your lolisafe service by using a domain name (ex: `https://i.kanacchi.moe`), otherwise you can use the service just fine by accessing it from your server's IP.
 
-## Sites using loli-safe
+## Sites using lolisafe
 
 - [lolisafe.moe](https://lolisafe.moe): A small safe worth protecting.
 - [safe.moe](https://safe.moe): The world's most ~~un~~safe pomf clone
@@ -81,7 +81,7 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 
 ## Author
 
-**lolisafe** © [Pitu](https://github.com/Pitu), Released under the [MIT](https://github.com/WeebDev/loli-safe/blob/master/LICENSE) License.
+**lolisafe** © [Pitu](https://github.com/Pitu), Released under the [MIT](https://github.com/WeebDev/lolisafe/blob/master/LICENSE) License.
 
 Authored and maintained by Pitu.
 
