@@ -218,7 +218,7 @@ panel.getUploads = (album, page, element) => {
             </a>
           </div>
           <div class="details">
-            <p><span class="name">${file.name}</span></p>
+            <p><span class="name" title="${file.file}">${file.name}</span></p>
             <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</div>
         `
         table.appendChild(div)

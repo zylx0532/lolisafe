@@ -409,8 +409,28 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     files.push(efile)
   }
 
-  res.json({
-    success: true,
+  let albumErrored = false
+  await Promise.all(files.map(async file => {
+    const ext = path.extname(file.name).toLowerCase()
+    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
+      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
+      utils.generateThumbs(file)
+    }
+
+    if (file.albumid) {
+      return db.table('albums')
+        .where('id', file.albumid)
+        .update('editedAt', file.timestamp)
+        .catch(error => {
+          albumErrored = true
+          console.log(error)
+        })
+    }
+  }))
+
+  return res.json({
+    success: !albumErrored,
+    description: albumErrored ? 'Successfully uploaded files but unable to add to album.' : undefined,
     files: files.map(file => {
       return {
         name: file.name,
@@ -419,22 +439,6 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
       }
     })
   })
-
-  for (let file of files) {
-    let ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
-      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
-      utils.generateThumbs(file)
-    }
-
-    if (file.albumid) {
-      db.table('albums')
-        .where('id', file.albumid)
-        .update('editedAt', file.timestamp)
-        .then(() => {})
-        .catch(error => { console.log(error); res.json({ success: false, description: 'Error updating album.' }) })
-    }
-  }
 }
 
 uploadsController.delete = async (req, res) => {

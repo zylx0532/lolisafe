@@ -56,9 +56,11 @@ utilsController.generateThumbs = (file, basedomain) => {
   const isVideoExt = utilsController.videoExtensions.includes(ext)
   const isImageExt = utilsController.imageExtensions.includes(ext)
 
-  if (!isVideoExt && !isImageExt) { return }
-  if (isVideoExt && config.uploads.generateThumbnails.video !== true) { return }
-  if (isImageExt && config.uploads.generateThumbnails.image !== true) { return }
+  if ((!isVideoExt && !isImageExt) ||
+    (isVideoExt && config.uploads.generateThumbnails.video !== true) ||
+    (isImageExt && config.uploads.generateThumbnails.image !== true)) {
+    return
+  }
 
   let thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
   fs.access(thumbname, error => {
