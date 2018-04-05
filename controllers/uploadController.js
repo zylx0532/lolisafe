@@ -190,7 +190,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
       .catch(erred)
 
     if (result) {
-      return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
+      return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles, albumid)
     }
   })
 }
@@ -298,7 +298,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
             .catch(erred)
 
           if (result) {
-            return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
+            return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles, albumid)
           }
         }
       })
@@ -386,7 +386,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
   })
 }
 
-uploadsController.processFilesForDisplay = async (req, res, files, existingFiles) => {
+uploadsController.processFilesForDisplay = async (req, res, files, existingFiles, albumid) => {
   let basedomain = config.domain
   if (files.length === 0) {
     return res.json({
@@ -409,28 +409,29 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     files.push(efile)
   }
 
-  let albumErrored = false
-  await Promise.all(files.map(async file => {
+  files.forEach(file => {
     const ext = path.extname(file.name).toLowerCase()
     if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
       utils.generateThumbs(file)
     }
+  })
 
-    if (file.albumid) {
-      return db.table('albums')
-        .where('id', file.albumid)
-        .update('editedAt', file.timestamp)
-        .catch(error => {
-          albumErrored = true
-          console.log(error)
-        })
-    }
-  }))
+  let albumSuccess = true
+  if (albumid) {
+    albumSuccess = await db.table('albums')
+      .where('id', albumid)
+      .update('editedAt', files[files.length - 1].timestamp)
+      .then(() => true)
+      .catch(error => {
+        console.log(error)
+        return false
+      })
+  }
 
   return res.json({
-    success: !albumErrored,
-    description: albumErrored ? 'Successfully uploaded files but unable to add to album.' : undefined,
+    success: albumSuccess,
+    description: albumSuccess ? null : 'Successfully uploaded file(s) but unable to add to album.',
     files: files.map(file => {
       return {
         name: file.name,

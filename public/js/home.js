@@ -189,11 +189,12 @@ upload.prepareDropzone = () => {
 
       if (response.success === false) {
         file.previewTemplate.querySelector('.error').innerHTML = response.description
-        return done()
       }
 
-      upload.appendLink(file, response.files[0].url)
-      upload.showThumbnail(file, response.files[0].url)
+      if (response.files && response.files[0] && response.files[0].url) {
+        upload.appendLink(file, response.files[0].url)
+        upload.showThumbnail(file, response.files[0].url)
+      }
       return done()
     }
   })
@@ -220,11 +221,12 @@ upload.prepareDropzone = () => {
 
     if (response.success === false) {
       file.previewTemplate.querySelector('.error').innerHTML = response.description
-      return
     }
 
-    upload.appendLink(file, response.files[0].url)
-    upload.showThumbnail(file, response.files[0].url)
+    if (response.files && response.files[0] && response.files[0].url) {
+      upload.appendLink(file, response.files[0].url)
+      upload.showThumbnail(file, response.files[0].url)
+    }
   })
 
   upload.dropzone.on('error', (file, error) => {
