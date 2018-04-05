@@ -92,7 +92,7 @@ albumsController.delete = async (req, res, next) => {
   }
 
   let ids = []
-  let failedIds = []
+  let failedids = []
   if (purge) {
     const files = await db.table('files')
       .where({
@@ -101,9 +101,9 @@ albumsController.delete = async (req, res, next) => {
       })
 
     ids = files.map(file => file.id)
-    failedIds = await utils.bulkDeleteFilesByIds(ids, user)
+    failedids = await utils.bulkDeleteFilesByIds(ids, user)
 
-    if (failedIds.length === ids.length) {
+    if (failedids.length === ids.length) {
       return res.json({
         success: false,
         description: 'Could not delete any of the files associated with the album.'
@@ -120,7 +120,7 @@ albumsController.delete = async (req, res, next) => {
 
   return res.json({
     success: true,
-    failedIds
+    failedids
   })
 }
 
@@ -248,7 +248,7 @@ albumsController.addFiles = async (req, res, next) => {
   if (typeof albumid !== 'number') { albumid = parseInt(albumid) }
   if (isNaN(albumid) || (albumid < 0)) { albumid = null }
 
-  const albumIds = []
+  const albumids = []
 
   if (albumid !== null) {
     const album = await db.table('albums')
@@ -265,7 +265,7 @@ albumsController.addFiles = async (req, res, next) => {
       })
     }
 
-    albumIds.push(albumid)
+    albumids.push(albumid)
   }
 
   const files = await db.table('files')
@@ -276,11 +276,11 @@ albumsController.addFiles = async (req, res, next) => {
       }
     })
 
-  const failedIds = ids.filter(id => !files.find(file => file.id === id))
+  const failedids = ids.filter(id => !files.find(file => file.id === id))
 
   await Promise.all(files.map(file => {
-    if (file.albumid && !albumIds.includes(file.albumid)) {
-      albumIds.push(file.albumid)
+    if (file.albumid && !albumids.includes(file.albumid)) {
+      albumids.push(file.albumid)
     }
 
     return db.table('files')
@@ -288,19 +288,19 @@ albumsController.addFiles = async (req, res, next) => {
       .update('albumid', albumid)
       .catch(error => {
         console.error(error)
-        failedIds.push(file.id)
+        failedids.push(file.id)
       })
   }))
 
-  if (failedIds.length < ids.length) {
-    await Promise.all(albumIds.map(albumid => {
+  if (failedids.length < ids.length) {
+    await Promise.all(albumids.map(albumid => {
       return db.table('albums')
         .where('id', albumid)
         .update('editedAt', Math.floor(Date.now() / 1000))
     }))
     return res.json({
       success: true,
-      failedIds
+      failedids
     })
   }
 

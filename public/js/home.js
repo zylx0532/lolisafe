@@ -85,7 +85,7 @@ upload.prepareUpload = () => {
     const select = document.getElementById('albumSelect')
 
     select.addEventListener('change', () => {
-      upload.album = select.value
+      upload.album = parseInt(select.value)
     })
 
     axios.get('api/albums', { headers: { token: upload.token } })
@@ -170,7 +170,8 @@ upload.prepareDropzone = () => {
               original: file.name,
               size: file.size,
               type: file.type,
-              count: file.upload.totalChunkCount
+              count: file.upload.totalChunkCount,
+              albumid: upload.album
             }
           ]
         },
@@ -205,6 +206,7 @@ upload.prepareDropzone = () => {
 
   // Add the selected albumid, if an album is selected, as a header
   upload.dropzone.on('sending', (file, xhr, formData) => {
+    if (file.upload.chunked) { return }
     if (upload.album) { xhr.setRequestHeader('albumid', upload.album) }
   })
 

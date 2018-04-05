@@ -131,7 +131,7 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
       }
     })
 
-  const failedIds = ids.filter(id => !files.find(file => file.id === id))
+  const failedids = ids.filter(id => !files.find(file => file.id === id))
 
   // First, we delete all the physical files
   await Promise.all(files.map(file => {
@@ -139,37 +139,37 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
       // ENOENT is missing file, for whatever reason, then just delete from db anyways
       if (error.code !== 'ENOENT') {
         console.log(error)
-        failedIds.push(file.id)
+        failedids.push(file.id)
       }
     })
   }))
 
   // Second, we filter out failed IDs
-  const albumIds = []
-  const updateDbIds = files.filter(file => !failedIds.includes(file.id))
+  const albumids = []
+  const updateDbIds = files.filter(file => !failedids.includes(file.id))
   await Promise.all(updateDbIds.map(file => {
     return db.table('files')
       .where('id', file.id)
       .del()
       .then(() => {
-        if (file.albumid && !albumIds.includes(file.albumid)) {
-          albumIds.push(file.albumid)
+        if (file.albumid && !albumids.includes(file.albumid)) {
+          albumids.push(file.albumid)
         }
       })
       .catch(error => {
         console.error(error)
-        failedIds.push(file.id)
+        failedids.push(file.id)
       })
   }))
 
   // Third, we update albums, if necessary
-  await Promise.all(albumIds.map(albumid => {
+  await Promise.all(albumids.map(albumid => {
     return db.table('albums')
       .where('id', albumid)
       .update('editedAt', Math.floor(Date.now() / 1000))
   }))
 
-  return failedIds
+  return failedids
 }
 
 module.exports = utilsController

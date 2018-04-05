@@ -147,18 +147,8 @@ uploadsController.upload = async (req, res, next) => {
     req.headers.filelength = user.fileLength
   }
 
-  const albumid = req.headers.albumid || req.params.albumid
-
-  if (albumid && user) {
-    const album = await db.table('albums').where({ id: albumid, userid: user.id }).first()
-    if (!album) {
-      return res.json({
-        success: false,
-        description: 'Album doesn\'t exist or it doesn\'t belong to the user.'
-      })
-    }
-    return uploadsController.actuallyUpload(req, res, user, albumid)
-  }
+  let albumid = parseInt(req.headers.albumid || req.params.albumid)
+  if (isNaN(albumid)) { albumid = null }
   return uploadsController.actuallyUpload(req, res, user, albumid)
 }
 
@@ -180,17 +170,18 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
     if (chunkedUploads && req.body.uuid) { return res.json({ success: true }) }
 
     const infoMap = req.files.map(file => {
+      if (albumid) { file.albumid = albumid }
       return {
         path: path.join(__dirname, '..', config.uploads.folder, file.filename),
         data: file
       }
     })
 
-    const result = await uploadsController.writeFilesToDb(req, res, user, albumid, infoMap)
+    const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
       .catch(erred)
 
     if (result) {
-      return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles, albumid)
+      return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
     }
   })
 }
@@ -222,18 +213,8 @@ uploadsController.finishChunks = async (req, res, next) => {
     req.headers.filelength = user.fileLength
   }
 
-  const albumid = req.headers.albumid || req.params.albumid
-
-  if (albumid && user) {
-    const album = await db.table('albums').where({ id: albumid, userid: user.id }).first()
-    if (!album) {
-      return res.json({
-        success: false,
-        description: 'Album doesn\'t exist or it doesn\'t belong to the user.'
-      })
-    }
-    return uploadsController.actuallyFinishChunks(req, res, user, albumid)
-  }
+  let albumid = parseInt(req.headers.albumid || req.params.albumid)
+  if (isNaN(albumid)) { albumid = null }
   return uploadsController.actuallyFinishChunks(req, res, user, albumid)
 }
 
@@ -251,7 +232,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
   let iteration = 0
   const infoMap = []
-  for (const file of files.length) {
+  for (const file of files) {
     const { uuid, count } = file
     if (!uuid || !count) { return erred(new Error('Missing UUID and/or chunks count.')) }
 
@@ -282,23 +263,28 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
         if (!appended) { return }
 
+        const data = {
+          filename: name,
+          originalname: file.original || '',
+          mimetype: file.type || '',
+          size: file.size || 0
+        }
+
+        data.albumid = parseInt(file.albumid)
+        if (isNaN(data.albumid)) { data.albumid = albumid }
+
         infoMap.push({
           path: destination,
-          data: {
-            filename: name,
-            originalname: file.original || '',
-            mimetype: file.type || '',
-            size: file.size || 0
-          }
+          data
         })
 
         iteration++
         if (iteration >= files.length) {
-          const result = await uploadsController.writeFilesToDb(req, res, user, albumid, infoMap)
+          const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
             .catch(erred)
 
           if (result) {
-            return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles, albumid)
+            return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
           }
         }
       })
@@ -329,7 +315,8 @@ uploadsController.appendToStream = async (destFileStream, chunksDirUuid, chunks)
   })
 }
 
-uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
+uploadsController.writeFilesToDb = async (req, res, user, infoMap) => {
+  const albumsAuthorized = {}
   return new Promise((resolve, reject) => {
     let iteration = 0
     const files = []
@@ -361,6 +348,16 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
           .first()
 
         if (!dbFile) {
+          if (info.data.albumid && albumsAuthorized[info.data.albumid] === undefined) {
+            const authorized = await db.table('albums')
+              .where({
+                id: info.data.albumid,
+                userid: user.id
+              })
+              .first()
+            albumsAuthorized[info.data.albumid] = Boolean(authorized)
+          }
+
           files.push({
             name: info.data.filename,
             original: info.data.originalname,
@@ -368,7 +365,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
             size: info.data.size,
             hash: fileHash,
             ip: req.ip,
-            albumid,
+            albumid: albumsAuthorized[info.data.albumid] ? info.data.albumid : null,
             userid: user !== undefined ? user.id : null,
             timestamp: Math.floor(Date.now() / 1000)
           })
@@ -386,7 +383,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
   })
 }
 
-uploadsController.processFilesForDisplay = async (req, res, files, existingFiles, albumid) => {
+uploadsController.processFilesForDisplay = async (req, res, files, existingFiles) => {
   const basedomain = config.domain
   if (files.length === 0) {
     return res.json({
@@ -409,29 +406,36 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     files.push(efile)
   }
 
+  const albumids = []
   for (const file of files) {
     const ext = path.extname(file.name).toLowerCase()
     if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
       utils.generateThumbs(file)
     }
+    if (file.albumid && !albumids.includes(file.albumid)) {
+      albumids.push(file.albumid)
+    }
   }
 
   let albumSuccess = true
-  if (albumid) {
-    albumSuccess = await db.table('albums')
-      .where('id', albumid)
-      .update('editedAt', files[files.length - 1].timestamp)
-      .then(() => true)
-      .catch(error => {
-        console.log(error)
-        return false
-      })
+  if (albumids.length) {
+    const editedAt = Math.floor(Date.now() / 1000)
+    await Promise.all(albumids.map(albumid => {
+      return db.table('albums')
+        .where('id', albumid)
+        .update('editedAt', editedAt)
+        .then(() => {})
+        .catch(error => {
+          console.log(error)
+          albumSuccess = false
+        })
+    }))
   }
 
   return res.json({
     success: albumSuccess,
-    description: albumSuccess ? null : 'Successfully uploaded file(s) but unable to add to album.',
+    description: albumSuccess ? null : 'Warning: Some files may have failed to be added to album.',
     files: files.map(file => {
       return {
         name: file.name,
@@ -487,11 +491,11 @@ uploadsController.bulkDelete = async (req, res) => {
     return res.json({ success: false, description: 'No files specified.' })
   }
 
-  const failedIds = await utils.bulkDeleteFilesByIds(ids, user)
-  if (failedIds.length < ids.length) {
+  const failedids = await utils.bulkDeleteFilesByIds(ids, user)
+  if (failedids.length < ids.length) {
     return res.json({
       success: true,
-      failedIds
+      failedids
     })
   }
 

@@ -504,9 +504,9 @@ panel.deleteSelectedFiles = async album => {
   }
 
   let deleted = count
-  if (bulkdelete.data.failedIds && bulkdelete.data.failedIds.length) {
-    deleted -= bulkdelete.data.failedIds.length
-    panel.selectedFiles = panel.selectedFiles.filter(id => bulkdelete.data.failedIds.includes(id))
+  if (bulkdelete.data.failedids && bulkdelete.data.failedids.length) {
+    deleted -= bulkdelete.data.failedids.length
+    panel.selectedFiles = panel.selectedFiles.filter(id => bulkdelete.data.failedids.includes(id))
   } else {
     panel.selectedFiles = []
   }
@@ -523,10 +523,10 @@ panel.addSelectedFilesToAlbum = async album => {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
-  const failedIds = await panel.addToAlbum(panel.selectedFiles, album)
-  if (!(failedIds instanceof Array)) { return } // TODO: Make it so that I don't have to do this
-  if (failedIds.length) {
-    panel.selectedFiles = panel.selectedFiles.filter(id => failedIds.includes(id))
+  const failedids = await panel.addToAlbum(panel.selectedFiles, album)
+  if (!(failedids instanceof Array)) { return } // TODO: Make it so that I don't have to do this
+  if (failedids.length) {
+    panel.selectedFiles = panel.selectedFiles.filter(id => failedids.includes(id))
   } else {
     panel.selectedFiles = []
   }
@@ -616,8 +616,8 @@ panel.addToAlbum = async (ids, album) => {
   }
 
   let added = ids.length
-  if (add.data.failedIds && add.data.failedIds.length) {
-    added -= add.data.failedIds.length
+  if (add.data.failedids && add.data.failedids.length) {
+    added -= add.data.failedids.length
   }
   const suffix = `file${ids.length === 1 ? '' : 's'}`
 
@@ -627,7 +627,7 @@ panel.addToAlbum = async (ids, album) => {
 
   swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
   panel.getUploads(album)
-  return add.data.failedIds
+  return add.data.failedids
 }
 
 panel.getAlbums = () => {
