@@ -9,8 +9,8 @@ let init = function (db) {
         table.string('identifier')
         table.integer('enabled')
         table.integer('timestamp')
-        table.dateTime('editedAt')
-        table.dateTime('zipGeneratedAt')
+        table.integer('editedAt')
+        table.integer('zipGeneratedAt')
       }).then(() => {})
     }
   })

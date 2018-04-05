@@ -248,6 +248,8 @@ albumsController.addFiles = async (req, res, next) => {
   if (typeof albumid !== 'number') { albumid = parseInt(albumid) }
   if (isNaN(albumid) || (albumid < 0)) { albumid = null }
 
+  const albumIds = []
+
   if (albumid !== null) {
     const album = await db.table('albums')
       .where({
@@ -262,6 +264,8 @@ albumsController.addFiles = async (req, res, next) => {
         description: 'Album doesn\'t exist or it doesn\'t belong to the user.'
       })
     }
+
+    albumIds.push(albumid)
   }
 
   const files = await db.table('files')
@@ -275,6 +279,10 @@ albumsController.addFiles = async (req, res, next) => {
   const failedIds = ids.filter(id => !files.find(file => file.id === id))
 
   await Promise.all(files.map(file => {
+    if (file.albumid && !albumIds.includes(file.albumid)) {
+      albumIds.push(file.albumid)
+    }
+
     return db.table('files')
       .where('id', file.id)
       .update('albumid', albumid)
@@ -285,11 +293,11 @@ albumsController.addFiles = async (req, res, next) => {
   }))
 
   if (failedIds.length < ids.length) {
-    if (albumid !== null) {
-      await db.table('albums')
+    await Promise.all(albumIds.map(albumid => {
+      return db.table('albums')
         .where('id', albumid)
         .update('editedAt', Math.floor(Date.now() / 1000))
-    }
+    }))
     return res.json({
       success: true,
       failedIds

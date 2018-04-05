@@ -1,12 +1,31 @@
 const config = require('../config.js')
 const db = require('knex')(config.database)
 
+const map = {
+  albums: {
+    editedAt: 'integer',
+    zipGeneratedAt: 'integer'
+  },
+  users: {
+    enabled: 'integer',
+    fileLength: 'integer'
+  }
+}
+
 const migration = {}
 migration.start = async () => {
-  await db.schema.table('albums', t => t.dateTime('editedAt')).catch(error => console.warn(error.message))
-  await db.schema.table('albums', t => t.dateTime('zipGeneratedAt')).catch(error => console.warn(error.message))
-  await db.schema.table('users', t => t.dateTime('enabled')).catch(error => console.warn(error.message))
-  await db.schema.table('users', t => t.dateTime('fileLength')).catch(error => console.warn(error.message))
+  const tables = Object.keys(map)
+  await Promise.all(tables.map(table => {
+    const columns = Object.keys(map[table])
+    return Promise.all(columns.map(async column => {
+      if (await db.schema.hasColumn(table, column)) { return }
+      const columnType = map[table][column]
+      return db.schema.table(table, t => { t[columnType](column) })
+        .then(() => console.log(`Added column "${column}" to table "${table}".`))
+        .catch(console.error)
+    }))
+  }))
+
   console.log('Migration finished! Now start lolisafe normally')
   process.exit(0)
 }
