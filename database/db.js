@@ -1,4 +1,4 @@
-let init = function (db) {
+const init = function (db) {
   // Create the tables we need to store galleries and files
   db.schema.hasTable('albums').then(exists => {
     if (!exists) {

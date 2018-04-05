@@ -29,8 +29,8 @@ albumsController.list = async (req, res, next) => {
     return res.json({ success: true, albums })
   }
 
-  let ids = []
-  for (let album of albums) {
+  const ids = []
+  for (const album of albums) {
     album.date = utils.getPrettyDate(new Date(album.timestamp * 1000))
 
     album.identifier = `${albumDomain}/a/${album.identifier}`
@@ -40,9 +40,9 @@ albumsController.list = async (req, res, next) => {
   const files = await db.table('files').whereIn('albumid', ids).select('albumid')
   const albumsCount = {}
 
-  for (let id of ids) { albumsCount[id] = 0 }
-  for (let file of files) { albumsCount[file.albumid] += 1 }
-  for (let album of albums) { album.files = albumsCount[album.id] }
+  for (const id of ids) { albumsCount[id] = 0 }
+  for (const file of files) { albumsCount[file.albumid] += 1 }
+  for (const album of albums) { album.files = albumsCount[album.id] }
 
   return res.json({ success: true, albums })
 }
@@ -171,7 +171,7 @@ albumsController.get = async (req, res, next) => {
   const title = album.name
   const files = await db.table('files').select('name').where('albumid', album.id).orderBy('id', 'DESC')
 
-  for (let file of files) {
+  for (const file of files) {
     file.file = `${config.domain}/${file.name}`
 
     const ext = path.extname(file.name).toLowerCase()
@@ -208,9 +208,9 @@ albumsController.generateZip = async (req, res, next) => {
     if (files.length === 0) { return res.json({ success: false, description: 'There are no files in the album.' }) }
 
     const zipPath = path.join(__dirname, '..', config.uploads.folder, 'zips', `${album.identifier}.zip`)
-    let archive = new Zip()
+    const archive = new Zip()
 
-    for (let file of files) {
+    for (const file of files) {
       try {
         // const exists = fs.statSync(path.join(__dirname, '..', config.uploads.folder, file.name))
         archive.file(file.name, fs.readFileSync(path.join(__dirname, '..', config.uploads.folder, file.name)))

@@ -25,9 +25,7 @@ panel.verifyToken = (token, reloadOnError) => {
     reloadOnError = false
   }
 
-  axios.post('api/tokens/verify', {
-    token: token
-  })
+  axios.post('api/tokens/verify', { token })
     .then(response => {
       if (response.data.success === false) {
         swal({
@@ -358,8 +356,8 @@ panel.selectInBetween = (element, lastElement) => {
   if (element === lastElement) { return }
   if (!panel.checkboxes || !panel.checkboxes.length) { return }
 
-  let thisIndex = panel.checkboxes.indexOf(element)
-  let lastIndex = panel.checkboxes.indexOf(lastElement)
+  const thisIndex = panel.checkboxes.indexOf(element)
+  const lastIndex = panel.checkboxes.indexOf(lastElement)
 
   const distance = thisIndex - lastIndex
   if (distance >= -1 && distance <= 1) { return }
@@ -446,9 +444,7 @@ panel.deleteFile = (id, album, page) => {
     }
   }).then(value => {
     if (!value) { return }
-    axios.post('api/upload/delete', {
-      id: id
-    })
+    axios.post('api/upload/delete', { id })
       .then(response => {
         if (response.data.success === false) {
           if (response.data.description === 'No token provided') {
@@ -599,7 +595,7 @@ panel.addToAlbum = async (ids, album) => {
   })
   if (!choose) { return }
 
-  let albumid = parseInt(panel.selectAlbumContainer.getElementsByTagName('select')[0].value)
+  const albumid = parseInt(panel.selectAlbumContainer.getElementsByTagName('select')[0].value)
   if (isNaN(albumid)) {
     return swal('An error occurred!', 'You did not choose an album.', 'error')
   }
@@ -743,7 +739,7 @@ panel.renameAlbum = id => {
   }).then(value => {
     if (!value) { return swal.close() }
     axios.post('api/albums/rename', {
-      id: id,
+      id,
       name: value
     })
       .then(response => {
@@ -785,7 +781,7 @@ panel.deleteAlbum = id => {
   }).then(value => {
     if (!value) { return }
     axios.post('api/albums/delete', {
-      id: id,
+      id,
       purge: value === 'purge'
     })
       .then(response => {
@@ -1091,9 +1087,7 @@ panel.sendNewPassword = (pass, element) => {
 panel.setActiveMenu = item => {
   const menu = document.getElementById('menu')
   const items = menu.getElementsByTagName('a')
-  for (let i = 0; i < items.length; i++) {
-    items[i].className = ''
-  }
+  for (const item of items) { item.className = '' }
 
   item.className = 'is-active'
 }

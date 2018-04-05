@@ -25,7 +25,7 @@ safe.engine('handlebars', exphbs({ defaultLayout: 'main' }))
 safe.set('view engine', 'handlebars')
 safe.enable('view cache')
 
-let limiter = new RateLimit({ windowMs: 5000, max: 2 })
+const limiter = new RateLimit({ windowMs: 5000, max: 2 })
 safe.use('/api/login/', limiter)
 safe.use('/api/register/', limiter)
 
@@ -47,15 +47,15 @@ safe.use('/', express.static('./public', { setHeaders }))
 safe.use('/', album)
 safe.use('/api', api)
 
-for (let page of config.pages) {
+for (const page of config.pages) {
   let root = './pages/'
   if (fs.existsSync(`./pages/custom/${page}.html`)) {
     root = './pages/custom/'
   }
   if (page === 'home') {
-    safe.get('/', (req, res, next) => res.sendFile(`${page}.html`, { root: root }))
+    safe.get('/', (req, res, next) => res.sendFile(`${page}.html`, { root }))
   } else {
-    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root: root }))
+    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root }))
   }
 }
 

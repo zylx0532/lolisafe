@@ -62,7 +62,7 @@ utilsController.generateThumbs = (file, basedomain) => {
     return
   }
 
-  let thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
+  const thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
   fs.access(thumbname, error => {
     if (error && error.code === 'ENOENT') {
       if (isVideoExt) {
@@ -75,7 +75,7 @@ utilsController.generateThumbs = (file, basedomain) => {
           })
           .on('error', error => console.log('Error - ', error.message))
       } else if (isImageExt) {
-        let size = {
+        const size = {
           width: 200,
           height: 200
         }

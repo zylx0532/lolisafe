@@ -18,7 +18,7 @@ const chunksDir = path.join(uploadDir, 'chunks')
 const maxSizeBytes = parseInt(config.uploads.maxSize) * 1000000
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination (req, file, cb) {
     // If chunked uploads is disabled or the uploaded file is not a chunk
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
       return cb(null, uploadDir)
@@ -40,7 +40,7 @@ const storage = multer.diskStorage({
       })
     })
   },
-  filename: function (req, file, cb) {
+  filename (req, file, cb) {
     const extension = path.extname(file.originalname)
 
     // If chunked uploads is disabled or the uploaded file is not a chunk
@@ -62,7 +62,7 @@ const upload = multer({
   limits: {
     fileSize: config.uploads.maxSize
   },
-  fileFilter: function (req, file, cb) {
+  fileFilter (req, file, cb) {
     // If there are no blocked extensions
     if (config.blockedExtensions === undefined) {
       return cb(null, true)
@@ -251,8 +251,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
   let iteration = 0
   const infoMap = []
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
+  for (const file of files.length) {
     const { uuid, count } = file
     if (!uuid || !count) { return erred(new Error('Missing UUID and/or chunks count.')) }
 
@@ -336,8 +335,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
     const files = []
     const existingFiles = []
 
-    for (let i = 0; i < infoMap.length; i++) {
-      const info = infoMap[i]
+    for (const info of infoMap) {
       // Check if the file exists by checking hash and size
       const hash = crypto.createHash('md5')
       const stream = fs.createReadStream(info.path)
@@ -389,7 +387,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
 }
 
 uploadsController.processFilesForDisplay = async (req, res, files, existingFiles, albumid) => {
-  let basedomain = config.domain
+  const basedomain = config.domain
   if (files.length === 0) {
     return res.json({
       success: true,
@@ -407,12 +405,11 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
   await db.table('files').insert(files)
 
   // Push existing files to array for response
-  for (let efile of existingFiles) {
+  for (const efile of existingFiles) {
     files.push(efile)
   }
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
+  for (const file of files) {
     const ext = path.extname(file.name).toLowerCase()
     if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
@@ -528,10 +525,10 @@ uploadsController.list = async (req, res) => {
     .select('id', 'albumid', 'timestamp', 'name', 'userid', 'size')
 
   const albums = await db.table('albums')
-  let basedomain = config.domain
-  let userids = []
+  const basedomain = config.domain
+  const userids = []
 
-  for (let file of files) {
+  for (const file of files) {
     file.file = `${basedomain}/${file.name}`
     file.date = new Date(file.timestamp * 1000)
     file.date = utils.getPrettyDate(file.date)
@@ -540,7 +537,7 @@ uploadsController.list = async (req, res) => {
     file.album = ''
 
     if (file.albumid !== undefined) {
-      for (let album of albums) {
+      for (const album of albums) {
         if (file.albumid === album.id) {
           file.album = album.name
         }
@@ -554,7 +551,7 @@ uploadsController.list = async (req, res) => {
       }
     }
 
-    let ext = path.extname(file.name).toLowerCase()
+    const ext = path.extname(file.name).toLowerCase()
     if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
     }
@@ -567,8 +564,8 @@ uploadsController.list = async (req, res) => {
   if (userids.length === 0) { return res.json({ success: true, files }) }
 
   const users = await db.table('users').whereIn('id', userids)
-  for (let dbUser of users) {
-    for (let file of files) {
+  for (const dbUser of users) {
+    for (const file of files) {
       if (file.userid === dbUser.id) {
         file.username = dbUser.username
       }

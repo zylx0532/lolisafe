@@ -5,7 +5,7 @@ const path = require('path')
 const utils = require('../controllers/utilsController.js')
 
 routes.get('/a/:identifier', async (req, res, next) => {
-  let identifier = req.params.identifier
+  const identifier = req.params.identifier
   if (identifier === undefined) {
     return res.status(401).json({ success: false, description: 'No identifier provided' })
   }
@@ -19,10 +19,10 @@ routes.get('/a/:identifier', async (req, res, next) => {
   let thumb = ''
   const basedomain = config.domain
 
-  for (let file of files) {
+  for (const file of files) {
     file.file = `${basedomain}/${file.name}`
 
-    let ext = path.extname(file.name).toLowerCase()
+    const ext = path.extname(file.name).toLowerCase()
     if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
 

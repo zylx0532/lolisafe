@@ -53,7 +53,7 @@ upload.preparePage = () => {
 upload.verifyToken = (token, reloadOnError) => {
   if (reloadOnError === undefined) { reloadOnError = false }
 
-  axios.post('api/tokens/verify', { token: token })
+  axios.post('api/tokens/verify', { token })
     .then(response => {
       if (response.data.success === false) {
         swal({
@@ -97,10 +97,10 @@ upload.prepareUpload = () => {
         if (albums.length === 0) { return }
 
         // Loop through the albums and create an option for each album
-        for (let i = 0; i < albums.length; i++) {
+        for (const album of albums) {
           const opt = document.createElement('option')
-          opt.value = albums[i].id
-          opt.innerHTML = albums[i].name
+          opt.value = album.id
+          opt.innerHTML = album.name
           select.appendChild(opt)
         }
         // Display the album selection

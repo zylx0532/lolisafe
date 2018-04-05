@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt')
 const randomstring = require('randomstring')
 const utils = require('./utilsController.js')
 
-let authController = {}
+const authController = {}
 
 authController.verify = async (req, res, next) => {
   const username = req.body.username
@@ -60,12 +60,12 @@ authController.register = async (req, res, next) => {
     }
     const token = randomstring.generate(64)
     await db.table('users').insert({
-      username: username,
+      username,
       password: hash,
-      token: token,
+      token,
       enabled: 1
     })
-    return res.json({ success: true, token: token })
+    return res.json({ success: true, token })
   })
 }
 
@@ -73,7 +73,7 @@ authController.changePassword = async (req, res, next) => {
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
-  let password = req.body.password
+  const password = req.body.password
   if (password === undefined) { return res.json({ success: false, description: 'No password provided.' }) }
 
   if (password.length < 6 || password.length > 64) {
@@ -105,7 +105,7 @@ authController.changeFileLength = async (req, res, next) => {
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
-  let fileLength = parseInt(req.body.fileLength)
+  const fileLength = parseInt(req.body.fileLength)
   if (fileLength === undefined) { return res.json({ success: false, description: 'No file name length provided.' }) }
   if (isNaN(fileLength)) { return res.json({ success: false, description: 'File name length is not a valid number.' }) }
 
