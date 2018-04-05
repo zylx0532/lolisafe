@@ -887,7 +887,7 @@ panel.changeFileLength = () => {
       }
 
       panel.page.innerHTML = `
-        <h2 class="subtitle">Preferred file name length</h2>
+        <h2 class="subtitle">File name length</h2>
 
         <div class="field">
           <label class="label">Your current file name length:</label>
