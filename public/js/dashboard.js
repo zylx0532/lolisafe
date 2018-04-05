@@ -524,7 +524,7 @@ panel.addSelectedFilesToAlbum = async album => {
   }
 
   const failedids = await panel.addToAlbum(panel.selectedFiles, album)
-  if (!(failedids instanceof Array)) { return } // TODO: Make it so that I don't have to do this
+  if (!failedids) { return }
   if (failedids.length) {
     panel.selectedFiles = panel.selectedFiles.filter(id => failedids.includes(id))
   } else {
@@ -557,10 +557,11 @@ panel.addToAlbum = async (ids, album) => {
 
   if (list.data.success === false) {
     if (list.data.description === 'No token provided') {
-      return panel.verifyToken(panel.token)
+      panel.verifyToken(panel.token)
     } else {
-      return swal('An error occurred!', list.data.description, 'error')
+      swal('An error occurred!', list.data.description, 'error')
     }
+    return
   }
 
   if (!panel.selectAlbumContainer) {
@@ -597,7 +598,8 @@ panel.addToAlbum = async (ids, album) => {
 
   const albumid = parseInt(panel.selectAlbumContainer.getElementsByTagName('select')[0].value)
   if (isNaN(albumid)) {
-    return swal('An error occurred!', 'You did not choose an album.', 'error')
+    swal('An error occurred!', 'You did not choose an album.', 'error')
+    return
   }
 
   const add = await axios.post('api/albums/addfiles', { ids, albumid })
@@ -609,10 +611,11 @@ panel.addToAlbum = async (ids, album) => {
 
   if (add.data.success === false) {
     if (add.data.description === 'No token provided') {
-      return panel.verifyToken(panel.token)
+      panel.verifyToken(panel.token)
     } else {
-      return swal('An error occurred!', add.data.description, 'error')
+      swal('An error occurred!', add.data.description, 'error')
     }
+    return
   }
 
   let added = ids.length
@@ -622,7 +625,8 @@ panel.addToAlbum = async (ids, album) => {
   const suffix = `file${ids.length === 1 ? '' : 's'}`
 
   if (!added) {
-    return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
+    swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
+    return
   }
 
   swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
