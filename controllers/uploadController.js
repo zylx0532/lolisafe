@@ -251,7 +251,8 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
   let iteration = 0
   const infoMap = []
-  files.forEach(file => {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
     const { uuid, count } = file
     if (!uuid || !count) { return erred(new Error('Missing UUID and/or chunks count.')) }
 
@@ -303,7 +304,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
         }
       })
     })
-  })
+  }
 }
 
 uploadsController.appendToStream = async (destFileStream, chunksDirUuid, chunks) => {
@@ -335,7 +336,8 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
     const files = []
     const existingFiles = []
 
-    infoMap.forEach(info => {
+    for (let i = 0; i < infoMap.length; i++) {
+      const info = infoMap[i]
       // Check if the file exists by checking hash and size
       const hash = crypto.createHash('md5')
       const stream = fs.createReadStream(info.path)
@@ -382,7 +384,7 @@ uploadsController.writeFilesToDb = async (req, res, user, albumid, infoMap) => {
           return resolve({ files, existingFiles })
         }
       })
-    })
+    }
   })
 }
 
@@ -409,13 +411,14 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     files.push(efile)
   }
 
-  files.forEach(file => {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
     const ext = path.extname(file.name).toLowerCase()
     if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
       utils.generateThumbs(file)
     }
-  })
+  }
 
   let albumSuccess = true
   if (albumid) {
