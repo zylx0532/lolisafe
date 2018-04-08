@@ -15,6 +15,7 @@ require('./database/db.js')(db)
 fs.existsSync('./pages/custom') || fs.mkdirSync('./pages/custom')
 fs.existsSync('./' + config.logsFolder) || fs.mkdirSync('./' + config.logsFolder)
 fs.existsSync('./' + config.uploads.folder) || fs.mkdirSync('./' + config.uploads.folder)
+fs.existsSync('./' + config.uploads.folder + '/chunks') || fs.mkdirSync('./' + config.uploads.folder + '/chunks')
 fs.existsSync('./' + config.uploads.folder + '/thumbs') || fs.mkdirSync('./' + config.uploads.folder + '/thumbs')
 fs.existsSync('./' + config.uploads.folder + '/zips') || fs.mkdirSync('./' + config.uploads.folder + '/zips')
 

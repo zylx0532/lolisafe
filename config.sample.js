@@ -71,7 +71,6 @@ module.exports = {
       upload bigger files through the API as long as they don't surpass the limit specified
       in uploads.maxSize though.
       Total size of the whole chunks will still be checked against uploads.maxSize too.
-      NOTICE: Make sure you have a folder named "chunks" inside your uploads folder.
     */
     chunkedUploads: {
       enabled: true,

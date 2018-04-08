@@ -5,7 +5,6 @@ const randomstring = require('randomstring')
 const db = require('knex')(config.database)
 const crypto = require('crypto')
 const fs = require('fs')
-const rimraf = require('rimraf')
 const utils = require('./utilsController.js')
 
 const uploadsController = {}
@@ -41,19 +40,18 @@ const storage = multer.diskStorage({
     })
   },
   filename (req, file, cb) {
-    const extension = path.extname(file.originalname)
-
     // If chunked uploads is disabled or the uploaded file is not a chunk
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
+      const extension = path.extname(file.originalname)
       const length = uploadsController.getFileNameLength(req)
       return uploadsController.getUniqueRandomName(length, extension, cb)
     }
 
-    // index.extension (e.i. 0.jpg, 1.jpg, ..., n.jpg - will prepend zeros depending on the amount of chunks)
+    // index.extension (e.i. 0, 1, ..., n - will prepend zeros depending on the amount of chunks)
     const digits = req.body.totalchunkcount !== undefined ? String(req.body.totalchunkcount - 1).length : 1
     const zeros = new Array(digits + 1).join('0')
     const name = (zeros + req.body.chunkindex).slice(-digits)
-    return cb(null, name + extension)
+    return cb(null, name)
   }
 })
 
@@ -78,13 +76,10 @@ const upload = multer({
 
     if (chunkedUploads) {
       // Re-map Dropzone keys so people can manually use the API without prepending 'dz'
-      const keys = Object.keys(req.body)
-      if (keys.length) {
-        for (const key of keys) {
-          if (!/^dz/.test(key)) { continue }
-          req.body[key.replace(/^dz/, '')] = req.body[key]
-          delete req.body[key]
-        }
+      for (const key in req.body) {
+        if (!/^dz/.test(key)) { continue }
+        req.body[key.replace(/^dz/, '')] = req.body[key]
+        delete req.body[key]
       }
 
       const totalFileSize = parseInt(req.body.totalfilesize)
@@ -109,7 +104,7 @@ uploadsController.getFileNameLength = req => {
   return config.uploads.fileLength.default || 32
 }
 
-uploadsController.getUniqueRandomName = (length, extension, cb) => {
+uploadsController.getUniqueRandomName = (length, extension = '', cb) => {
   const access = i => {
     const name = randomstring.generate(length) + extension
     fs.access(path.join(uploadDir, name), error => {
@@ -166,11 +161,11 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 
     if (req.files.length === 0) { return erred(new Error('No files.')) }
 
-    // If chunked uploads is enabeld and the uploaded file is a chunk, then just say that it was a success
+    // If chunked uploads is enabled and the uploaded file is a chunk, then just say that it was a success
     if (chunkedUploads && req.body.uuid) { return res.json({ success: true }) }
 
     const infoMap = req.files.map(file => {
-      if (albumid) { file.albumid = albumid }
+      file.albumid = albumid
       return {
         path: path.join(__dirname, '..', config.uploads.folder, file.filename),
         data: file
@@ -187,7 +182,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 }
 
 uploadsController.finishChunks = async (req, res, next) => {
-  if (!config.uploads.chunkedUploads || !config.uploads.chunkedUploads.enabled) {
+  if (!chunkedUploads) {
     return res.json({
       success: false,
       description: 'Chunked uploads is disabled at the moment.'
@@ -233,16 +228,15 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   let iteration = 0
   const infoMap = []
   for (const file of files) {
-    const { uuid, count } = file
+    const { uuid, original, count } = file
     if (!uuid || !count) { return erred(new Error('Missing UUID and/or chunks count.')) }
 
-    const chunksDirUuid = path.join(chunksDir, uuid)
-
-    fs.readdir(chunksDirUuid, async (error, chunks) => {
+    const uuidDir = path.join(chunksDir, uuid)
+    fs.readdir(uuidDir, async (error, chunkNames) => {
       if (error) { return erred(error) }
-      if (count < chunks.length) { return erred(new Error('Chunks count mismatch.')) }
+      if (count < chunkNames.length) { return erred(new Error('Chunks count mismatch.')) }
 
-      const extension = path.extname(chunks[0])
+      const extension = typeof original === 'string' ? path.extname(original) : ''
       const length = uploadsController.getFileNameLength(req)
 
       uploadsController.getUniqueRandomName(length, extension, async (error, name) => {
@@ -251,54 +245,70 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
         const destination = path.join(uploadDir, name)
         const destFileStream = fs.createWriteStream(destination, { flags: 'a' })
 
-        chunks.sort()
-        const appended = await uploadsController.appendToStream(destFileStream, chunksDirUuid, chunks)
+        // Sort chunk names
+        chunkNames.sort()
+
+        // Append all chunks
+        const chunksAppended = await uploadsController.appendToStream(destFileStream, uuidDir, chunkNames)
+          .then(() => true)
           .catch(erred)
+        if (!chunksAppended) { return }
 
-        rimraf(chunksDirUuid, error => {
-          if (error) {
-            console.log(error)
+        // Delete all chunks
+        const chunksDeleted = await Promise.all(chunkNames.map(chunkName => {
+          return new Promise((resolve, reject) => {
+            const chunkPath = path.join(uuidDir, chunkName)
+            fs.unlink(chunkPath, error => {
+              if (error) { return reject(error) }
+              resolve()
+            })
+          })
+        }))
+          .then(() => true)
+          .catch(erred)
+        if (!chunksDeleted) { return }
+
+        // Delete UUID dir
+        fs.rmdir(uuidDir, async error => {
+          if (error) { return erred(error) }
+
+          const data = {
+            filename: name,
+            originalname: file.original || '',
+            mimetype: file.type || '',
+            size: file.size || 0
+          }
+
+          data.albumid = parseInt(file.albumid)
+          if (isNaN(data.albumid)) { data.albumid = albumid }
+
+          infoMap.push({
+            path: destination,
+            data
+          })
+
+          iteration++
+          if (iteration >= files.length) {
+            const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
+              .catch(erred)
+
+            if (result) {
+              return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
+            }
           }
         })
-
-        if (!appended) { return }
-
-        const data = {
-          filename: name,
-          originalname: file.original || '',
-          mimetype: file.type || '',
-          size: file.size || 0
-        }
-
-        data.albumid = parseInt(file.albumid)
-        if (isNaN(data.albumid)) { data.albumid = albumid }
-
-        infoMap.push({
-          path: destination,
-          data
-        })
-
-        iteration++
-        if (iteration >= files.length) {
-          const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
-            .catch(erred)
-
-          if (result) {
-            return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
-          }
-        }
       })
     })
   }
 }
 
-uploadsController.appendToStream = async (destFileStream, chunksDirUuid, chunks) => {
+uploadsController.appendToStream = async (destFileStream, uuidDr, chunkNames) => {
   return new Promise((resolve, reject) => {
     const append = i => {
-      if (i < chunks.length) {
-        fs.createReadStream(path.join(chunksDirUuid, chunks[i]))
+      if (i < chunkNames.length) {
+        fs.createReadStream(path.join(uuidDr, chunkNames[i]))
           .on('end', () => {
-            append(i + 1)
+            append(++i)
           })
           .on('error', error => {
             console.log(error)
@@ -308,7 +318,7 @@ uploadsController.appendToStream = async (destFileStream, chunksDirUuid, chunks)
           .pipe(destFileStream, { end: false })
       } else {
         destFileStream.end()
-        return resolve(true)
+        return resolve()
       }
     }
     append(0)
@@ -316,11 +326,11 @@ uploadsController.appendToStream = async (destFileStream, chunksDirUuid, chunks)
 }
 
 uploadsController.writeFilesToDb = async (req, res, user, infoMap) => {
-  const albumsAuthorized = {}
   return new Promise((resolve, reject) => {
     let iteration = 0
     const files = []
     const existingFiles = []
+    const albumsAuthorized = {}
 
     for (const info of infoMap) {
       // Check if the file exists by checking hash and size
@@ -435,7 +445,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 
   return res.json({
     success: albumSuccess,
-    description: albumSuccess ? null : 'Warning: Some files may have failed to be added to album.',
+    description: albumSuccess ? null : 'Warning: Album may not have been properly updated.',
     files: files.map(file => {
       return {
         name: file.name,
@@ -556,9 +566,16 @@ uploadsController.list = async (req, res) => {
     }
 
     const ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
-      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
+    const isVideoExt = utils.videoExtensions.includes(ext)
+    const isImageExt = utils.imageExtensions.includes(ext)
+
+    if ((!isVideoExt && !isImageExt) ||
+      (isVideoExt && config.uploads.generateThumbnails.video !== true) ||
+      (isImageExt && config.uploads.generateThumbnails.image !== true)) {
+      continue
     }
+
+    file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
   }
 
   // If we are a normal user, send response
