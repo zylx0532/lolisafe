@@ -92,6 +92,7 @@ html {
   overflow: hidden;
   max-width: 100%;
   max-height: 100%;
+  width: 100%;
 }
 
 .image-container .file-checkbox {
