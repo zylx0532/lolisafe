@@ -85,17 +85,23 @@
           <article class="message">
             <div class="message-body">
               Simply create a user on the site and every upload will be associated with your account, granting you access to your uploaded files through our dashboard.<br>
-              <br>
-              By having an account, you will also be able to set a preferred file name length!
+              By having an account, you will also be able to set file name length for your new uploads!
+            </div>
+          </article>
+
+          <h2 class='subtitle'>Do you have any No-JS uploader?</h2>
+          <article class="message">
+            <div class="message-body">
+              Yes, check out <a href="../nojs" target="_blank">this page</a>.<br>
+              Unfortunately you will not be able to associate your uploads to your account, if you have any.<br>
+              Then again, if you want to use the No-JS uploader, then it's very likely that you will not use the Dashboard anyways.
             </div>
           </article>
 
           <h2 class='subtitle'>What are albums?</h2>
           <article class="message">
             <div class="message-body">
-              Albums are a simple way of sorting uploads together. Right now you can create albums through the dashboard and use them <s>only</s>* with <a target="_blank" href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj">our chrome extension</a> which will enable you to <strong>right click -> send to lolisafe</strong> or to a desired album if you have any. You will probably have to change some things involving https://safe.fiery.me/api/upload.<br>
-              <br>
-              * You are no longer required to use the chrome extension to utilize albums. As long as you are logged in, you will be able to choose your albums from the upload page (of course the albums have to be created beforehand through the dashboard).
+              Albums are a simple way of sorting uploads together. Right now you can create albums through the dashboard, then afterwards you can use them through the homepage uploader or with <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj" target="_blank">our chrome extension</a>, which will enable you to <strong>right click -> send to lolisafe</strong> or to a desired album if you have any. You will probably have to change some things involving <b>https://safe.fiery.me/api/upload</b> if you want to use the extension though.
             </div>
           </article>
 
@@ -109,20 +115,14 @@
           <h2 class='subtitle'>I saw something too illegal for my tastes here, what do?</h2>
           <article class="message">
             <div class="message-body">
-               Send a strongly worded email to <a href="mailto:bobby@fiery.me">bobby@fiery.me</a> and I will <i>try</i> to get back to you within 24 hours.
+               Send a strongly worded email to <a href="mailto:bobby@fiery.me">bobby@fiery.me</a> and I will try to get back to you within 24 hours.
             </div>
           </article>
 
           <h2 class='subtitle'>Do you support chunked uploads?</h2>
           <article class="message">
             <div class="message-body">
-              Yes. Just add three text fields containing the file's UUID, the chunk's index and the total amount of chunks, named "uuid", "chunkindex" and "totalchunkcount" respectively, into the multipart/form-data that you POST to https://safe.fiery.me/api/upload.<br>
-              Once all chunks have been successfully uploaded, then you have to POST a JSON request to https://safe.fiery.me/api/upload/finishchunks containing the file's UUID, original filename, original size, mime type and chunk counts, with keys "uuid", "original", "size", "type" and "count" respectively (make sure the object is inside an array named "files").<br>
-              Check out <a href="https://gist.github.com/BobbyWibowo/de9ef40426421ae6c5e2999556e70521" target="_blank">this gist</a> for an example POST request.<br>
-              <br>
-              If that sounds too complicated, then just try to trigger chunked uploads with the home page's uploader and inspect the HTTP requests...<br>
-              <br>
-              By the way, "totalchunkcount" can be omitted if the amount of chunks is only 10 or less.
+              Yes, the homepage uploader will chunk your uploads into 10 MB pieces by default. If you want to utilize chunked uploads with the API, then feel free to inspect the HTTP requests.
             </div>
           </article>
 

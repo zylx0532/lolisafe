@@ -395,64 +395,76 @@ uploadsController.writeFilesToDb = async (req, res, user, infoMap) => {
 
 uploadsController.processFilesForDisplay = async (req, res, files, existingFiles) => {
   const basedomain = config.domain
-  if (files.length === 0) {
-    return res.json({
-      success: true,
-      files: existingFiles.map(file => {
-        return {
-          name: file.name,
-          size: file.size,
-          url: `${basedomain}/${file.name}`
-        }
-      })
-    })
-  }
-
-  // Insert new files to DB
-  await db.table('files').insert(files)
-
-  // Push existing files to array for response
-  for (const efile of existingFiles) {
-    files.push(efile)
-  }
-
-  const albumids = []
-  for (const file of files) {
-    const ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
-      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
-      utils.generateThumbs(file)
-    }
-    if (file.albumid && !albumids.includes(file.albumid)) {
-      albumids.push(file.albumid)
-    }
-  }
-
   let albumSuccess = true
-  if (albumids.length) {
-    const editedAt = Math.floor(Date.now() / 1000)
-    await Promise.all(albumids.map(albumid => {
-      return db.table('albums')
-        .where('id', albumid)
-        .update('editedAt', editedAt)
-        .then(() => {})
-        .catch(error => {
-          console.log(error)
-          albumSuccess = false
-        })
-    }))
-  }
+  let mappedFiles
 
-  return res.json({
-    success: albumSuccess,
-    description: albumSuccess ? null : 'Warning: Album may not have been properly updated.',
-    files: files.map(file => {
+  if (files.length) {
+    // Insert new files to DB
+    await db.table('files').insert(files)
+
+    // Push existing files to array for response
+    for (const efile of existingFiles) {
+      files.push(efile)
+    }
+
+    const albumids = []
+    for (const file of files) {
+      const ext = path.extname(file.name).toLowerCase()
+      if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
+        file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
+        utils.generateThumbs(file)
+      }
+      if (file.albumid && !albumids.includes(file.albumid)) {
+        albumids.push(file.albumid)
+      }
+    }
+
+    if (albumids.length) {
+      const editedAt = Math.floor(Date.now() / 1000)
+      await Promise.all(albumids.map(albumid => {
+        return db.table('albums')
+          .where('id', albumid)
+          .update('editedAt', editedAt)
+          .then(() => {})
+          .catch(error => {
+            console.log(error)
+            albumSuccess = false
+          })
+      }))
+    }
+
+    mappedFiles = files.map(file => {
       return {
         name: file.name,
         size: file.size,
         url: `${basedomain}/${file.name}`
       }
     })
+  } else {
+    mappedFiles = existingFiles.map(file => {
+      return {
+        name: file.name,
+        size: file.size,
+        url: `${basedomain}/${file.name}`
+      }
+    })
+  }
+
+  if (req.params.nojs) {
+    return res.render('nojs', {
+      layout: false,
+      files: mappedFiles.map(file => {
+        const exec = /.[\w]+(\?|$)/.exec(file.url)
+        file.image = exec && exec[0] && utils.imageExtensions.includes(exec[0].toLowerCase())
+        return file
+      })
+    })
+  }
+
+  return res.json({
+    success: albumSuccess,
+    description: albumSuccess ? null : 'Warning: Album may not have been properly updated.',
+    files: mappedFiles
   })
 }
 

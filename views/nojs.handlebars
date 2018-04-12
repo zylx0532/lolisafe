@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-  <head>
+	<head>
 
     <meta charset="utf-8" />
     <meta name="description" content="A pomf-like file uploading service that doesn't suck.">
@@ -13,11 +13,6 @@
     <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=vvtL7Y3cjD">
     <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=cjjyPrikAR">
     <link rel="stylesheet" type="text/css" href="css/style.css?v=vvtL7Y3cjD">
-    <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/axios/axios.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="js/home.js?v=D6LvZYepOF"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -52,16 +47,8 @@
     <meta name="theme-color" content="#232629">
 
     <style>
-      #dropzone * {
-        pointer-events: none;
-      }
-
-      img[data-dz-thumbnail] {
-        max-width: 200px;
-      }
-
-      .clipboard-mobile {
-        margin-top: 5px;
+      #form input {
+        width: 100%;
       }
 
       #links {
@@ -76,7 +63,7 @@
       }
     </style>
 
-  </head>
+	</head>
 
   <body>
 
@@ -90,50 +77,45 @@
           <h2 class="subtitle">A
             <strong>modern</strong> self-hosted file upload service</h2>
 
-          <h3 class="subtitle" id="maxFileSize"></h3>
           <div class="columns">
             <div class="column is-hidden-mobile"></div>
-            <div class="column" id="uploadContainer">
-              <a id="loginToUpload" class="button is-danger is-loading" style="display: flex"></a>
-              <div class="field" id="albumDiv" style="display: none">
-                <p class="control select-wrapper">
-                  <span class="select">
-                    <select id="albumSelect">
-                      <option value="">Upload to album</option>
-                    </select>
-                  </span>
-                </p>
+            <div class="column">
+              <div class="content">
+                <form id="form" action="" method="post" enctype="multipart/form-data">
+                  <div class="field">
+                    <input type="file" name="files[]" multiple="multiple">
+                  </div>
+                  <div class="field">
+                    <input type="submit" class="button is-danger" value="Upload">
+                  </div>
+                </form>
+              </div>
+              <div class="content">
+                <p>Files uploaded through this No JS form will not be associated to your account, if you have any.</p>
               </div>
             </div>
             <div class="column is-hidden-mobile"></div>
           </div>
 
-          <div id="uploads">
-            <div id="template" class="columns">
+          {{#if files}}
+          <div id="uploads" style="display: block">
+            {{#each files}}
+            <div class="columns">
               <div class="column is-hidden-mobile"></div>
               <div class="column">
-                <progress class="progress is-small is-danger" value="0" max="100"></progress>
-                <img class="is-unselectable" data-dz-thumbnail>
-                <p class="error"></p>
-                <p class="link" style="display: none">
-                  <a target="_blank"></a>
-                </p>
-                <p class="clipboard-mobile is-hidden-desktop" style="display: none">
-                  <a class="button is-info is-outlined clipboard-js" style="display: flex">
-                    <span class="icon">
-                      <i class="icon-clipboard-1"></i>
-                    </span>
-                    <span>Copy link to clipboard</span>
-                  </a>
+                {{#if this.image}}
+                <img class="is-unselectable" style="max-width: 200px" src="{{ this.url }}">
+                {{/if}}
+                <p class="link">
+                  <a href="{{ this.url }}" target="_blank">{{{ this.url }}}</a>
                 </p>
               </div>
               <div class="column is-hidden-mobile"></div>
             </div>
+            {{/each}}
           </div>
+          {{/if}}
 
-          <h3 class="subtitle">
-            <a href="auth" id="loginLinkText"></a>
-          </h3>
           <h3 id="links">
             <a href="https://fiery.me" title="Home">
               <span class="icon is-medium">
@@ -145,7 +127,7 @@
                 <i class="icon-archive icon-2x"></i>
               </span>
             </a>
-            <a id="ShareX" href="https://safe.fiery.me/safe.fiery.me.sxcu" title="ShareX">
+            <a href="https://safe.fiery.me/sharex.txt" title="ShareX">
               <span class="icon is-medium">
                 <i class="icon-sharex icon-2x"></i>
               </span>

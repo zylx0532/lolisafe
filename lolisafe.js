@@ -1,6 +1,7 @@
 const config = require('./config.js')
 const api = require('./routes/api.js')
 const album = require('./routes/album.js')
+const nojs = require('./routes/nojs.js')
 const express = require('express')
 const helmet = require('helmet')
 const bodyParser = require('body-parser')
@@ -46,6 +47,7 @@ if (config.serveFilesWithNode) {
 
 safe.use('/', express.static('./public', { setHeaders }))
 safe.use('/', album)
+safe.use('/', nojs)
 safe.use('/api', api)
 
 for (const page of config.pages) {
