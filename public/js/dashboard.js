@@ -667,6 +667,7 @@ panel.getAlbums = () => {
         <table class="table is-fullwidth is-hoverable">
           <thead>
             <tr>
+                <th>ID</th>
                 <th>Name</th>
                 <th>Files</th>
                 <th>Created at</th>
@@ -686,6 +687,7 @@ panel.getAlbums = () => {
       const tr = document.createElement('tr')
       tr.innerHTML = `
         <tr>
+          <th>${album.id}</th>
           <th>${album.name}</th>
           <th>${album.files}</th>
           <td>${album.date}</td>
