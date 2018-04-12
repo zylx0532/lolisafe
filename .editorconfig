@@ -16,3 +16,6 @@ indent_size = 4
 
 [LICENSE]
 insert_final_newline = false
+
+[./public/safe.fiery.me.sxcu]
+insert_final_newline = false
