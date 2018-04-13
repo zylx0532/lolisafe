@@ -19,3 +19,7 @@ insert_final_newline = false
 
 [./public/safe.fiery.me.sxcu]
 insert_final_newline = false
+
+[./.vscode/settings.json]
+indent_size = 4
+insert_final_newline = false

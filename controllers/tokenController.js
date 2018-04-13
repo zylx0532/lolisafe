@@ -1,7 +1,7 @@
-const config = require('../config.js')
+const config = require('./../config')
 const db = require('knex')(config.database)
 const randomstring = require('randomstring')
-const utils = require('./utilsController.js')
+const utils = require('./utilsController')
 
 const tokenController = {}
 

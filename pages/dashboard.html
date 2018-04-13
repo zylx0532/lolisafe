@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
-  <head>
 
+  <head>
     <meta charset="utf-8" />
     <meta name="description" content="A pomf-like file uploading service that doesn't suck.">
     <meta name="keywords" content="upload,lolisafe,file,images,hosting,bobby,fiery">
@@ -10,14 +10,14 @@
     <title>safe.fiery.me &#8211; A small safe worth protecting.</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=vvtL7Y3cjD">
-    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=cjjyPrikAR">
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=vvtL7Y3cjD">
-    <link rel="stylesheet" type="text/css" href="css/dashboard.css?v=8XQkPhnc2S">
-    <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/axios/axios.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="js/dashboard.js?v=cjjyPrikAR"></script>
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="css/dashboard.css?v=L4ZeQAC3XC">
+    <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="libs/axios/axios.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="js/dashboard.js?v=L4ZeQAC3XC"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -45,18 +45,15 @@
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/152px.png" sizes="152x152">
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/167px.png" sizes="167x167">
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/180px.png" sizes="180x180">
-    <link rel="manifest" href="https://safe.fiery.me/icons/manifest.json?v=V2RnA3Mwhh">
+    <link rel="manifest" href="https://safe.fiery.me/icons/manifest.json?v=L4ZeQAC3XC">
     <meta name="apple-mobile-web-app-title" content="safe.fiery.me">
     <meta name="application-name" content="safe.fiery.me">
-    <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=V2RnA3Mwhh">
+    <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=L4ZeQAC3XC">
     <meta name="theme-color" content="#232629">
-
   </head>
 
   <body>
-
     <section id="auth" class="hero is-light is-fullheight">
-
       <div class="hero-body">
         <div class="container">
           <h1 class="title">
@@ -70,13 +67,10 @@
           </h2>
         </div>
       </div>
-
     </section>
 
     <section id="dashboard" class="section">
-
       <div id="panel" class="container">
-
         <h1 class="title">
           Dashboard
         </h1>
@@ -127,20 +121,18 @@
             <img src="images/logo.png">
           </div>
         </div>
-
       </div>
-
     </section>
 
     <div id="modal" class="modal">
       <div class="modal-background" onclick="panel.closeModal()"></div>
-      <div class="modal-content" style="background-color: #31363b; border-radius: 5px; box-shadow: 0 2px 3px rgba(10,10,10,.1),0 0 0 1px rgba(10,10,10,.1); padding: 20px; width: auto;">
-        <figure class="image" style="width: 200px; height: 200px; display: flex; align-items: center;">
+      <div class="modal-content">
+        <figure class="image">
           <img id="modalImage">
         </figure>
       </div>
       <button class="modal-close is-large" aria-label="close" onclick="panel.closeModal()"></button>
     </div>
-
   </body>
+
 </html>

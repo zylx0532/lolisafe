@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
-  <head>
 
+  <head>
     <meta charset="utf-8" />
     <meta name="description" content="A pomf-like file uploading service that doesn't suck.">
     <meta name="keywords" content="upload,lolisafe,file,images,hosting,bobby,fiery">
@@ -10,8 +10,8 @@
     <title>safe.fiery.me &#8211; A small safe worth protecting.</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=vvtL7Y3cjD">
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=vvtL7Y3cjD">
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=L4ZeQAC3XC">
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -39,38 +39,30 @@
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/152px.png" sizes="152x152">
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/167px.png" sizes="167x167">
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/180px.png" sizes="180x180">
-    <link rel="manifest" href="https://safe.fiery.me/icons/manifest.json?v=V2RnA3Mwhh">
+    <link rel="manifest" href="https://safe.fiery.me/icons/manifest.json?v=L4ZeQAC3XC">
     <meta name="apple-mobile-web-app-title" content="safe.fiery.me">
     <meta name="application-name" content="safe.fiery.me">
-    <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=V2RnA3Mwhh">
+    <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=L4ZeQAC3XC">
     <meta name="theme-color" content="#232629">
 
     <style>
-      /* ------------------
-          COLORS BASED ON
-          KDE BREEZE DARK
-      ------------------ */
       .message-body {
         color: #eff0f1;
         background-color: #31363b;
         border-color: #898b8d;
       }
     </style>
-
   </head>
 
   <body>
-
     <section class="hero is-fullheight has-text-centered" id="home">
       <div class="hero-body">
         <div class="container has-text-left">
-
           <h2 class='subtitle'>What is safe.fiery.me?</h2>
           <article class="message">
             <div class="message-body">
-              safe.fiery.me is merely another clone of lolisafe.<br>
-              lolisafe itself is an easy to use, open source and completely free file upload service. We accept your files, photos, documents, anything, and give you back a shareable link for you to send to others.<br>
-              On a side note, this site was originally made for personal use but I figured it would be rather lonely, so yeah, feel free..
+              safe.fiery.me is merely another clone of lolisafe. We accept your files, photos, documents, anything, and give you back a shareable link for you to send to others.<br> lolisafe itself is an easy to use, open source and completely free file
+              upload service.
             </div>
           </article>
 
@@ -84,24 +76,24 @@
           <h2 class='subtitle'>How can I keep track of my uploads?</h2>
           <article class="message">
             <div class="message-body">
-              Simply create a user on the site and every upload will be associated with your account, granting you access to your uploaded files through our dashboard.<br>
-              By having an account, you will also be able to set file name length for your new uploads!
+              Simply create a user on the site and every upload will be associated with your account, granting you access to your uploaded files through our dashboard.<br> By having an account, you will also be able to set file name length for your new
+              uploads!
             </div>
           </article>
 
           <h2 class='subtitle'>Do you have any No-JS uploader?</h2>
           <article class="message">
             <div class="message-body">
-              Yes, check out <a href="../nojs" target="_blank">this page</a>.<br>
-              Unfortunately you will not be able to associate your uploads to your account, if you have any.<br>
-              Then again, if you want to use the No-JS uploader, then it's very likely that you will not use the Dashboard anyways.
+              Yes, check out <a href="../nojs" target="_blank">this page</a>.<br> Unfortunately you will not be able to associate your uploads to your account, if you have any.<br> Then again, if you want to use the No-JS uploader, then it's very likely
+              that you will not use the Dashboard anyways.
             </div>
           </article>
 
           <h2 class='subtitle'>What are albums?</h2>
           <article class="message">
             <div class="message-body">
-              Albums are a simple way of sorting uploads together. Right now you can create albums through the dashboard, then afterwards you can use them through the homepage uploader or with <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj" target="_blank">our chrome extension</a>, which will enable you to <strong>right click -> send to lolisafe</strong> or to a desired album if you have any. You will probably have to change some things involving <b>https://safe.fiery.me/api/upload</b> if you want to use the extension though.
+              Albums are a simple way of sorting uploads together. Right now you can create albums through the dashboard, then afterwards you can use them through the homepage uploader or with <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj"
+                target="_blank">our chrome extension</a>, which will enable you to <strong>right click -> send to lolisafe</strong> or to a desired album if you have any. You will probably have to change some things involving <b>https://safe.fiery.me/api/upload</b>              if you want to use the extension though.
             </div>
           </article>
 
@@ -115,7 +107,7 @@
           <h2 class='subtitle'>I saw something too illegal for my tastes here, what do?</h2>
           <article class="message">
             <div class="message-body">
-               Send a strongly worded email to <a href="mailto:bobby@fiery.me">bobby@fiery.me</a> and I will try to get back to you within 24 hours.
+              Send a strongly worded email to <a href="mailto:bobby@fiery.me">bobby@fiery.me</a> and I will try to get back to you within 24 hours.
             </div>
           </article>
 
@@ -125,10 +117,9 @@
               Yes, the homepage uploader will chunk your uploads into 10 MB pieces by default. If you want to utilize chunked uploads with the API, then feel free to inspect the HTTP requests.
             </div>
           </article>
-
         </div>
       </div>
     </section>
-
   </body>
+
 </html>

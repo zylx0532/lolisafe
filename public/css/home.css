@@ -1,0 +1,167 @@
+#b {
+  width: 200px;
+  height: 200px;
+  border-radius: 100%;
+  -webkit-animation-delay: 0.5s;
+  animation-delay: 0.5s;
+  -webkit-animation-duration: 1.5s;
+  animation-duration: 1.5s;
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+  -webkit-animation-name: floatUp;
+  animation-name: floatUp;
+  -webkit-animation-timing-function: cubic-bezier(0, 0.71, 0.29, 1);
+  animation-timing-function: cubic-bezier(0, 0.71, 0.29, 1);
+  border-radius: 24px;
+  display: inline-block;
+  height: 240px;
+  margin-bottom: 40px;
+  position: relative;
+  vertical-align: top;
+  width: 240px;
+  -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+}
+
+#dropzone {
+  border: 1px solid #dbdbdb;
+  background-color: rgba(0, 0, 0, 0);
+  border-color: #ff3860;
+  color: #ff3860;
+  display: none;
+  width: 100%;
+  border-radius: 3px;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  height: 2.5em;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  padding-left: .75em;
+  padding-right: .75em;
+  text-align: center;
+  cursor: pointer;
+}
+
+#dropzone * {
+  pointer-events: none;
+}
+
+#uploads,
+#tokenContainer,
+#panel {
+  display: none;
+}
+
+#dropzone:hover {
+  background-color: #ff3860;
+  border-color: #ff3860;
+  color: #fff;
+}
+
+#maxFileSize {
+  font-size: 1rem;
+}
+
+img.logo {
+  max-height: 200px;
+  margin-top: 20px;
+}
+
+.dz-preview .dz-details {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.dz-preview .dz-details .dz-size,
+.dz-preview .dz-details .dz-filename {
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+.dz-preview img,
+.dz-preview .dz-success-mark,
+.dz-preview .dz-error-mark {
+  display: none;
+}
+
+#uploads {
+  margin-bottom: 25px;
+}
+
+@-webkit-keyframes floatUp {
+  0% {
+    opacity: 0;
+    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
+    box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
+    -webkit-transform: scale(0.86);
+    transform: scale(0.86);
+  }
+  25% {
+    opacity: 100;
+  }
+  67% {
+    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+  }
+  100% {
+    -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
+    box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
+    -webkit-transform: scale(0.86);
+    transform: scale(0.86);
+  }
+  25% {
+    opacity: 100;
+  }
+  67% {
+    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+  }
+  100% {
+    -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    -webkit-transform: scale(1);
+    transform: scale(1);
+  }
+}
+
+img[data-dz-thumbnail] {
+  max-width: 200px;
+}
+
+.clipboard-mobile {
+  margin-top: 5px;
+}
+
+#albumDiv .control {
+  text-align: inherit;
+}
+
+#linksColumn {
+  margin-left: -0.25rem;
+  margin-right: -0.25rem;
+}
+
+#linksColumn .column {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}

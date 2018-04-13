@@ -1,9 +1,9 @@
-const path = require('path')
-const config = require('../config.js')
+const config = require('./../config')
+const db = require('knex')(config.database)
+const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
-const ffmpeg = require('fluent-ffmpeg')
-const db = require('knex')(config.database)
+const path = require('path')
 
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 

@@ -1,8 +1,8 @@
-const config = require('../config.js')
+const config = require('./../config')
 const routes = require('express').Router()
 const db = require('knex')(config.database)
 const path = require('path')
-const utils = require('../controllers/utilsController.js')
+const utils = require('./../controllers/utilsController')
 
 routes.get('/a/:identifier', async (req, res, next) => {
   const identifier = req.params.identifier

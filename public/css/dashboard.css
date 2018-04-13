@@ -1,7 +1,7 @@
-/* ------------------
-    COLORS BASED ON
-    KDE BREEZE DARK
------------------- */
+#auth,
+#dashboard {
+  display: none
+}
 
 .button.is-breeze {
   background-color: #2980b9;
@@ -74,12 +74,16 @@ html {
 }
 
 .image-container {
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
   width: 200px;
   height: 200px;
   margin: 9px;
   background-color: #31363b;
   overflow: hidden;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
   align-items: center;
   position: relative;
 }
@@ -102,6 +106,8 @@ html {
 }
 
 .image-container .controls {
+  display: -webkit-box;
+  display: -ms-flexbox;
   display: flex;
   position: absolute;
   top: .75rem;
@@ -142,12 +148,14 @@ html {
 
 .no-touch .image-container .file-checkbox {
   opacity: .25;
+  -webkit-transition: opacity .25s;
   transition: opacity .25s;
 }
 
 .no-touch .image-container .controls,
 .no-touch .image-container .details {
   opacity: 0;
+  -webkit-transition: opacity .25s;
   transition: opacity .25s;
 }
 
@@ -198,4 +206,24 @@ html {
 .table th {
   color: #eff0f1;
   height: 2.25em;
+}
+
+#modal .modal-content {
+  background-color: #31363b;
+  border-radius: 5px;
+  -webkit-box-shadow: 0 2px 3px rgba(10, 10, 10, .1), 0 0 0 1px rgba(10, 10, 10, .1);
+  box-shadow: 0 2px 3px rgba(10, 10, 10, .1), 0 0 0 1px rgba(10, 10, 10, .1);
+  padding: 20px;
+  width: auto;
+}
+
+#modal .modal-content .image {
+  width: 200px;
+  height: 200px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
 }

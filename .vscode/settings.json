@@ -1,0 +1,33 @@
+{
+    "beautify.ignore": [
+        "**/*.js"
+    ],
+    "beautify.language": {
+        "js": {},
+        "css": [
+            "css",
+            "scss"
+        ],
+        "html": [
+            "htm",
+            "html",
+            "hbs",
+            "handlebars"
+        ]
+    },
+    "discord.enabled": true,
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": true,
+    "editor.rulers": [
+        120
+    ],
+    "editor.wordWrapColumn": 120,
+    "editor.wordWrap": "bounded",
+    "editor.wrappingIndent": "indent",
+    "eslint.enable": true,
+    "eslint.autoFixOnSave": true,
+    "javascript.format.enable": false,
+    "javascript.suggestionActions.enabled": false,
+    "javascript.validate.enable": false,
+    "npm-intellisense.importES6": false
+}

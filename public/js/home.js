@@ -114,7 +114,7 @@ upload.prepareUpload = () => {
 
   const div = document.createElement('div')
   div.id = 'dropzone'
-  div.className = 'button'
+  div.className = 'button is-unselectable'
   div.innerHTML = `
     <span class="icon">
       <i class="icon-upload-cloud"></i>

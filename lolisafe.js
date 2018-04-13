@@ -1,7 +1,7 @@
-const config = require('./config.js')
-const api = require('./routes/api.js')
-const album = require('./routes/album.js')
-const nojs = require('./routes/nojs.js')
+const config = require('./config')
+const api = require('./routes/api')
+const album = require('./routes/album')
+const nojs = require('./routes/nojs')
 const express = require('express')
 const helmet = require('helmet')
 const bodyParser = require('body-parser')
@@ -64,11 +64,11 @@ for (const page of config.pages) {
 
 // NOTE: Uses fiery.me branch of https://github.com/BobbyWibowo/HttpErrorPages
 safe.use((req, res, next) => {
-  res.status(404).sendFile('HTTP404.html', { root: '../HttpErrorPages/dist/' })
+  res.status(404).sendFile('HTTP404.html', { root: './../HttpErrorPages/dist/' })
 })
 safe.use((error, req, res, next) => {
   console.error(error)
-  res.status(500).sendFile('HTTP505.html', { root: '../HttpErrorPages/dist/' })
+  res.status(500).sendFile('HTTP500.html', { root: './../HttpErrorPages/dist/' })
 })
 
 safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))

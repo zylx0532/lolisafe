@@ -1,11 +1,11 @@
-const config = require('../config.js')
+const config = require('./../config')
 const path = require('path')
 const multer = require('multer')
 const randomstring = require('randomstring')
 const db = require('knex')(config.database)
 const crypto = require('crypto')
 const fs = require('fs')
-const utils = require('./utilsController.js')
+const utils = require('./utilsController')
 
 const uploadsController = {}
 
@@ -447,17 +447,6 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
         size: file.size,
         url: `${basedomain}/${file.name}`
       }
-    })
-  }
-
-  if (req.params.nojs) {
-    return res.render('nojs', {
-      layout: false,
-      files: mappedFiles.map(file => {
-        const exec = /.[\w]+(\?|$)/.exec(file.url)
-        file.image = exec && exec[0] && utils.imageExtensions.includes(exec[0].toLowerCase())
-        return file
-      })
     })
   }
 

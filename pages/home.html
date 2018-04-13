@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
-  <head>
 
+  <head>
     <meta charset="utf-8" />
     <meta name="description" content="A pomf-like file uploading service that doesn't suck.">
     <meta name="keywords" content="upload,lolisafe,file,images,hosting,bobby,fiery">
@@ -10,14 +10,15 @@
     <title>safe.fiery.me &#8211; A small safe worth protecting.</title>
 
     <!-- Stylesheets and scripts -->
-    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=vvtL7Y3cjD">
-    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=cjjyPrikAR">
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=vvtL7Y3cjD">
-    <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/axios/axios.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=vvtL7Y3cjD"></script>
-    <script type="text/javascript" src="js/home.js?v=D6LvZYepOF"></script>
+    <link rel="stylesheet" type="text/css" href="libs/bulma/bulma.min.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=L4ZeQAC3XC">
+    <link rel="stylesheet" type="text/css" href="css/home.css?v=L4ZeQAC3XC">
+    <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="libs/axios/axios.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v=L4ZeQAC3XC"></script>
+    <script type="text/javascript" src="js/home.js?v=L4ZeQAC3XC"></script>
 
     <!-- Open Graph tags -->
     <meta property="og:type" content="website" />
@@ -45,41 +46,14 @@
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/152px.png" sizes="152x152">
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/167px.png" sizes="167x167">
     <link rel="apple-touch-icon" href="https://safe.fiery.me/icons/180px.png" sizes="180x180">
-    <link rel="manifest" href="https://safe.fiery.me/icons/manifest.json?v=V2RnA3Mwhh">
+    <link rel="manifest" href="https://safe.fiery.me/icons/manifest.json?v=L4ZeQAC3XC">
     <meta name="apple-mobile-web-app-title" content="safe.fiery.me">
     <meta name="application-name" content="safe.fiery.me">
-    <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=V2RnA3Mwhh">
+    <meta name="msapplication-config" content="https://safe.fiery.me/icons/browserconfig.xml?v=L4ZeQAC3XC">
     <meta name="theme-color" content="#232629">
-
-    <style>
-      #dropzone * {
-        pointer-events: none;
-      }
-
-      img[data-dz-thumbnail] {
-        max-width: 200px;
-      }
-
-      .clipboard-mobile {
-        margin-top: 5px;
-      }
-
-      #links {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      #links a {
-        display: block;
-        margin: 5px;
-      }
-    </style>
-
   </head>
 
   <body>
-
     <section class="hero is-fullheight has-text-centered" id="home">
       <div class="hero-body section">
         <div class="container">
@@ -87,21 +61,23 @@
             <img class="logo" src="images/logo_smol.png">
           </p>
           <h1 class="title">safe.fiery.me</h1>
-          <h2 class="subtitle">A
-            <strong>modern</strong> self-hosted file upload service</h2>
+          <h2 class="subtitle">
+            A <strong>modern</strong> self-hosted file upload service
+          </h2>
 
           <h3 class="subtitle" id="maxFileSize"></h3>
-          <div class="columns">
+
+          <div class="columns is-gapless">
             <div class="column is-hidden-mobile"></div>
-            <div class="column" id="uploadContainer">
+            <div id="uploadContainer" class="column">
               <a id="loginToUpload" class="button is-danger is-loading" style="display: flex"></a>
-              <div class="field" id="albumDiv" style="display: none">
+              <div id="albumDiv" class="field" style="display: none">
                 <p class="control select-wrapper">
                   <span class="select">
-                    <select id="albumSelect">
-                      <option value="">Upload to album</option>
-                    </select>
-                  </span>
+                  <select id="albumSelect">
+                    <option value="">Upload to album</option>
+                  </select>
+                </span>
                 </p>
               </div>
             </div>
@@ -109,7 +85,7 @@
           </div>
 
           <div id="uploads">
-            <div id="template" class="columns">
+            <div id="template" class="columns is-gapless">
               <div class="column is-hidden-mobile"></div>
               <div class="column">
                 <progress class="progress is-small is-danger" value="0" max="100"></progress>
@@ -120,11 +96,11 @@
                 </p>
                 <p class="clipboard-mobile is-hidden-desktop" style="display: none">
                   <a class="button is-info is-outlined clipboard-js" style="display: flex">
-                    <span class="icon">
-                      <i class="icon-clipboard-1"></i>
-                    </span>
-                    <span>Copy link to clipboard</span>
-                  </a>
+                  <span class="icon">
+                    <i class="icon-clipboard-1"></i>
+                  </span>
+                  <span>Copy link to clipboard</span>
+                </a>
                 </p>
               </div>
               <div class="column is-hidden-mobile"></div>
@@ -134,52 +110,74 @@
           <h3 class="subtitle">
             <a href="auth" id="loginLinkText"></a>
           </h3>
-          <h3 id="links">
-            <a href="https://fiery.me" title="Home">
-              <span class="icon is-medium">
-                <i class="icon-home icon-2x"></i>
-              </span>
-            </a>
-            <a href="https://blog.fiery.me" title="Blog">
-              <span class="icon is-medium">
-                <i class="icon-archive icon-2x"></i>
-              </span>
-            </a>
-            <a id="ShareX" href="https://safe.fiery.me/safe.fiery.me.sxcu" title="ShareX">
-              <span class="icon is-medium">
-                <i class="icon-sharex icon-2x"></i>
-              </span>
-            </a>
-            <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj" target="_blank" title="Chrome extension">
-              <span class="icon is-medium">
-                <i class="icon-chrome icon-2x"></i>
-              </span>
-            </a>
-            <a href="https://github.com/BobbyWibowo/uguush/tree/lolisafe-kde" target="_blank" title="Bash uploader">
-              <span class="icon is-medium">
-                <i class="icon-terminal icon-2x"></i>
-              </span>
-            </a>
-            <a href="faq" title="FAQ">
-              <span class="icon is-medium">
-                <i class="icon-help-circled icon-2x"></i>
-              </span>
-            </a>
-            <a href="auth" title="Dashboard">
-              <span class="icon is-medium">
-                <i class="icon-gauge icon-2x"></i>
-              </span>
-            </a>
-            <a href="https://github.com/BobbyWibowo/lolisafe" target="_blank" title="GitHub">
-              <span class="icon is-medium">
-                <i class="icon-github-circled icon-2x"></i>
-              </span>
-            </a>
-          </h3>
 
+          <div class="columns is-gapless">
+            <div class="column is-hidden-mobile"></div>
+            <div class="column">
+              <div id="linksColumn" class="columns is-mobile is-multiline is-centered">
+                <div class="column is-narrow">
+                  <a href="https://fiery.me" title="Home">
+                    <span class="icon is-medium">
+                      <i class="icon-home icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a href="https://blog.fiery.me" title="Blog">
+                    <span class="icon is-medium">
+                      <i class="icon-archive icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a id="ShareX" href="https://safe.fiery.me/safe.fiery.me.sxcu" title="ShareX">
+                    <span class="icon is-medium">
+                      <i class="icon-sharex icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj" target="_blank" title="Chrome extension">
+                    <span class="icon is-medium">
+                      <i class="icon-chrome icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a href="https://github.com/BobbyWibowo/uguush/tree/lolisafe-kde" target="_blank" title="Bash uploader">
+                    <span class="icon is-medium">
+                      <i class="icon-terminal icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a href="faq" title="FAQ">
+                    <span class="icon is-medium">
+                      <i class="icon-help-circled icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a href="auth" title="Dashboard">
+                    <span class="icon is-medium">
+                      <i class="icon-gauge icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+                <div class="column is-narrow">
+                  <a href="https://github.com/BobbyWibowo/lolisafe" target="_blank" title="GitHub">
+                    <span class="icon is-medium">
+                      <i class="icon-github-circled icon-2x"></i>
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div class="column is-hidden-mobile"></div>
+          </div>
         </div>
       </div>
     </section>
-
   </body>
+
 </html>
