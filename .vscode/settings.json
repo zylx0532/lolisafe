@@ -1,22 +1,12 @@
 {
-    "beautify.ignore": [
-        "**/*.js"
-    ],
-    "beautify.language": {
-        "js": {},
-        "css": [
-            "css",
-            "scss"
-        ],
-        "html": [
-            "htm",
-            "html",
-            "njk" // this probably does not even work
-        ]
+    "beautify.options": {
+        "css": {
+            "indent_size": 2
+        }
     },
     "discord.enabled": true,
     "editor.formatOnPaste": false,
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.rulers": [
         120
     ],
