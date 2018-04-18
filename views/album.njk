@@ -1,0 +1,57 @@
+{% extends "layout.njk" %}
+
+{% block stylesheets %}
+<!-- Stylesheets -->
+<link rel="stylesheet" type="text/css" href="../libs/bulma/bulma.min.css?v={{ globals.v }}">
+<link rel="stylesheet" type="text/css" href="../css/style.css?v={{ globals.v }}">
+<style>
+  html {
+    background-color: #232629;
+  }
+
+  .section {
+    background: none;
+  }
+</style>
+{% endblock %}
+
+{% block meta %}
+<!-- Open Graph tags -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="{{ title }} &#8211; {{ count }} files" />
+<meta property="og:url" content="{{ url }}" />
+<meta property="og:description" content="A pomf-like file uploading service that doesn't suck." />
+<meta property="og:image" content="{{ thumb }}" />
+<meta property="og:locale" content="en_US" />
+
+<!-- Twitter Card tags -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ title }} &#8211; {{ count }} files">
+<meta name="twitter:description" content="A pomf-like file uploading service that doesn't suck.">
+<meta name="twitter:image" content="{{ thumb }}">
+{% endblock %}
+
+{% block content %}
+{{ super() }}
+<section class="section">
+  <div class="container">
+    <h1 id="title" class="title">
+      {{ title }}
+    </h1>
+    <h1 id="count" class="subtitle">
+      {{ count }} files
+    </h1>
+    {% if enableDownload %}
+      <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}">Download Album</a>
+    {% endif %}
+    <hr>
+    <div id="table" class="columns is-multiline is-mobile is-centered">
+      {% for item in files %}
+        <div class="column is-narrow">
+          <a href="{{ item.file }}" target="_blank">{{ item.thumb | safe }}</a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

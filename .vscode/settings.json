@@ -11,8 +11,7 @@
         "html": [
             "htm",
             "html",
-            "hbs",
-            "handlebars"
+            "njk" // this probably does not even work
         ]
     },
     "discord.enabled": true,

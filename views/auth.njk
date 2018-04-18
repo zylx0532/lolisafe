@@ -1,0 +1,64 @@
+{% extends "layout.njk" %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v={{ globals.v }}">
+<link rel="stylesheet" type="text/css" href="css/auth.css?v={{ globals.v }}">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v={{ globals.v }}"></script>
+<script type="text/javascript" src="libs/axios/axios.min.js?v={{ globals.v }}"></script>
+<script type="text/javascript" src="js/auth.js?v={{ globals.v }}"></script>
+{% endblock %}
+
+{% block content %}
+{{ super() }}
+<section id="login" class="hero is-fullheight" style="background-color: #232629">
+  <div class="hero-body">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-one-third is-hidden-touch"></div>
+        <div class="column">
+          <h1 class="title">
+            Dashboard Access
+          </h1>
+          <h2 class="subtitle">
+            Login or register
+          </h2>
+          <div class="field">
+            <div class="control">
+              <input id="user" class="input" type="text" onkeypress="page.onkeypress(event, this)" placeholder="Your username">
+            </div>
+          </div>
+          <div class="field">
+            <div class="control">
+              <input id="pass" class="input" type="password" onkeypress="page.onkeypress(event, this)" placeholder="Your password">
+            </div>
+          </div>
+          <div class="field is-grouped is-grouped-right">
+            <div class="control">
+              <a id="registerBtn" class="button" onclick="page.do('register')">
+                <span class="icon">
+                  <i class="icon-user-plus"></i>
+                </span>
+                <span>Register</span>
+              </a>
+            </div>
+            <div class="control">
+              <a id="loginBtn" class="button" onclick="page.do('login')">
+                <span class="icon">
+                  <i class="icon-login"></i>
+                </span>
+                <span>Log in</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="column is-one-third is-hidden-mobile"></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

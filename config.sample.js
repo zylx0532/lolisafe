@@ -30,8 +30,9 @@ module.exports = {
   /*
     If you are serving your files with a different domain than your lolisafe homepage,
     then fill this option with your lolisafe homepage, otherwise leave it null (or other falsy value).
+    This will be used when listing album links in the dashboard.
   */
-  albumDomain: null,
+  homeDomain: null,
 
   // Port on which to run the server
   port: 9999,

@@ -1,0 +1,86 @@
+{% extends "layout.njk" %}
+
+{% block stylesheets %}
+{{ super() }}
+<style>
+  .message {
+    background-color: #31363b;
+  }
+
+  .message-body {
+    color: #eff0f1;
+    border: 0;
+    -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+    box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ super() }}
+<section class="hero is-fullheight has-text-centered" id="home">
+  <div class="hero-body">
+    <div class="container has-text-left">
+      <h2 class='subtitle'>What is safe.fiery.me?</h2>
+      <article class="message">
+        <div class="message-body">
+          safe.fiery.me is merely another clone of lolisafe. We accept your files, photos, documents, anything, and give you back a shareable link for you to send to others.<br> lolisafe itself is an easy to use, open source and completely free file
+          upload service.
+        </div>
+      </article>
+
+      <h2 class='subtitle'>Will you keep my files forever?</h2>
+      <article class="message">
+        <div class="message-body">
+          Unless I receive a copyright complain or some other bullshit, I will.
+        </div>
+      </article>
+
+      <h2 class='subtitle'>How can I keep track of my uploads?</h2>
+      <article class="message">
+        <div class="message-body">
+          Simply create a user on the site and every upload will be associated with your account, granting you access to your uploaded files through our dashboard.<br> By having an account, you will also be able to set file name length for your new
+          uploads!
+        </div>
+      </article>
+
+      <h2 class='subtitle'>Do you have any No-JS uploader?</h2>
+      <article class="message">
+        <div class="message-body">
+          Yes, check out <a href="../nojs" target="_blank">this page</a>.<br> Unfortunately you will not be able to associate your uploads to your account, if you have any.<br> Then again, if you want to use the No-JS uploader, then it's very likely
+          that you will not use the Dashboard anyways.
+        </div>
+      </article>
+
+      <h2 class='subtitle'>What are albums?</h2>
+      <article class="message">
+        <div class="message-body">
+          Albums are a simple way of sorting uploads together. Right now you can create albums through the dashboard, then afterwards you can use them through the homepage uploader or with <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj"
+            target="_blank">our chrome extension</a>, which will enable you to <strong>right click -> send to lolisafe</strong> or to a desired album if you have any. You will probably have to change some things involving <b>https://safe.fiery.me/api/upload</b>              if you want to use the extension though.
+        </div>
+      </article>
+
+      <h2 class='subtitle'>Why should I use this?</h2>
+      <article class="message">
+        <div class="message-body">
+          I don't know.
+        </div>
+      </article>
+
+      <h2 class='subtitle'>I saw something too illegal for my tastes here, what do?</h2>
+      <article class="message">
+        <div class="message-body">
+          Send a strongly worded email to <a href="mailto:bobby@fiery.me">bobby@fiery.me</a> and I will try to get back to you within 24 hours.
+        </div>
+      </article>
+
+      <h2 class='subtitle'>Do you support chunked uploads?</h2>
+      <article class="message">
+        <div class="message-body">
+          Yes, the homepage uploader will chunk your uploads into 10 MB pieces by default. If you want to utilize chunked uploads with the API, then feel free to inspect the HTTP requests.
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+{% endblock %}

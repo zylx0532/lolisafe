@@ -4,6 +4,8 @@ const db = require('knex')(config.database)
 const path = require('path')
 const utils = require('./../controllers/utilsController')
 
+const homeDomain = config.homeDomain || config.domain
+
 routes.get('/a/:identifier', async (req, res, next) => {
   const identifier = req.params.identifier
   if (identifier === undefined) {
@@ -52,7 +54,8 @@ routes.get('/a/:identifier', async (req, res, next) => {
     thumb,
     files,
     identifier,
-    enableDownload
+    enableDownload,
+    url: `${homeDomain}/a/${album.identifier}`
   })
 })
 

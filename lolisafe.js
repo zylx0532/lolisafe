@@ -3,12 +3,12 @@ const api = require('./routes/api')
 const album = require('./routes/album')
 const nojs = require('./routes/nojs')
 const express = require('express')
-const helmet = require('helmet')
 const bodyParser = require('body-parser')
-const RateLimit = require('express-rate-limit')
 const db = require('knex')(config.database)
 const fs = require('fs')
-const exphbs = require('express-handlebars')
+const helmet = require('helmet')
+const nunjucks = require('nunjucks')
+const RateLimit = require('express-rate-limit')
 const safe = express()
 
 require('./database/db.js')(db)
@@ -23,8 +23,11 @@ fs.existsSync('./' + config.uploads.folder + '/zips') || fs.mkdirSync('./' + con
 safe.use(helmet())
 safe.set('trust proxy', 1)
 
-safe.engine('handlebars', exphbs({ defaultLayout: 'main' }))
-safe.set('view engine', 'handlebars')
+nunjucks.configure('views', {
+  autoescape: true,
+  express: safe
+})
+safe.set('view engine', 'njk')
 safe.enable('view cache')
 
 const limiter = new RateLimit({ windowMs: 5000, max: 2 })
@@ -51,24 +54,23 @@ safe.use('/', nojs)
 safe.use('/api', api)
 
 for (const page of config.pages) {
-  let root = './pages/'
   if (fs.existsSync(`./pages/custom/${page}.html`)) {
-    root = './pages/custom/'
-  }
-  if (page === 'home') {
-    safe.get('/', (req, res, next) => res.sendFile(`${page}.html`, { root }))
+    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root: './pages/custom/' }))
   } else {
-    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root }))
+    if (page === 'home') {
+      safe.get('/', (req, res, next) => res.render('home'))
+    } else {
+      safe.get(`/${page}`, (req, res, next) => res.render(page))
+    }
   }
 }
 
-// NOTE: Uses fiery.me branch of https://github.com/BobbyWibowo/HttpErrorPages
 safe.use((req, res, next) => {
-  res.status(404).sendFile('HTTP404.html', { root: './../HttpErrorPages/dist/' })
+  res.status(404).sendFile('HTTP404.html', { root: './pages/errors/' })
 })
 safe.use((error, req, res, next) => {
   console.error(error)
-  res.status(500).sendFile('HTTP500.html', { root: './../HttpErrorPages/dist/' })
+  res.status(500).sendFile('HTTP500.html', { root: './pages/errors/' })
 })
 
 safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))

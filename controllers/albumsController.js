@@ -8,8 +8,9 @@ const Zip = require('jszip')
 
 const albumsController = {}
 
+const homeDomain = config.homeDomain || config.domain
+
 albumsController.list = async (req, res, next) => {
-  const albumDomain = config.albumDomain || config.domain
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
@@ -34,7 +35,7 @@ albumsController.list = async (req, res, next) => {
   for (const album of albums) {
     album.date = utils.getPrettyDate(new Date(album.timestamp * 1000))
 
-    album.identifier = `${albumDomain}/a/${album.identifier}`
+    album.identifier = `${homeDomain}/a/${album.identifier}`
     ids.push(album.id)
   }
 

@@ -1,0 +1,28 @@
+{% macro attrs(obj) %}
+{% set space = joiner(' ') %}
+{% for id, val in obj -%}
+{{ space() }}{{ id }}="{{ val }}"
+{%- endfor %}
+{% endmacro %}
+
+<div class="columns is-gapless">
+  <div class="column is-hidden-mobile"></div>
+  <div class="column">
+    <div id="linksColumn" class="columns is-mobile is-multiline is-centered">
+      {% for link in globals.home_links %}
+      <div class="column is-narrow">
+        <a {{ attrs(link.attrs) | trim }}>
+          {% if link.icon %}
+          <span class="icon is-medium">
+            <i class="{{ link.icon }}"></i>
+          </span>
+          {% else %}
+          {{ link.attrs.title }}
+          {% endif %}
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="column is-hidden-mobile"></div>
+</div>

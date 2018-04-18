@@ -1,0 +1,75 @@
+{% extends "layout.njk" %}
+
+{% block stylesheets %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v={{ globals.v }}">
+<link rel="stylesheet" type="text/css" href="css/home.css?v={{ globals.v }}">
+{% endblock %}
+
+{% block content %}
+{{ super() }}
+<section class="hero is-fullheight has-text-centered" id="home">
+  <div class="hero-body section">
+    <div class="container">
+      <p id="b">
+        <img class="logo" src="images/logo_smol.png">
+      </p>
+      <h1 class="title">{{ globals.name }}</h1>
+      <h2 class="subtitle">{{ globals.home_subtitle }}</h2>
+
+      <h3 class="subtitle" id="maxFileSize">
+        Maximum upload size per file is {{ maxFileSize }}
+      </h3>
+
+      <div class="columns is-gapless">
+        <div class="column is-hidden-mobile"></div>
+        <div class="column">
+          <div class="content">
+            <p class="subtitle" style="font-size: 1rem">
+              Files uploaded through this No-JS uploader will not be associated to your account, if you have any.
+            </p>
+          </div>
+          <div class="content">
+            {% if uploadDisabled %}
+              <a class="button is-danger" style="display: flex" href="auth">{{ uploadDisabled }}</a>
+            {% else %}
+              <form id="form" action="" method="post" enctype="multipart/form-data">
+                <div class="field">
+                  <input type="file" name="files[]" multiple="multiple" style="width: 100%">
+                </div>
+                <div class="field">
+                  <input type="submit" class="button is-danger" value="Upload" style="width: 100%">
+                </div>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+        <div class="column is-hidden-mobile"></div>
+      </div>
+
+      {% if files %}
+        <div id="uploads" style="display: block">
+          {% for item in files %}
+            <div class="columns">
+              <div class="column is-hidden-mobile"></div>
+              <div class="column">
+                {% if errorMessage %}
+                  <p class="error">{{ errorMessage | safe }}</p>
+                {% endif %}
+                {% if item.url %}
+                  <p class="link">
+                    <a href="{{ item.url }}" target="_blank">{{ item.url | safe }}</a>
+                  </p>
+                {% endif %}
+              </div>
+              <div class="column is-hidden-mobile"></div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% include "links.njk" %}
+    </div>
+  </div>
+</section>
+{% endblock %}
