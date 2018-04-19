@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "_layout.njk" %}
 
 {% block stylesheets %}
 {{ super() }}
@@ -72,7 +72,7 @@
         <a href="auth" id="loginLinkText"></a>
       </h3>
 
-      {% include "links.njk" %}
+      {% include "_partial/links.njk" %}
     </div>
   </div>
 </section>

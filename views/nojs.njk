@@ -1,4 +1,4 @@
-{% extends "layout.njk" %}
+{% extends "_layout.njk" %}
 
 {% block stylesheets %}
 {{ super() }}
@@ -30,45 +30,45 @@
             </p>
           </div>
           <div class="content">
-            {% if uploadDisabled %}
-              <a class="button is-danger" style="display: flex" href="auth">{{ uploadDisabled }}</a>
-            {% else %}
-              <form id="form" action="" method="post" enctype="multipart/form-data">
-                <div class="field">
-                  <input type="file" name="files[]" multiple="multiple" style="width: 100%">
-                </div>
-                <div class="field">
-                  <input type="submit" class="button is-danger" value="Upload" style="width: 100%">
-                </div>
-              </form>
-            {% endif %}
+            {% if uploadDisabled -%}
+            <a class="button is-danger" style="display: flex" href="auth">{{ uploadDisabled }}</a>
+            {%- else -%}
+            <form id="form" action="" method="post" enctype="multipart/form-data">
+              <div class="field">
+                <input type="file" name="files[]" multiple="multiple" style="width: 100%">
+              </div>
+              <div class="field">
+                <input type="submit" class="button is-danger" value="Upload" style="width: 100%">
+              </div>
+            </form>
+            {%- endif %}
           </div>
         </div>
         <div class="column is-hidden-mobile"></div>
       </div>
 
-      {% if files %}
-        <div id="uploads" style="display: block">
-          {% for item in files %}
-            <div class="columns">
-              <div class="column is-hidden-mobile"></div>
-              <div class="column">
-                {% if errorMessage %}
-                  <p class="error">{{ errorMessage | safe }}</p>
-                {% endif %}
-                {% if item.url %}
-                  <p class="link">
-                    <a href="{{ item.url }}" target="_blank">{{ item.url | safe }}</a>
-                  </p>
-                {% endif %}
-              </div>
-              <div class="column is-hidden-mobile"></div>
-            </div>
-          {% endfor %}
+      {% if files -%}
+      <div id="uploads" style="display: block">
+        {% for item in files -%}
+        <div class="columns">
+          <div class="column is-hidden-mobile"></div>
+          <div class="column">
+            {% if errorMessage -%}
+            <p class="error">{{ errorMessage | safe }}</p>
+            {%- endif %}
+            {% if item.url -%}
+            <p class="link">
+              <a href="{{ item.url }}" target="_blank">{{ item.url | safe }}</a>
+            </p>
+            {%- endif %}
+          </div>
+          <div class="column is-hidden-mobile"></div>
         </div>
-      {% endif %}
+        {% endfor %}
+      </div>
+      {%- endif %}
 
-      {% include "links.njk" %}
+      {% include "_partial/links.njk" %}
     </div>
   </div>
 </section>
