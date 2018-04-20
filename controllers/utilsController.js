@@ -92,7 +92,7 @@ utilsController.generateThumbs = (file, basedomain) => {
   })
 }
 
-utilsController.deleteFile = async file => {
+utilsController.deleteFile = file => {
   const ext = path.extname(file).toLowerCase()
   return new Promise((resolve, reject) => {
     fs.stat(path.join(__dirname, '..', config.uploads.folder, file), (error, stats) => {
@@ -105,9 +105,7 @@ utilsController.deleteFile = async file => {
         file = file.substr(0, file.lastIndexOf('.')) + '.png'
         fs.stat(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), (error, stats) => {
           if (error) {
-            if (error.code !== 'ENOENT') {
-              console.log(error)
-            }
+            if (error.code !== 'ENOENT') { console.log(error) }
             return resolve()
           }
           fs.unlink(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), error => {
@@ -132,42 +130,46 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
     })
 
   const failedids = ids.filter(id => !files.find(file => file.id === id))
+  const albumids = []
 
-  // First, we delete all the physical files
+  // Delete all files
   await Promise.all(files.map(file => {
-    return utilsController.deleteFile(file.name).catch(error => {
-      // ENOENT is missing file, for whatever reason, then just delete from db anyways
-      if (error.code !== 'ENOENT') {
-        console.log(error)
-        failedids.push(file.id)
-      }
+    return new Promise(async resolve => {
+      const deleteFile = await utilsController.deleteFile(file.name)
+        .then(() => true)
+        .catch(error => {
+          if (error.code === 'ENOENT') { return true }
+          console.log(error)
+          failedids.push(file.id)
+        })
+
+      if (!deleteFile) { return resolve() }
+
+      await db.table('files')
+        .where('id', file.id)
+        .del()
+        .then(() => {
+          if (file.albumid && !albumids.includes(file.albumid)) {
+            albumids.push(file.albumid)
+          }
+        })
+        .catch(error => {
+          console.error(error)
+          failedids.push(file.id)
+        })
+
+      return resolve()
     })
   }))
 
-  // Second, we filter out failed IDs
-  const albumids = []
-  const updateDbIds = files.filter(file => !failedids.includes(file.id))
-  await Promise.all(updateDbIds.map(file => {
-    return db.table('files')
-      .where('id', file.id)
-      .del()
-      .then(() => {
-        if (file.albumid && !albumids.includes(file.albumid)) {
-          albumids.push(file.albumid)
-        }
-      })
-      .catch(error => {
-        console.error(error)
-        failedids.push(file.id)
-      })
-  }))
-
-  // Third, we update albums, if necessary
-  await Promise.all(albumids.map(albumid => {
-    return db.table('albums')
-      .where('id', albumid)
-      .update('editedAt', Math.floor(Date.now() / 1000))
-  }))
+  // Update albums if necessary
+  if (albumids.length) {
+    await Promise.all(albumids.map(albumid => {
+      return db.table('albums')
+        .where('id', albumid)
+        .update('editedAt', Math.floor(Date.now() / 1000))
+    }))
+  }
 
   return failedids
 }

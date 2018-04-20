@@ -242,7 +242,7 @@ albumsController.addFiles = async (req, res, next) => {
   if (!user) { return }
 
   const ids = req.body.ids
-  if (ids === undefined || !ids.length) {
+  if (!ids || !ids.length) {
     return res.json({ success: false, description: 'No files specified.' })
   }
 
@@ -300,6 +300,7 @@ albumsController.addFiles = async (req, res, next) => {
         .where('id', albumid)
         .update('editedAt', Math.floor(Date.now() / 1000))
     }))
+
     return res.json({
       success: true,
       failedids

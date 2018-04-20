@@ -302,7 +302,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   }
 }
 
-uploadsController.appendToStream = async (destFileStream, uuidDr, chunkNames) => {
+uploadsController.appendToStream = (destFileStream, uuidDr, chunkNames) => {
   return new Promise((resolve, reject) => {
     const append = i => {
       if (i < chunkNames.length) {
@@ -325,7 +325,7 @@ uploadsController.appendToStream = async (destFileStream, uuidDr, chunkNames) =>
   })
 }
 
-uploadsController.writeFilesToDb = async (req, res, user, infoMap) => {
+uploadsController.writeFilesToDb = (req, res, user, infoMap) => {
   return new Promise((resolve, reject) => {
     let iteration = 0
     const files = []

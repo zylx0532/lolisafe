@@ -56,12 +56,10 @@ safe.use('/api', api)
 for (const page of config.pages) {
   if (fs.existsSync(`./pages/custom/${page}.html`)) {
     safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root: './pages/custom/' }))
+  } else if (page === 'home') {
+    safe.get('/', (req, res, next) => res.render('home'))
   } else {
-    if (page === 'home') {
-      safe.get('/', (req, res, next) => res.render('home'))
-    } else {
-      safe.get(`/${page}`, (req, res, next) => res.render(page))
-    }
+    safe.get(`/${page}`, (req, res, next) => res.render(page))
   }
 }
 
