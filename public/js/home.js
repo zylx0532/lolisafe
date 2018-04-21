@@ -109,8 +109,8 @@ upload.prepareUpload = () => {
         // Display the album selection
         document.getElementById('albumDiv').style.display = 'block'
       })
-      .catch(e => {
-        console.log(e)
+      .catch(error => {
+        console.log(error)
         return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
       })
   }
