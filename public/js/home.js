@@ -26,6 +26,9 @@ upload.checkIfPublic = () => {
     })
     .catch(error => {
       console.log(error)
+      const button = document.getElementById('loginToUpload')
+      button.className = button.className.replace(' is-loading', '')
+      button.innerText = 'Error occurred. Reload the page?'
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
