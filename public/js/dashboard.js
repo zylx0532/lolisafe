@@ -577,8 +577,8 @@ panel.addToAlbum = async (ids, album) => {
 
   panel.selectAlbumContainer.innerHTML = `
     <select>
-      <option value="">Choose an album</option>
       <option value="-1">Remove from album</option>
+      <option value="" selected disabled>Choose an album</option>
       ${options}
     </select>
     <p class="help is-danger">If a file is already in an album, it will be moved.</p>
