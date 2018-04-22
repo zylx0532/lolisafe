@@ -52,7 +52,7 @@
 }
 
 .icon-2x:before {
-  font-size: 2em;
+  font-size: 2rem;
 }
 
 .icon-sharex:before { content: '\e800'; } /* '' */
