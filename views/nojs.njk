@@ -2,7 +2,6 @@
 
 {% block stylesheets %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v={{ globals.v }}">
 <link rel="stylesheet" type="text/css" href="css/home.css?v={{ globals.v }}">
 {% endblock %}
 
@@ -68,6 +67,7 @@
       </div>
       {%- endif %}
 
+      {% set plain_links = true %}
       {% include "_partial/links.njk" %}
     </div>
   </div>

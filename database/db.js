@@ -42,7 +42,7 @@ const init = function (db) {
         table.integer('enabled')
         table.integer('timestamp')
       }).then(() => {
-        db.table('users').where({username: 'root'}).then((user) => {
+        db.table('users').where({ username: 'root' }).then((user) => {
           if (user.length > 0) { return }
 
           require('bcrypt').hash('root', 10, function (error, hash) {

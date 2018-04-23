@@ -15,7 +15,7 @@
     <link rel="stylesheet" type="text/css" href="css/style.css?v={{ globals.v }}">
     {% endblock %}
 
-    {% block meta %}
+    {% block opengraph %}
     <!-- Open Graph tags -->
     <meta property="og:url" content="{{ globals.root }}" />
     <meta property="og:type" content="website" />
@@ -51,6 +51,7 @@
   </head>
   <body>
     {% block content %}{% endblock %}
+
     {% block scripts %}
     <!-- Scripts -->
     {% endblock %}

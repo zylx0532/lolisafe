@@ -161,3 +161,8 @@ img[data-dz-thumbnail] {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
 }
+
+#linksColumn>span {
+  padding: 0 0.3rem;
+  color: #7f8c8d;
+}

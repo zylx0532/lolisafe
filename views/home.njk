@@ -77,15 +77,5 @@
   </div>
 </section>
 
-<noscript>
-  <style>#home { display: none !important; }</style>
-  <section class="hero is-fullheight has-text-centered">
-    <div class="hero-body section">
-      <div class="container">
-        <p>You have JavaScript disabled, but this page requires JavaScript to function.</p>
-        <p>Please <a href="nojs">click here</a> if you want to try out our No-JS uploader.</p>
-      </div>
-    </div>
-  </section>
-</noscript>
+{% include "_partial/noscript.njk" %}
 {% endblock %}
