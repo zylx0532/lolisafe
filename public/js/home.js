@@ -157,7 +157,7 @@ upload.prepareDropzone = () => {
     autoProcessQueue: true,
     headers: { token: upload.token },
     chunking: upload.chunkedUploads.enabled,
-    chunkSize: parseInt(upload.chunkedUploads.maxSize) * 1000000, // 1000000 B = 1 MB,
+    chunkSize: parseInt(upload.chunkedUploads.chunkSize) * 1000000, // 1000000 B = 1 MB,
     parallelChunkUploads: false, // when set to true, sometimes it often hangs with hundreds of parallel uploads
     chunksUploaded: async (file, done) => {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)

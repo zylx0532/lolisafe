@@ -17,7 +17,7 @@
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
       <h3 class="subtitle" id="maxFileSize">
-        Maximum upload size per file is {{ maxFileSize }}
+        Maximum upload size per file is {{ renderOptions.maxFileSize }}
       </h3>
 
       <div class="columns is-gapless">
@@ -29,8 +29,8 @@
             </p>
           </div>
           <div class="content">
-            {% if uploadDisabled -%}
-            <a class="button is-danger" style="display: flex" href="auth">{{ uploadDisabled }}</a>
+            {% if renderOptions.uploadDisabled -%}
+            <a class="button is-danger" style="display: flex" href="auth">{{ renderOptions.uploadDisabled }}</a>
             {%- else -%}
             <form id="form" action="" method="post" enctype="multipart/form-data">
               <div class="field">

@@ -40,8 +40,13 @@ module.exports = {
   // Pages to process for the frontend
   pages: ['home', 'auth', 'dashboard', 'faq'],
 
-  // Add file extensions here which should be blocked
-  blockedExtensions: [
+  /*
+    If set to true, all extensions in "extensionsFilter" array will be blacklisted,
+    otherwise only files with those extensions that can be uploaded.
+  */
+  filterBlacklist: true,
+
+  extensionsFilter: [
     '.jar',
     '.exe',
     '.msi',
@@ -67,15 +72,19 @@ module.exports = {
 
     /*
       Chunked uploads.
-      If this is enabled, every files uploaded from the home page will forcibly be chunked
-      by the size specified in uploads.chunkedUploads.maxSize. People will still be able to
-      upload bigger files through the API as long as they don't surpass the limit specified
-      in uploads.maxSize though.
-      Total size of the whole chunks will still be checked against uploads.maxSize too.
+      If this is enabled, every files uploaded from the homepage uploader will forcibly be chunked
+      by the size specified in "chunkSize". People will still be able to upload bigger files with
+      the API as long as they don't surpass the limit specified in the "maxSize" option above.
+      Total size of the whole chunks will also later be checked against the "maxSize" option.
+      No-JS uploader page will not have chunked uploads support, if you want to change the maximum
+      file size 'displayed' on it, you can change the value of "noJsMaxSize".
+      You can also set it to null (or other falsy values) to inherit the value of "maxSize" option.
+      "chunkSize", and "noJsMaxSize" if set, need to be in MB.
     */
     chunkedUploads: {
       enabled: true,
-      maxSize: '10MB'
+      chunkSize: '10MB',
+      noJsMaxSize: null
     },
 
     /*
@@ -84,8 +93,8 @@ module.exports = {
       their preferred file name length from the dashboard. The allowed range will
       be set by "min" and "max". Otherwise it will use "default".
       Technically it's possible to have "default" outside of the "min" and "max" range,
-      but please not. Once a user has changed to a number within the range, the user will
-      no longer be able to use the default value.
+      but please not. Otherwise, once a user has changed to a value within the range,
+      the user will no longer be able to use the default value.
     */
     fileLength: {
       min: 4,
@@ -95,10 +104,10 @@ module.exports = {
     },
 
     /*
-      This option will limit how many times it will try to generate random names
-      for uploaded files. If this value is higher than 1, it will help in cases
-      where files with the same name already exists (higher chance with shorter file name length).
-    */
+    This option will limit how many times it will
+    try to generate a new random name when a collision occurrs.
+    The shorter the file name length is, the higher the chance for a collision to occur.
+  */
     maxTries: 1,
 
     /*

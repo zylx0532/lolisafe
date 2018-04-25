@@ -48,7 +48,6 @@ routes.get('/a/:identifier', async (req, res, next) => {
   if (config.uploads.generateZips) { enableDownload = true }
 
   return res.render('album', {
-    layout: false,
     title: album.name,
     count: files.length,
     thumb,

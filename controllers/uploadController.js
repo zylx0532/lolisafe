@@ -61,17 +61,15 @@ const upload = multer({
     fileSize: config.uploads.maxSize
   },
   fileFilter (req, file, cb) {
-    // If there are no blocked extensions
-    if (config.blockedExtensions === undefined) {
-      return cb(null, true)
-    }
+    // If there are extensions that have to be filtered
+    if (config.extensionsFilter && config.extensionsFilter.length) {
+      const extname = path.extname(file.originalname).toLowerCase()
+      const match = config.extensionsFilter.some(extension => extname === extension.toLowerCase())
 
-    // If the extension is blocked
-    if (config.blockedExtensions.some(extension => {
-      return path.extname(file.originalname).toLowerCase() === extension.toLowerCase()
-    })) {
-      // eslint-disable-next-line standard/no-callback-literal
-      return cb('This file extension is not allowed.')
+      if ((config.filterBlacklist && match) || (!config.filterBlacklist && !match)) {
+        // eslint-disable-next-line standard/no-callback-literal
+        return cb(`Sorry, ${extname.substr(1).toUpperCase()} files are not permitted for security reasons.`)
+      }
     }
 
     if (chunkedUploads) {
@@ -83,13 +81,12 @@ const upload = multer({
       }
 
       const totalFileSize = parseInt(req.body.totalfilesize)
-      if (!isNaN(totalFileSize) && totalFileSize > maxSizeBytes) {
+      if (totalFileSize > maxSizeBytes) {
         // eslint-disable-next-line standard/no-callback-literal
-        return cb('Chunked upload error. Total file size is larger than maximum file size.')
+        return cb('Chunk error occurred. Total file size is larger than the maximum file size.')
       }
     }
 
-    // If the extension is not blocked
     return cb(null, true)
   }
 }).array('files[]')
@@ -115,7 +112,7 @@ uploadsController.getUniqueRandomName = (length, extension = '', cb) => {
       // If it still haven't reached allowed maximum tries, then try again
       if (i < maxTries) { return access(i) }
       // eslint-disable-next-line standard/no-callback-literal
-      return cb('Could not allocate a unique random name. Try again?')
+      return cb('Sorry, we could not allocate a unique random name. Try again?')
     })
   }
   // Get us a unique random name
@@ -149,17 +146,18 @@ uploadsController.upload = async (req, res, next) => {
 
 uploadsController.actuallyUpload = async (req, res, user, albumid) => {
   const erred = error => {
-    console.log(error)
+    const isError = error instanceof Error
+    if (isError) { console.log(error) }
     res.json({
       success: false,
-      description: error.toString()
+      description: isError ? error.toString() : `Error: ${error}`
     })
   }
 
   upload(req, res, async error => {
     if (error) { return erred(error) }
 
-    if (req.files.length === 0) { return erred(new Error('No files.')) }
+    if (req.files.length === 0) { return erred('No files.') }
 
     // If chunked uploads is enabled and the uploaded file is a chunk, then just say that it was a success
     if (chunkedUploads && req.body.uuid) { return res.json({ success: true }) }
@@ -215,26 +213,28 @@ uploadsController.finishChunks = async (req, res, next) => {
 
 uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   const erred = error => {
-    console.log(error)
+    const isError = error instanceof Error
+    if (isError) { console.log(error) }
     res.json({
       success: false,
-      description: error.toString()
+      description: isError ? error.toString() : `Error: ${error}`
     })
   }
 
   const files = req.body.files
-  if (!files) { return erred(new Error('Missing files array.')) }
+  if (!files) { return erred('Missing files array.') }
 
   let iteration = 0
   const infoMap = []
   for (const file of files) {
     const { uuid, original, count } = file
-    if (!uuid || !count) { return erred(new Error('Missing UUID and/or chunks count.')) }
+    if (!uuid) { return erred('Missing UUID.') }
+    if (!count) { return erred('Missing chunks count.') }
 
     const uuidDir = path.join(chunksDir, uuid)
     fs.readdir(uuidDir, async (error, chunkNames) => {
       if (error) { return erred(error) }
-      if (count < chunkNames.length) { return erred(new Error('Chunks count mismatch.')) }
+      if (count < chunkNames.length) { return erred('Chunks count mismatch.') }
 
       const extension = typeof original === 'string' ? path.extname(original) : ''
       const length = uploadsController.getFileNameLength(req)
