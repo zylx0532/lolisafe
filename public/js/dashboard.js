@@ -194,9 +194,9 @@ panel.getUploads = (album, page, element) => {
 
         div.className = 'image-container column is-narrow'
         if (file.thumb !== undefined) {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><img src="${file.thumb}"/></a>`
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.thumb}" src="${file.thumb}"/></a>`
         } else {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
         }
         div.innerHTML += `
           <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}>
@@ -269,7 +269,7 @@ panel.getUploads = (album, page, element) => {
         tr.innerHTML = `
           <tr>
             <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}></th>
-            <th><a href="${file.file}" target="_blank" title="${file.file}">${file.name}</a></th>
+            <th><a href="${file.file}" target="_blank" rel="noopener" title="${file.file}">${file.name}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${file.size}</td>
             <td>${file.date}</td>
@@ -691,7 +691,7 @@ panel.getAlbums = () => {
           <th>${album.name}</th>
           <th>${album.files}</th>
           <td>${album.date}</td>
-          <td><a href="${album.identifier}" target="_blank">${album.identifier}</a></td>
+          <td><a href="${album.identifier}" target="_blank" rel="noopener">${album.identifier}</a></td>
           <td style="text-align: right">
             <a class="button is-small is-primary" title="Edit name" onclick="panel.renameAlbum(${album.id})">
               <span class="icon is-small">

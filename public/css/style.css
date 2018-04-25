@@ -16,11 +16,11 @@
 }
 
 a {
-  color: #2980b9;
+  color: #3794d2;
 }
 
 a:hover {
-  color: #3daee9;
+  color: #60a8dc;
 }
 
 hr {
@@ -35,7 +35,7 @@ hr {
 .textarea.is-focused,
 .textarea:active,
 .textarea:focus {
-  border-color: #2980b9;
+  border-color: #3794d2;
 }
 
 .table.is-hoverable tbody tr:not(.is-selected):hover {

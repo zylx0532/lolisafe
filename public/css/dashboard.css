@@ -4,21 +4,21 @@
 }
 
 .button.is-breeze {
-  background-color: #2980b9;
+  background-color: #3794d2;
   border-color: transparent;
   color: #fff;
 }
 
 .button.is-breeze.is-hovered,
 .button.is-breeze:hover {
-  background-color: #3daee9;
+  background-color: #60a8dc;
   border-color: transparent;
   color: #fff;
 }
 
 .button.is-breeze.is-active,
 .button.is-breeze:active {
-  background-color: #3daee9;
+  background-color: #60a8dc;
   border-color: transparent;
   color: #fff;
 }
@@ -38,17 +38,17 @@ html {
 }
 
 .menu-list a {
-  color: #2980b9;
+  color: #3794d2;
 }
 
 .menu-list a:hover {
-  color: #3daee9;
+  color: #60a8dc;
   background-color: #4d4d4d;
 }
 
 .menu-list a.is-active {
   color: #eff0f1;
-  background-color: #2980b9;
+  background-color: #3794d2;
 }
 
 .pagination a {
@@ -61,7 +61,7 @@ html {
 .pagination-next:hover,
 .pagination-previous:hover {
   color: #eff0f1;
-  border-color: #3daee9;
+  border-color: #60a8dc;
   background-color: #31363b;
 }
 

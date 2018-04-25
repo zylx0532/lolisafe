@@ -11,7 +11,7 @@
   <div class="hero-body section">
     <div class="container">
       <p id="b">
-        <img class="logo" src="images/logo_smol.png">
+        <img class="logo" alt="logo" src="images/logo_smol.png">
       </p>
       <h1 class="title">{{ globals.name }}</h1>
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
@@ -57,7 +57,7 @@
             {%- endif %}
             {% if item.url -%}
             <p class="link">
-              <a href="{{ item.url }}" target="_blank">{{ item.url | safe }}</a>
+              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url | safe }}</a>
             </p>
             {%- endif %}
           </div>
