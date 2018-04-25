@@ -37,11 +37,10 @@ safe.use('/api/register/', limiter)
 safe.use(bodyParser.urlencoded({ extended: true }))
 safe.use(bodyParser.json())
 
-const setHeaders = (res, path, stat) => {
-  if (/\.(3gp|gif|jpg|jpeg|png|ico|wmv|avi|asf|asx|mpg|mpeg|mp4|pls|mp3|mid|wav|swf|flv|exe|zip|tar|rar|gz|tgz|bz2|uha|7z|doc|docx|xls|xlsx|pdf|iso|js|css|eot|svg|ttf|woff|woff2)$/.test(path)) {
-    res.set('Access-Control-Allow-Origin', '*')
-    res.set('Cache-Control', 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800') // max-age: 30 days
-  }
+const setHeaders = res => {
+  // Apply Cache-Control to all static files
+  res.set('Access-Control-Allow-Origin', '*')
+  res.set('Cache-Control', 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800') // max-age: 30 days
 }
 
 if (config.serveFilesWithNode) {
