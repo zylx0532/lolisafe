@@ -196,7 +196,7 @@ panel.getUploads = (album, page, element) => {
         if (file.thumb !== undefined) {
           div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><img src="${file.thumb}"/></a>`
         } else {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><h1 class="title">.${file.file.split('.').pop()}</h1></a>`
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
         }
         div.innerHTML += `
           <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}>

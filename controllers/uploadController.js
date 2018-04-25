@@ -101,7 +101,7 @@ uploadsController.getFileNameLength = req => {
   return config.uploads.fileLength.default || 32
 }
 
-uploadsController.getUniqueRandomName = (length, extension = '', cb) => {
+uploadsController.getUniqueRandomName = (length, extension, cb) => {
   const access = i => {
     const name = randomstring.generate(length) + extension
     fs.access(path.join(uploadDir, name), error => {
@@ -566,9 +566,9 @@ uploadsController.list = async (req, res) => {
       }
     }
 
-    const ext = path.extname(file.name).toLowerCase()
-    const isVideoExt = utils.videoExtensions.includes(ext)
-    const isImageExt = utils.imageExtensions.includes(ext)
+    file.extname = path.extname(file.name).toLowerCase()
+    const isVideoExt = utils.videoExtensions.includes(file.extname)
+    const isImageExt = utils.imageExtensions.includes(file.extname)
 
     if ((!isVideoExt && !isImageExt) ||
       (isVideoExt && config.uploads.generateThumbnails.video !== true) ||
@@ -576,7 +576,7 @@ uploadsController.list = async (req, res) => {
       continue
     }
 
-    file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
+    file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
   }
 
   // If we are a normal user, send response
