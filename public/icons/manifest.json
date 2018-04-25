@@ -23,5 +23,6 @@
   "background_color": "#232629",
   "display": "standalone",
   "orientation": "any",
-  "lang": "en-US"
+  "lang": "en-US",
+  "start_url": "/"
 }

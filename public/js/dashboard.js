@@ -194,7 +194,7 @@ panel.getUploads = (album, page, element) => {
 
         div.className = 'image-container column is-narrow'
         if (file.thumb !== undefined) {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.thumb}" src="${file.thumb}"/></a>`
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.name}" src="${file.thumb}"/></a>`
         } else {
           div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
         }
