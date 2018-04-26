@@ -191,23 +191,57 @@ albumsController.get = async (req, res, next) => {
 }
 
 albumsController.generateZip = async (req, res, next) => {
-  const identifier = req.params.identifier
-  if (identifier === undefined) { return res.status(401).json({ success: false, description: 'No identifier provided.' }) }
-  if (!config.uploads.generateZips) { return res.status(401).json({ success: false, description: 'Zip generation disabled.' }) }
+  const download = (filePath, fileName) => {
+    const headers = { 'Access-Control-Allow-Origin': '*' }
+    // Album page will append zipGeneratedAt timestamp to the download link by default
+    if (parseInt(req.query.v) > 0) {
+      // Cache-Control header is useful when using CDN (max-age: 30 days)
+      headers['Cache-Control'] = 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800'
+    }
+    return res.download(filePath, fileName, { headers })
+  }
 
-  const album = await db.table('albums').where({ identifier, enabled: 1 }).first()
-  if (!album) { return res.json({ success: false, description: 'Album not found.' }) }
+  const identifier = req.params.identifier
+  if (identifier === undefined) {
+    return res.status(401).json({
+      success: false,
+      description: 'No identifier provided.'
+    })
+  }
+
+  if (!config.uploads.generateZips) {
+    return res.status(401).json({
+      success: false,
+      description: 'Zip generation disabled.'
+    })
+  }
+
+  const album = await db.table('albums')
+    .where({ identifier, enabled: 1 })
+    .first()
+
+  if (!album) {
+    return res.json({
+      success: false,
+      description: 'Album not found.'
+    })
+  }
 
   if (album.zipGeneratedAt > album.editedAt) {
     const filePath = path.join(config.uploads.folder, 'zips', `${identifier}.zip`)
     const fileName = `${album.name}.zip`
-    return res.download(filePath, fileName)
+    return download(filePath, fileName)
   } else {
     console.log(`Generating zip for album identifier: ${identifier}`)
     const files = await db.table('files')
       .select('name')
       .where('albumid', album.id)
-    if (files.length === 0) { return res.json({ success: false, description: 'There are no files in the album.' }) }
+    if (files.length === 0) {
+      return res.json({
+        success: false,
+        description: 'There are no files in the album.'
+      })
+    }
 
     const zipPath = path.join(__dirname, '..', config.uploads.folder, 'zips', `${album.identifier}.zip`)
     const archive = new Zip()
@@ -222,7 +256,10 @@ albumsController.generateZip = async (req, res, next) => {
     }
 
     archive
-      .generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+      .generateNodeStream({
+        type: 'nodebuffer',
+        streamFiles: true
+      })
       .pipe(fs.createWriteStream(zipPath))
       .on('finish', async () => {
         console.log(`Generated zip for album identifier: ${identifier}`)
@@ -232,7 +269,7 @@ albumsController.generateZip = async (req, res, next) => {
 
         const filePath = path.join(config.uploads.folder, 'zips', `${identifier}.zip`)
         const fileName = `${album.name}.zip`
-        return res.download(filePath, fileName)
+        return download(filePath, fileName)
       })
   }
 }

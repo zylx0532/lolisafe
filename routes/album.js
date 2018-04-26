@@ -11,7 +11,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
   if (identifier === undefined) {
     return res.status(401).json({
       success: false,
-      description: 'No identifier provided'
+      description: 'No identifier provided.'
     })
   }
 
@@ -62,6 +62,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
     files,
     identifier,
     enableDownload: Boolean(config.uploads.generateZips),
+    zipGeneratedAt: album.zipGeneratedAt,
     url: `${homeDomain}/a/${album.identifier}`
   })
 })

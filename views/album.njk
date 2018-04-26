@@ -5,15 +5,6 @@
 <link rel="stylesheet" type="text/css" href="../libs/bulma/bulma.min.css?v={{ globals.v1 }}">
 <link rel="stylesheet" type="text/css" href="../css/style.css?v={{ globals.v1 }}">
 <link rel="stylesheet" type="text/css" href="../css/album.css?v={{ globals.v1 }}">
-<style>
-  html {
-    background-color: #232629;
-  }
-
-  .section {
-    background: none;
-  }
-</style>
 {% endblock %}
 
 {% block opengraph %}
@@ -36,16 +27,37 @@
 {{ super() }}
 <section class="section">
   <div class="container">
-    <h1 id="title" class="title">
-      {{ title }}
-    </h1>
-    <h1 id="count" class="subtitle">
-      {{ count }} files
-    </h1>
-    {% if enableDownload %}
-      <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}">Download Album</a>
-    {% endif %}
+    <nav class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <h1 id="title" class="title">
+            {{ title }}
+          </h1>
+        </div>
+        <div class="level-item">
+          <h1 id="count" class="subtitle">
+            {{ count }} files
+          </h1>
+        </div>
+      </div>
+
+      {% if enableDownload -%}
+      <div class="level-right">
+        <p class="level-item">
+          <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}?v={{ zipGeneratedAt }}">Download Album</a>
+        </p>
+      </div>
+      {%- endif %}
+    </nav>
+    {% if enableDownload -%}
+    <article class="message">
+      <div class="message-body">
+        Album archives may be cached by CDN, if the one you downloaded seems outdated, you should try refreshing the page to get the latest version of the download link.
+      </div>
+    </article>
+    {%- endif %}
     <hr>
+    {% if files.length -%}
     <div id="table" class="columns is-multiline is-mobile is-centered has-text-centered">
       {% for file in files %}
         <div class="image-container column is-narrow">
@@ -57,6 +69,13 @@
         </div>
       {% endfor %}
     </div>
+    {%- else -%}
+    <article class="message">
+      <div class="message-body">
+        There is nothing here yet!
+      </div>
+    </article>
+    {%- endif %}
   </div>
 </section>
 {% endblock %}
