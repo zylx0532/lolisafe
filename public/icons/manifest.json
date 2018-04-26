@@ -2,6 +2,12 @@
   "name": "safe.fiery.me",
   "short_name": "fiery.me",
   "description": "A pomf-like file uploading service that doesn't suck.",
+  "background_color": "#232629",
+  "theme_color": "#232629",
+  "display": "standalone",
+  "lang": "en-US",
+  "orientation": "any",
+  "start_url": "/",
   "icons": [
     {
       "src": "/icons/192px.png",
@@ -14,15 +20,9 @@
       "type": "image/png"
     },
     {
-      "src": "/icons/512px.png",
+      "src": "/icons/512pxr.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#232629",
-  "background_color": "#232629",
-  "display": "standalone",
-  "orientation": "any",
-  "lang": "en-US",
-  "start_url": "/"
+  ]
 }

@@ -2,17 +2,17 @@
 
 {% block stylesheets %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v={{ globals.v }}">
-<link rel="stylesheet" type="text/css" href="css/home.css?v={{ globals.v }}">
+<link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v={{ globals.v1 }}">
+<link rel="stylesheet" type="text/css" href="css/home.css?v={{ globals.v1 }}">
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v={{ globals.v }}"></script>
-<script type="text/javascript" src="libs/dropzone/dropzone.min.js?v={{ globals.v }}"></script>
-<script type="text/javascript" src="libs/axios/axios.min.js?v={{ globals.v }}"></script>
-<script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v={{ globals.v }}"></script>
-<script type="text/javascript" src="js/home.js?v={{ globals.v }}"></script>
+<script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v={{ globals.v1 }}"></script>
+<script type="text/javascript" src="libs/dropzone/dropzone.min.js?v={{ globals.v1 }}"></script>
+<script type="text/javascript" src="libs/axios/axios.min.js?v={{ globals.v1 }}"></script>
+<script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v={{ globals.v1 }}"></script>
+<script type="text/javascript" src="js/home.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -21,7 +21,7 @@
   <div class="hero-body section">
     <div class="container">
       <p id="b">
-        <img class="logo" alt="logo" src="images/logo_smol.png">
+        <img class="logo" alt="logo" src="images/logo_smol.png?v={{ globals.v2 }}">
       </p>
       <h1 class="title">{{ globals.name }}</h1>
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>

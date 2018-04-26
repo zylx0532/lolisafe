@@ -2,7 +2,7 @@
 
 {% block stylesheets %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="css/home.css?v={{ globals.v }}">
+<link rel="stylesheet" type="text/css" href="css/home.css?v={{ globals.v1 }}">
 {% endblock %}
 
 {% block content %}
@@ -11,7 +11,7 @@
   <div class="hero-body section">
     <div class="container">
       <p id="b">
-        <img class="logo" alt="logo" src="images/logo_smol.png">
+        <img class="logo" alt="logo" src="images/logo_smol.png?v={{ globals.v2 }}">
       </p>
       <h1 class="title">{{ globals.name }}</h1>
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>

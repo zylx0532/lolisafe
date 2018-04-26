@@ -7,15 +7,19 @@
 {% set home_subtitle = "A <strong>modern</strong> self-hosted file upload service" %}
 
 {#
-  This will be appended to all CSS and JS files,
+  This will be appended to the URLs of static files (CSS, JS, images, etcetera),
   and should be changed on every updates to make sure clients load the very latest version of them.
+  v1: CSS and JS files.
+  v2: Images and config files (manifest.json, browserconfig.xml, etcetera).
 #}
-{% set v = "fIs0W2GsiU" %}
+{% set v1 = "fIs0W2GsiU" %}
+{% set v2 = "MSEpgpfFIQ" %}
 
 {#
   These will be the links in the homepage and the No-JS uploader.
   You may remove icons by changing "home_icons" to false.
   It will then automatically use "attrs.title" as the display text.
+  Note: No-JS uploader page will have icons disabled by default (it will also not load fontello.css).
 #}
 {% set home_icons = true %}
 {% set home_links = [
