@@ -49,7 +49,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
         thumb = file.thumb
       }
 
-      file.thumb = `<img alt="${file.thumb}" src="${file.thumb}"/>`
+      file.thumb = `<img alt="${file.name}" src="${file.thumb}"/>`
     } else {
       file.thumb = `<h1 class="title">${extname || 'N/A'}</h1>`
     }
