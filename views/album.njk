@@ -44,12 +44,11 @@
       {% if enableDownload -%}
       <div class="level-right">
         <p class="level-item">
-          <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}?v={{ zipGeneratedAt }}">Download Album</a>
+          <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}?v={{ editedAt }}">Download Album</a>
         </p>
       </div>
       {%- endif %}
     </nav>
-    {#
     {% if enableDownload -%}
     <article class="message">
       <div class="message-body">
@@ -57,7 +56,6 @@
       </div>
     </article>
     {%- endif %}
-    #}
     <hr>
     {% if files.length -%}
     <div id="table" class="columns is-multiline is-mobile is-centered has-text-centered">

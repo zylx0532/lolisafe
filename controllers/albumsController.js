@@ -193,7 +193,7 @@ albumsController.get = async (req, res, next) => {
 albumsController.generateZip = async (req, res, next) => {
   const download = (filePath, fileName) => {
     const headers = { 'Access-Control-Allow-Origin': '*' }
-    // Album page will append zipGeneratedAt timestamp to the download link by default
+    // Album page will append editedAt timestamp to the download link by default
     if (parseInt(req.query.v) > 0) {
       // Cache-Control header is useful when using CDN (max-age: 30 days)
       headers['Cache-Control'] = 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800'
