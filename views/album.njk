@@ -4,6 +4,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" type="text/css" href="../libs/bulma/bulma.min.css?v={{ globals.v1 }}">
 <link rel="stylesheet" type="text/css" href="../css/style.css?v={{ globals.v1 }}">
+<link rel="stylesheet" type="text/css" href="../css/album.css?v={{ globals.v1 }}">
 <style>
   html {
     background-color: #232629;
@@ -45,10 +46,14 @@
       <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}">Download Album</a>
     {% endif %}
     <hr>
-    <div id="table" class="columns is-multiline is-mobile is-centered">
-      {% for item in files %}
-        <div class="column is-narrow">
-          <a href="{{ item.file }}" target="_blank" rel="noopener">{{ item.thumb | safe }}</a>
+    <div id="table" class="columns is-multiline is-mobile is-centered has-text-centered">
+      {% for file in files %}
+        <div class="image-container column is-narrow">
+          <a class="image" href="{{ file.file }}" target="_blank" rel="noopener">{{ file.thumb | safe }}</a>
+          <div class="details">
+            <p><span class="name" title="{{ file.file }}">{{ file.name }}</span></p>
+            <p>{{ file.size }}</p>
+          </div>
         </div>
       {% endfor %}
     </div>

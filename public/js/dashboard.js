@@ -172,7 +172,7 @@ panel.getUploads = (album, page, element) => {
         ${pagination}
         <hr>
         ${controls}
-        <div class="columns is-multiline is-mobile is-centered" id="table">
+        <div id="table" class="columns is-multiline is-mobile is-centered">
 
         </div>
         ${pagination}
@@ -219,7 +219,8 @@ panel.getUploads = (album, page, element) => {
           </div>
           <div class="details">
             <p><span class="name" title="${file.file}">${file.name}</span></p>
-            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</div>
+            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</p>
+          </div>
         `
         table.appendChild(div)
         panel.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))

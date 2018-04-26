@@ -48,16 +48,16 @@
 
       {% if files -%}
       <div id="uploads" style="display: block">
-        {% for item in files -%}
+        {% for file in files -%}
         <div class="columns">
           <div class="column is-hidden-mobile"></div>
           <div class="column">
             {% if errorMessage -%}
             <p class="error">{{ errorMessage | safe }}</p>
             {%- endif %}
-            {% if item.url -%}
+            {% if file.url -%}
             <p class="link">
-              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url | safe }}</a>
+              <a href="{{ file.url }}" target="_blank" rel="noopener">{{ file.url | safe }}</a>
             </p>
             {%- endif %}
           </div>

@@ -9,24 +9,35 @@ const homeDomain = config.homeDomain || config.domain
 routes.get('/a/:identifier', async (req, res, next) => {
   const identifier = req.params.identifier
   if (identifier === undefined) {
-    return res.status(401).json({ success: false, description: 'No identifier provided' })
+    return res.status(401).json({
+      success: false,
+      description: 'No identifier provided'
+    })
   }
 
-  const album = await db.table('albums').where({ identifier, enabled: 1 }).first()
+  const album = await db.table('albums')
+    .where({ identifier, enabled: 1 })
+    .first()
+
   if (!album) {
     return res.status(404).sendFile('404.html', { root: './pages/error/' })
   }
 
-  const files = await db.table('files').select('name').where('albumid', album.id).orderBy('id', 'DESC')
+  const files = await db.table('files')
+    .select('name', 'size')
+    .where('albumid', album.id)
+    .orderBy('id', 'DESC')
+
   let thumb = ''
   const basedomain = config.domain
 
   for (const file of files) {
     file.file = `${basedomain}/${file.name}`
+    file.size = utils.getPrettyBytes(parseInt(file.size))
 
-    const ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
-      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
+    const extname = path.extname(file.name).toLowerCase()
+    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(extname)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(extname))) {
+      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -extname.length)}.png`
 
       /*
         If thumbnail for album is still not set, do it.
@@ -40,12 +51,9 @@ routes.get('/a/:identifier', async (req, res, next) => {
 
       file.thumb = `<img alt="${file.thumb}" src="${file.thumb}"/>`
     } else {
-      file.thumb = `<h1 class="title">${ext}</h1>`
+      file.thumb = `<h1 class="title">${extname || 'N/A'}</h1>`
     }
   }
-
-  let enableDownload = false
-  if (config.uploads.generateZips) { enableDownload = true }
 
   return res.render('album', {
     title: album.name,
@@ -53,7 +61,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
     thumb,
     files,
     identifier,
-    enableDownload,
+    enableDownload: Boolean(config.uploads.generateZips),
     url: `${homeDomain}/a/${album.identifier}`
   })
 })
