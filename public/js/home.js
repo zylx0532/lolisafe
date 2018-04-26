@@ -260,19 +260,20 @@ upload.showThumbnail = (file, url) => {
 upload.prepareShareX = () => {
   if (upload.token) {
     const sharexElement = document.getElementById('ShareX')
-    const sharexFile = `{\r\n\
-  "Name": "${location.hostname}",\r\n\
-  "DestinationType": "ImageUploader, FileUploader",\r\n\
-  "RequestType": "POST",\r\n\
-  "RequestURL": "${location.origin}/api/upload",\r\n\
-  "FileFormName": "files[]",\r\n\
-  "Headers": {\r\n\
-    "token": "${upload.token}"\r\n\
-  },\r\n\
-  "ResponseType": "Text",\r\n\
-  "URL": "$json:files[0].url$",\r\n\
-  "ThumbnailURL": "$json:files[0].url$"\r\n\
-}`
+    const sharexFile =
+      '{\r\n' +
+      `  "Name": "${location.hostname}",\r\n` +
+      '  "DestinationType": "ImageUploader, FileUploader",\r\n' +
+      '  "RequestType": "POST",\r\n' +
+      `  "RequestURL": "${location.origin}/api/upload",\r\n` +
+      '  "FileFormName": "files[]",\r\n' +
+      '  "Headers": {\r\n' +
+      `    "token": "${upload.token}"\r\n` +
+      '  },\r\n' +
+      '  "ResponseType": "Text",\r\n' +
+      '  "URL": "$json:files[0].url$",\r\n' +
+      '  "ThumbnailURL": "$json:files[0].url$"\r\n' +
+      '}'
     const sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
     sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
     sharexElement.setAttribute('download', `${location.hostname}.sxcu`)
