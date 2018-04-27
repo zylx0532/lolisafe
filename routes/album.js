@@ -61,7 +61,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
     thumb,
     files,
     identifier,
-    enableDownload: Boolean(config.uploads.generateZips),
+    enableDownload: Boolean(config.uploads.generateZips && config.uploads.generateZips.enabled),
     editedAt: album.editedAt,
     url: `${homeDomain}/a/${album.identifier}`
   })

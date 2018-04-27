@@ -121,11 +121,18 @@ module.exports = {
     },
 
     /*
-      Allows users to download a .zip file of all files in an album.
+      Allows users to download a ZIP file of all files in an album.
       The file is generated when the user clicks the download button in the view
-      and is re-used if the album has not changed between download requests
+      and is re-used if the album has not changed between download requests.
+      If "maxTotalSize" is set (needs to be in MB), generating ZIP file will be disabled
+      if the total size of all the files in the album exceeds the set limit.
+      If you have CloudFlare properly caching the zipping API route, it's recommended to
+      set this to '512MB' as CloudFlare will not cache files bigger than that.
     */
-    generateZips: true
+    generateZips: {
+      enabled: true,
+      maxTotalSize: null
+    }
   },
 
   // Folder where to store logs

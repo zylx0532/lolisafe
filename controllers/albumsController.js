@@ -209,7 +209,7 @@ albumsController.generateZip = async (req, res, next) => {
     })
   }
 
-  if (!config.uploads.generateZips) {
+  if (!config.uploads.generateZips || !config.uploads.generateZips.enabled) {
     return res.status(401).json({
       success: false,
       description: 'Zip generation disabled.'
@@ -238,13 +238,24 @@ albumsController.generateZip = async (req, res, next) => {
   } else {
     console.log(`Generating zip for album identifier: ${identifier}`)
     const files = await db.table('files')
-      .select('name')
+      .select('name', 'size')
       .where('albumid', album.id)
     if (files.length === 0) {
       return res.json({
         success: false,
         description: 'There are no files in the album.'
       })
+    }
+
+    if (config.uploads.generateZips.maxTotalSize) {
+      const maxTotalSizeBytes = parseInt(config.uploads.generateZips.maxTotalSize) * 1000000
+      const totalSizeBytes = files.reduce((accumulator, file) => accumulator + parseInt(file.size), 0)
+      if (totalSizeBytes > maxTotalSizeBytes) {
+        return res.json({
+          success: false,
+          description: `Total size of all the files in the album exceeds the limit set by the administrator (${config.uploads.generateZips.maxTotalSize}).`
+        })
+      }
     }
 
     const zipPath = path.join(__dirname, '..', config.uploads.folder, 'zips', `${album.identifier}.zip`)
@@ -262,7 +273,11 @@ albumsController.generateZip = async (req, res, next) => {
     archive
       .generateNodeStream({
         type: 'nodebuffer',
-        streamFiles: true
+        streamFiles: true,
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 1
+        }
       })
       .pipe(fs.createWriteStream(zipPath))
       .on('finish', async () => {
