@@ -11,9 +11,9 @@
 
 This branch is the one being used at [https://safe.fiery.me](https://safe.fiery.me). If you are looking for the original, head to `master` branch, or even better to [WeebDev/lolisafe](https://github.com/WeebDev/lolisafe).
 
-If you want to use an existing lolisafe database with this branch, make sure to run `node database/migration.js` at least once to create some new columns introduced in this branch. You can ignore any errors about duplicate columns.
+If you want to use an existing lolisafe database with this branch, make sure to run `node database/migration.js` at least once to create some new columns introduced in this branch.
 
-Configuration file of lolisafe, `config.js`, is not 100% compatible with this branch. There are some options that had been renamed and/or restructured. Please make sure your config matches the sample in `config.sample.js` before starting.
+Configuration file of lolisafe, `config.js`, is also not 100% compatible with this branch. There are some options that had been renamed and/or restructured. Please make sure your config matches the sample in `config.sample.js` before starting.
 
 ## Running
 

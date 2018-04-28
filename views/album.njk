@@ -41,15 +41,19 @@
         </div>
       </div>
 
-      {% if enableDownload and files.length -%}
+      {% if generateZips and files.length -%}
       <div class="level-right">
         <p class="level-item">
-          <a class="button is-primary is-outlined" title="Download album" href="../api/album/zip/{{ identifier }}?v={{ editedAt }}">Download Album</a>
+          {% if downloadLink -%}
+          <a class="button is-primary is-outlined" title="Download album" href="{{ downloadLink }}">Download album</a>
+          {%- else -%}
+          <a class="button is-primary is-outlined" title="Download disabled" disabled>Download disabled</a>
+          {%- endif %}
         </p>
       </div>
       {%- endif %}
     </nav>
-    {% if enableDownload and files.length -%}
+    {% if generateZips and downloadLink and files.length -%}
     <article class="message">
       <div class="message-body">
         Album archives may be cached by CDN, if the one you downloaded seems outdated, you should try refreshing the page to get the latest version of the download link.

@@ -11,6 +11,8 @@ const init = function (db) {
         table.integer('timestamp')
         table.integer('editedAt')
         table.integer('zipGeneratedAt')
+        table.integer('download')
+        table.integer('public')
       }).then(() => {})
     }
   })
@@ -41,6 +43,7 @@ const init = function (db) {
         table.string('token')
         table.integer('enabled')
         table.integer('timestamp')
+        table.integer('fileLength')
       }).then(() => {
         db.table('users').where({ username: 'root' }).then((user) => {
           if (user.length > 0) { return }

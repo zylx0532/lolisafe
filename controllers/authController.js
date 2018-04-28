@@ -16,10 +16,7 @@ authController.verify = async (req, res, next) => {
   const user = await db.table('users').where('username', username).first()
   if (!user) { return res.json({ success: false, description: 'Username doesn\'t exist.' }) }
   if (user.enabled === false || user.enabled === 0) {
-    return res.json({
-      success: false,
-      description: 'This account has been disabled.'
-    })
+    return res.json({ success: false, description: 'This account has been disabled.' })
   }
 
   bcrypt.compare(password, user.password, (error, result) => {
@@ -86,7 +83,10 @@ authController.changePassword = async (req, res, next) => {
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
 
-    await db.table('users').where('id', user.id).update({ password: hash })
+    await db.table('users')
+      .where('id', user.id)
+      .update('password', hash)
+
     return res.json({ success: true })
   })
 }
@@ -117,7 +117,10 @@ authController.changeFileLength = async (req, res, next) => {
     return res.json({ success: true })
   }
 
-  await db.table('users').where('id', user.id).update({ fileLength })
+  await db.table('users')
+    .where('id', user.id)
+    .update('fileLength', fileLength)
+
   return res.json({ success: true })
 }
 

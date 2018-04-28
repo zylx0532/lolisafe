@@ -16,11 +16,19 @@ routes.get('/a/:identifier', async (req, res, next) => {
   }
 
   const album = await db.table('albums')
-    .where({ identifier, enabled: 1 })
+    .where({
+      identifier,
+      enabled: 1
+    })
     .first()
 
   if (!album) {
     return res.status(404).sendFile('404.html', { root: './pages/error/' })
+  } else if (album.public === 0) {
+    return res.status(401).json({
+      success: false,
+      description: 'This album is not available for public.'
+    })
   }
 
   const files = await db.table('files')
@@ -61,7 +69,8 @@ routes.get('/a/:identifier', async (req, res, next) => {
     thumb,
     files,
     identifier,
-    enableDownload: Boolean(config.uploads.generateZips && config.uploads.generateZips.enabled),
+    generateZips: config.uploads.generateZips && config.uploads.generateZips.enabled,
+    downloadLink: album.download === 0 ? null : `../api/album/zip/${album.identifier}?v=${album.editedAt}`,
     editedAt: album.editedAt,
     url: `${homeDomain}/a/${album.identifier}`
   })

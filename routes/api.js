@@ -33,6 +33,7 @@ routes.get('/albums/:sidebar', (req, res, next) => albumsController.list(req, re
 routes.post('/albums', (req, res, next) => albumsController.create(req, res, next))
 routes.post('/albums/addfiles', (req, res, next) => albumsController.addFiles(req, res, next))
 routes.post('/albums/delete', (req, res, next) => albumsController.delete(req, res, next))
+routes.post('/albums/edit', (req, res, next) => albumsController.edit(req, res, next))
 routes.post('/albums/rename', (req, res, next) => albumsController.rename(req, res, next))
 routes.get('/albums/test', (req, res, next) => albumsController.test(req, res, next))
 routes.get('/tokens', (req, res, next) => tokenController.list(req, res, next))

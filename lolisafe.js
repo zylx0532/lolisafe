@@ -63,11 +63,11 @@ for (const page of config.pages) {
 }
 
 safe.use((req, res, next) => {
-  res.status(404).sendFile('HTTP404.html', { root: './pages/error/' })
+  res.status(404).sendFile('404.html', { root: './pages/error/' })
 })
 safe.use((error, req, res, next) => {
   console.error(error)
-  res.status(500).sendFile('HTTP500.html', { root: './pages/error/' })
+  res.status(500).sendFile('500.html', { root: './pages/error/' })
 })
 
 safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))

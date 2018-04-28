@@ -210,6 +210,10 @@ html {
   height: 2.25em;
 }
 
+.table td a:not([href]) {
+  text-decoration: line-through;
+}
+
 #modal .modal-content {
   background-color: #31363b;
   border-radius: 5px;

@@ -4,7 +4,9 @@ const db = require('knex')(config.database)
 const map = {
   albums: {
     editedAt: 'integer',
-    zipGeneratedAt: 'integer'
+    zipGeneratedAt: 'integer',
+    download: 'integer',
+    public: 'integer'
   },
   users: {
     enabled: 'integer',

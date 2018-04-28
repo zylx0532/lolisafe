@@ -10,7 +10,8 @@ const panel = {
   selectedFiles: [],
   selectAlbumContainer: undefined,
   checkboxes: undefined,
-  lastSelected: undefined
+  lastSelected: undefined,
+  albums: []
 }
 
 panel.preparePage = () => {
@@ -569,7 +570,6 @@ panel.addToAlbum = async (ids, album) => {
     // We want to this to be re-usable
     panel.selectAlbumContainer = document.createElement('div')
     panel.selectAlbumContainer.id = 'selectAlbum'
-    panel.selectAlbumContainer.className = 'select is-fullwidth'
   }
 
   const options = list.data.albums
@@ -577,12 +577,17 @@ panel.addToAlbum = async (ids, album) => {
     .join('\n')
 
   panel.selectAlbumContainer.innerHTML = `
-    <select>
-      <option value="-1">Remove from album</option>
-      <option value="" selected disabled>Choose an album</option>
-      ${options}
-    </select>
-    <p class="help is-danger">If a file is already in an album, it will be moved.</p>
+    <div class="field">
+      <label class="label">If a file is already in an album, it will be moved.</label>
+      <div class="control">
+        <div class="select is-fullwidth">
+          <select>
+            <option value="-1">Remove from album</option>
+            <option value="" selected disabled>Choose an album</option>
+            ${options}
+          </select>
+        </div>
+    </div>
   `
 
   const choose = await swal({
@@ -682,9 +687,13 @@ panel.getAlbums = () => {
       </div>
     `
 
+    panel.albums = response.data.albums
+
+    const homeDomain = response.data.homeDomain
     const table = document.getElementById('table')
 
     for (const album of response.data.albums) {
+      const albumUrl = `${homeDomain}/a/${album.identifier}`
       const tr = document.createElement('tr')
       tr.innerHTML = `
         <tr>
@@ -692,16 +701,21 @@ panel.getAlbums = () => {
           <th>${album.name}</th>
           <th>${album.files}</th>
           <td>${album.date}</td>
-          <td><a href="${album.identifier}" target="_blank" rel="noopener">${album.identifier}</a></td>
+          <td><a${album.public ? ` href="${albumUrl}"` : ''} target="_blank" rel="noopener">${albumUrl}</a></td>
           <td style="text-align: right">
-            <a class="button is-small is-primary" title="Edit name" onclick="panel.renameAlbum(${album.id})">
+            <a class="button is-small is-primary" title="Edit album" onclick="panel.editAlbum(${album.id})">
               <span class="icon is-small">
                 <i class="icon-pencil-1"></i>
               </span>
             </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${album.identifier}">
+            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${album.identifier}"` : 'disabled'}>
               <span class="icon is-small">
                 <i class="icon-clipboard-1"></i>
+              </span>
+            </a>
+            <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
+              <span class="icon is-small">
+                <i class="icon-download"></i>
               </span>
             </a>
             <a class="button is-small is-danger" title="Delete album" onclick="panel.deleteAlbum(${album.id})">
@@ -726,48 +740,94 @@ panel.getAlbums = () => {
     })
 }
 
-panel.renameAlbum = id => {
-  swal({
-    title: 'Rename album',
-    text: 'New name you want to give the album:',
+panel.editAlbum = async id => {
+  const album = panel.albums.find(a => a.id === id)
+  if (!album) {
+    return swal('An error occurred!', 'Album with that ID could not be found.', 'error')
+  }
+
+  const div = document.createElement('div')
+  div.innerHTML = `
+    <div class="field">
+      <label class="label">Album name</label>
+      <div class="controls">
+        <input id="_name" class="input" type="text" value="${album.name || 'My super album'}">
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="_download" type="checkbox" ${album.download ? 'checked' : ''}>
+          Enable download
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="_public" type="checkbox" ${album.public ? 'checked' : ''}>
+          Enable public link
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="_requestLink" type="checkbox">
+          Request new public link
+        </label>
+      </div>
+    </div>
+  `
+  const value = await swal({
+    title: 'Edit album',
     icon: 'info',
-    content: {
-      element: 'input',
-      attributes: {
-        placeholder: 'My super album'
-      }
-    },
+    content: div,
     buttons: {
       cancel: true,
       confirm: {
         closeModal: false
       }
     }
-  }).then(value => {
-    if (!value) { return swal.close() }
-    axios.post('api/albums/rename', {
-      id,
-      name: value
-    })
-      .then(response => {
-        if (response.data.success === false) {
-          if (response.data.description === 'No token provided') { return panel.verifyToken(panel.token) } else if (response.data.description === 'Name already in use') { swal.showInputError('That name is already in use!') } else { swal('An error occurred!', response.data.description, 'error') }
-          return
-        }
-
-        swal('Success!', 'Your album was renamed to: ' + value, 'success')
-        panel.getAlbumsSidebar()
-        panel.getAlbums()
-      })
-      .catch(error => {
-        console.log(error)
-        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-      })
   })
+  if (!value) { return }
+
+  const response = await axios.post('api/albums/edit', {
+    id,
+    name: document.getElementById('_name').value,
+    download: document.getElementById('_download').checked,
+    public: document.getElementById('_public').checked,
+    requestLink: document.getElementById('_requestLink').checked
+  })
+    .catch(error => {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return panel.verifyToken(panel.token)
+    } else if (response.data.description === 'Name already in use') {
+      return swal.showInputError('That name is already in use!')
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  if (response.data.identifier) {
+    swal('Success!', `Your album's new identifier is: ${response.data.identifier}.`, 'success')
+  } else if (response.data.name !== album.name) {
+    swal('Success!', `Your album was renamed to: ${response.data.name}.`, 'success')
+  } else {
+    swal('Success!', 'Your album was edited!', 'success')
+  }
+
+  panel.getAlbumsSidebar()
+  panel.getAlbums()
 }
 
-panel.deleteAlbum = id => {
-  swal({
+panel.deleteAlbum = async id => {
+  const proceed = await swal({
     title: 'Are you sure?',
     text: 'This won\'t delete your files, only the album!',
     icon: 'warning',
@@ -785,30 +845,29 @@ panel.deleteAlbum = id => {
         closeModal: false
       }
     }
-  }).then(value => {
-    if (!value) { return }
-    axios.post('api/albums/delete', {
-      id,
-      purge: value === 'purge'
-    })
-      .then(response => {
-        if (response.data.success === false) {
-          if (response.data.description === 'No token provided') {
-            return panel.verifyToken(panel.token)
-          } else {
-            return swal('An error occurred!', response.data.description, 'error')
-          }
-        }
-
-        swal('Deleted!', 'Your album has been deleted.', 'success')
-        panel.getAlbumsSidebar()
-        panel.getAlbums()
-      })
-      .catch(error => {
-        console.log(error)
-        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-      })
   })
+  if (!proceed) { return }
+
+  const response = await axios.post('api/albums/delete', {
+    id,
+    purge: proceed === 'purge'
+  })
+    .catch(error => {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return panel.verifyToken(panel.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  swal('Deleted!', 'Your album has been deleted.', 'success')
+  panel.getAlbumsSidebar()
+  panel.getAlbums()
 }
 
 panel.submitAlbum = element => {
@@ -816,7 +875,7 @@ panel.submitAlbum = element => {
   axios.post('api/albums', {
     name: document.getElementById('albumName').value
   })
-    .then(async response => {
+    .then(response => {
       panel.isLoading(element, false)
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {

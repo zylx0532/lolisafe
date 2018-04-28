@@ -11,28 +11,23 @@ const uploadsController = {}
 
 // Let's default it to only 1 try (for missing config key)
 const maxTries = config.uploads.maxTries || 1
-const uploadDir = path.join(__dirname, '..', config.uploads.folder)
+const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const chunkedUploads = config.uploads.chunkedUploads && config.uploads.chunkedUploads.enabled
-const chunksDir = path.join(uploadDir, 'chunks')
+const chunksDir = path.join(uploadsDir, 'chunks')
 const maxSizeBytes = parseInt(config.uploads.maxSize) * 1000000
 
 const storage = multer.diskStorage({
   destination (req, file, cb) {
     // If chunked uploads is disabled or the uploaded file is not a chunk
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
-      return cb(null, uploadDir)
+      return cb(null, uploadsDir)
     }
 
-    // Check for the existence of UUID dir in chunks dir
     const uuidDir = path.join(chunksDir, req.body.uuid)
     fs.access(uuidDir, error => {
-      // If it exists, callback
       if (!error) { return cb(null, uuidDir) }
-      // It it doesn't, then make it first
       fs.mkdir(uuidDir, error => {
-        // If there was no error, callback
         if (!error) { return cb(null, uuidDir) }
-        // Otherwise, log it
         console.log(error)
         // eslint-disable-next-line standard/no-callback-literal
         return cb('Could not process the chunked upload. Try again?')
@@ -44,7 +39,9 @@ const storage = multer.diskStorage({
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
       const extension = path.extname(file.originalname)
       const length = uploadsController.getFileNameLength(req)
-      return uploadsController.getUniqueRandomName(length, extension, cb)
+      return uploadsController.getUniqueRandomName(length, extension)
+        .then(name => cb(null, name))
+        .catch(error => cb(error))
     }
 
     // index.extension (e.i. 0, 1, ..., n - will prepend zeros depending on the amount of chunks)
@@ -101,22 +98,20 @@ uploadsController.getFileNameLength = req => {
   return config.uploads.fileLength.default || 32
 }
 
-uploadsController.getUniqueRandomName = (length, extension, cb) => {
-  const access = i => {
-    const name = randomstring.generate(length) + extension
-    fs.access(path.join(uploadDir, name), error => {
-      // If a file with the same name does not exist
-      if (error) { return cb(null, name) }
-      // If a file with the same name already exists, log to console
-      console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
-      // If it still haven't reached allowed maximum tries, then try again
-      if (i < maxTries) { return access(i) }
-      // eslint-disable-next-line standard/no-callback-literal
-      return cb('Sorry, we could not allocate a unique random name. Try again?')
-    })
-  }
-  // Get us a unique random name
-  access(0)
+uploadsController.getUniqueRandomName = (length, extension) => {
+  return new Promise((resolve, reject) => {
+    const access = i => {
+      const name = randomstring.generate(length) + extension
+      fs.access(path.join(uploadsDir, name), error => {
+        if (error) { return resolve(name) }
+        console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
+        if (i < maxTries) { return access(i) }
+        // eslint-disable-next-line prefer-promise-reject-errors
+        return reject('Sorry, we could not allocate a unique random name. Try again?')
+      })
+    }
+    access(0)
+  })
 }
 
 uploadsController.upload = async (req, res, next) => {
@@ -129,10 +124,7 @@ uploadsController.upload = async (req, res, next) => {
   }
 
   if (user && (user.enabled === false || user.enabled === 0)) {
-    return res.json({
-      success: false,
-      description: 'This account has been disabled.'
-    })
+    return res.json({ success: false, description: 'This account has been disabled.' })
   }
 
   if (user && user.fileLength && !req.headers.filelength) {
@@ -181,10 +173,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 
 uploadsController.finishChunks = async (req, res, next) => {
   if (!chunkedUploads) {
-    return res.json({
-      success: false,
-      description: 'Chunked uploads is disabled at the moment.'
-    })
+    return res.json({ success: false, description: 'Chunked uploads is disabled at the moment.' })
   }
 
   let user
@@ -196,10 +185,7 @@ uploadsController.finishChunks = async (req, res, next) => {
   }
 
   if (user && (user.enabled === false || user.enabled === 0)) {
-    return res.json({
-      success: false,
-      description: 'This account has been disabled.'
-    })
+    return res.json({ success: false, description: 'This account has been disabled.' })
   }
 
   if (user && user.fileLength && !req.headers.filelength) {
@@ -239,64 +225,64 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       const extension = typeof original === 'string' ? path.extname(original) : ''
       const length = uploadsController.getFileNameLength(req)
 
-      uploadsController.getUniqueRandomName(length, extension, async (error, name) => {
+      const name = await uploadsController.getUniqueRandomName(length, extension)
+        .catch(erred)
+      if (!name) { return }
+
+      const destination = path.join(uploadsDir, name)
+      const destFileStream = fs.createWriteStream(destination, { flags: 'a' })
+
+      // Sort chunk names
+      chunkNames.sort()
+
+      // Append all chunks
+      const chunksAppended = await uploadsController.appendToStream(destFileStream, uuidDir, chunkNames)
+        .then(() => true)
+        .catch(erred)
+      if (!chunksAppended) { return }
+
+      // Delete all chunks
+      const chunksDeleted = await Promise.all(chunkNames.map(chunkName => {
+        return new Promise((resolve, reject) => {
+          const chunkPath = path.join(uuidDir, chunkName)
+          fs.unlink(chunkPath, error => {
+            if (error) { return reject(error) }
+            resolve()
+          })
+        })
+      }))
+        .then(() => true)
+        .catch(erred)
+      if (!chunksDeleted) { return }
+
+      // Delete UUID dir
+      fs.rmdir(uuidDir, async error => {
         if (error) { return erred(error) }
 
-        const destination = path.join(uploadDir, name)
-        const destFileStream = fs.createWriteStream(destination, { flags: 'a' })
+        const data = {
+          filename: name,
+          originalname: file.original || '',
+          mimetype: file.type || '',
+          size: file.size || 0
+        }
 
-        // Sort chunk names
-        chunkNames.sort()
+        data.albumid = parseInt(file.albumid)
+        if (isNaN(data.albumid)) { data.albumid = albumid }
 
-        // Append all chunks
-        const chunksAppended = await uploadsController.appendToStream(destFileStream, uuidDir, chunkNames)
-          .then(() => true)
-          .catch(erred)
-        if (!chunksAppended) { return }
-
-        // Delete all chunks
-        const chunksDeleted = await Promise.all(chunkNames.map(chunkName => {
-          return new Promise((resolve, reject) => {
-            const chunkPath = path.join(uuidDir, chunkName)
-            fs.unlink(chunkPath, error => {
-              if (error) { return reject(error) }
-              resolve()
-            })
-          })
-        }))
-          .then(() => true)
-          .catch(erred)
-        if (!chunksDeleted) { return }
-
-        // Delete UUID dir
-        fs.rmdir(uuidDir, async error => {
-          if (error) { return erred(error) }
-
-          const data = {
-            filename: name,
-            originalname: file.original || '',
-            mimetype: file.type || '',
-            size: file.size || 0
-          }
-
-          data.albumid = parseInt(file.albumid)
-          if (isNaN(data.albumid)) { data.albumid = albumid }
-
-          infoMap.push({
-            path: destination,
-            data
-          })
-
-          iteration++
-          if (iteration >= files.length) {
-            const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
-              .catch(erred)
-
-            if (result) {
-              return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
-            }
-          }
+        infoMap.push({
+          path: destination,
+          data
         })
+
+        iteration++
+        if (iteration === files.length) {
+          const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
+            .catch(erred)
+
+          if (result) {
+            return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
+          }
+        }
       })
     })
   }
@@ -385,7 +371,7 @@ uploadsController.writeFilesToDb = (req, res, user, infoMap) => {
         }
 
         iteration++
-        if (iteration >= infoMap.length) {
+        if (iteration === infoMap.length) {
           return resolve({ files, existingFiles })
         }
       })
@@ -504,16 +490,10 @@ uploadsController.bulkDelete = async (req, res) => {
 
   const failedids = await utils.bulkDeleteFilesByIds(ids, user)
   if (failedids.length < ids.length) {
-    return res.json({
-      success: true,
-      failedids
-    })
+    return res.json({ success: true, failedids })
   }
 
-  return res.json({
-    success: false,
-    description: 'Could not delete any of the selected files.'
-  })
+  return res.json({ success: false, description: 'Could not delete any of the selected files.' })
 }
 
 uploadsController.list = async (req, res) => {
@@ -540,6 +520,13 @@ uploadsController.list = async (req, res) => {
     .select('id', 'albumid', 'timestamp', 'name', 'userid', 'size')
 
   const albums = await db.table('albums')
+    .where(function () {
+      this.where('enabled', 1)
+      if (user.username !== 'root') {
+        this.where('userid', user.id)
+      }
+    })
+
   const basedomain = config.domain
   const userids = []
 
@@ -585,7 +572,8 @@ uploadsController.list = async (req, res) => {
   // If we are root but there are no uploads attached to a user, send response
   if (userids.length === 0) { return res.json({ success: true, files }) }
 
-  const users = await db.table('users').whereIn('id', userids)
+  const users = await db.table('users')
+    .whereIn('id', userids)
   for (const dbUser of users) {
     for (const file of files) {
       if (file.userid === dbUser.id) {
