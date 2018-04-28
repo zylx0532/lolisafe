@@ -88,7 +88,7 @@ module.exports = {
     },
 
     /*
-      The length of the random generated name for the uploaded files.
+      The length of the randomly generated name for uploaded files.
       If "userChangeable" is set to true, registered users will be able to change
       their preferred file name length from the dashboard. The allowed range will
       be set by "min" and "max". Otherwise it will use "default".
@@ -103,11 +103,14 @@ module.exports = {
       userChangeable: false
     },
 
+    // The length of the randomly generated identifier for albums.
+    albumIdentifierLength: 8,
+
     /*
-    This option will limit how many times it will
-    try to generate a new random name when a collision occurrs.
-    The shorter the file name length is, the higher the chance for a collision to occur.
-  */
+      This option will limit how many times it will try to
+      generate a new random name when a collision occurrs.
+      The shorter the length is, the higher the chance for a collision to occur.
+    */
     maxTries: 1,
 
     /*
@@ -121,13 +124,13 @@ module.exports = {
     },
 
     /*
-      Allows users to download a .zip file of all files in an album.
+      Allows users to download a ZIP file of all files in an album.
       The file is generated when the user clicks the download button in the view
       and is re-used if the album has not changed between download requests.
-      If "maxTotalSize" is set (needs to be in MB), generating .zip file will be disabled
-      if the total size of all files in an album exceeds the set limit.
-      If you have Cloudflare properly caching the zipping API route, it's recommended to
-      set this to '512MB' as Cloudflare will not cache files bigger than that.
+      If "maxTotalSize" is set (needs to be in MB), generating ZIP file will be disabled
+      if the total size of all the files in the album exceeds the set limit.
+      If you have CloudFlare properly caching the zipping API route, it's recommended to
+      set this to '512MB' as CloudFlare will not cache files bigger than that.
     */
     generateZips: {
       enabled: true,
