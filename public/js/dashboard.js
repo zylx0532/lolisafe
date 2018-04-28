@@ -11,7 +11,11 @@ const panel = {
   selectAlbumContainer: undefined,
   checkboxes: undefined,
   lastSelected: undefined,
-  albums: []
+  albums: [],
+  currentView: {
+    album: undefined,
+    page: undefined
+  }
 }
 
 panel.preparePage = () => {
@@ -135,12 +139,12 @@ panel.getUploads = (album, page, element) => {
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
         <div class="column" style="text-align: center">
-          <a class="button is-small is-danger" title="List view" onclick="panel.setFilesView('list', ${album}, ${page}, this)">
+          <a class="button is-small is-danger" title="List view" onclick="panel.setFilesView('list', this)">
             <span class="icon">
               <i class="icon-th-list"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', ${album}, ${page}, this)">
+          <a class="button is-small is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', this)">
             <span class="icon">
               <i class="icon-th-large"></i>
             </span>
@@ -152,12 +156,12 @@ panel.getUploads = (album, page, element) => {
               <i class="icon-cancel"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Add selected files to album" onclick="panel.addSelectedFilesToAlbum(${album})">
+          <a class="button is-small is-warning" title="Add selected files to album" onclick="panel.addSelectedFilesToAlbum()">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Bulk delete" onclick="panel.deleteSelectedFiles(${album})">
+          <a class="button is-small is-danger" title="Bulk delete" onclick="panel.deleteSelectedFiles()">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -207,12 +211,12 @@ panel.getUploads = (album, page, element) => {
                 <i class="icon-clipboard-1"></i>
               </span>
             </a>
-            <a class="button is-small is-warning" title="Add to album" onclick="panel.addToAlbum([${file.id}], ${album})">
+            <a class="button is-small is-warning" title="Add to album" onclick="panel.addSingleFileToAlbum(${file.id})">
               <span class="icon">
                 <i class="icon-plus"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id}, ${album}, ${page})">
+            <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id})">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -286,12 +290,12 @@ panel.getUploads = (album, page, element) => {
                   <i class="icon-clipboard-1"></i>
                 </span>
               </a>
-              <a class="button is-small is-warning" title="Add to album" onclick="panel.addToAlbum([${file.id}])">
+              <a class="button is-small is-warning" title="Add to album" onclick="panel.addSingleFileToAlbum(${file.id})">
                 <span class="icon">
                   <i class="icon-plus"></i>
                 </span>
               </a>
-              <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id}, ${album}, ${page})">
+              <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id})">
                 <span class="icon">
                   <i class="icon-trash"></i>
                 </span>
@@ -309,16 +313,19 @@ panel.getUploads = (album, page, element) => {
       const selectAll = document.getElementById('selectAll')
       if (selectAll) { selectAll.checked = true }
     }
+
+    panel.currentView.album = album
+    panel.currentView.page = page
   }).catch(error => {
     console.log(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-panel.setFilesView = (view, album, page, element) => {
+panel.setFilesView = (view, element) => {
   localStorage.filesView = view
   panel.filesView = view
-  panel.getUploads(album, page, element)
+  panel.getUploads(panel.currentView.album, panel.currentView.page, element)
 }
 
 panel.displayThumbnailModal = thumb => {
@@ -431,7 +438,8 @@ panel.clearSelection = async () => {
   return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
 }
 
-panel.deleteFile = (id, album, page) => {
+panel.deleteFile = id => {
+  // TODO: Share function with bulk delete, just like 'add selected files to album' and 'add single file to album'
   swal({
     title: 'Are you sure?',
     text: 'You won\'t be able to recover the file!',
@@ -457,7 +465,7 @@ panel.deleteFile = (id, album, page) => {
         }
 
         swal('Deleted!', 'The file has been deleted.', 'success')
-        panel.getUploads(album, page)
+        panel.getUploads(panel.currentView.album, panel.currentView.page)
       })
       .catch(error => {
         console.log(error)
@@ -466,7 +474,7 @@ panel.deleteFile = (id, album, page) => {
   })
 }
 
-panel.deleteSelectedFiles = async album => {
+panel.deleteSelectedFiles = async () => {
   const count = panel.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
@@ -516,16 +524,16 @@ panel.deleteSelectedFiles = async album => {
   localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
 
   swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
-  return panel.getUploads(album)
+  return panel.getUploads(panel.currentView.album, panel.currentView.page)
 }
 
-panel.addSelectedFilesToAlbum = async album => {
+panel.addSelectedFilesToAlbum = async () => {
   const count = panel.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
-  const failedids = await panel.addToAlbum(panel.selectedFiles, album)
+  const failedids = await panel.addFilesToAlbum(panel.selectedFiles)
   if (!failedids) { return }
   if (failedids.length) {
     panel.selectedFiles = panel.selectedFiles.filter(id => failedids.includes(id))
@@ -533,9 +541,16 @@ panel.addSelectedFilesToAlbum = async album => {
     panel.selectedFiles = []
   }
   localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  panel.getUploads(panel.currentView.album, panel.currentView.page)
 }
 
-panel.addToAlbum = async (ids, album) => {
+panel.addSingleFileToAlbum = async id => {
+  const failedids = await panel.addFilesToAlbum([id])
+  if (!failedids) { return }
+  panel.getUploads(panel.currentView.album, panel.currentView.page)
+}
+
+panel.addFilesToAlbum = async ids => {
   const count = ids.length
   const proceed = await swal({
     title: 'Are you sure?',
@@ -636,7 +651,6 @@ panel.addToAlbum = async (ids, album) => {
   }
 
   swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
-  panel.getUploads(album)
   return add.data.failedids
 }
 

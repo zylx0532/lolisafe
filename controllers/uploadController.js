@@ -444,6 +444,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 }
 
 uploadsController.delete = async (req, res) => {
+  // TODO: Wrap utils.bulkDeleteFilesByIds() instead
   const user = await utils.authorize(req, res)
   if (!user) { return }
   const id = req.body.id
