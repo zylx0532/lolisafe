@@ -9,7 +9,7 @@
 
 {% block scripts %}
 <script type="text/javascript" src="../libs/lazyload/lazyload.min.js?v={{ globals.v1 }}"></script>
-<script type="text/javascript" src="../js/album.js?v={{ globals.v1 }}"></script>
+<script>var lazyLoad = new LazyLoad();</script>
 {% endblock %}
 
 {% block opengraph %}
@@ -52,7 +52,7 @@
           {% if downloadLink -%}
           <a class="button is-primary is-outlined" title="Download album" href="{{ downloadLink }}">Download album</a>
           {%- else -%}
-          <a class="button is-primary is-outlined" title="Download disabled" disabled>Download disabled</a>
+          <a class="button is-primary is-outlined" title="The album's owner has chosen to disable download" disabled>Download disabled</a>
           {%- endif %}
         </p>
       </div>
