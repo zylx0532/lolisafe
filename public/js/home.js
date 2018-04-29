@@ -15,8 +15,7 @@ const page = {
 
   dropzone: null,
   clipboardJS: null,
-  lazyLoad: null,
-  lazyLoadTimestamp: null
+  lazyLoad: null
 }
 
 const imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
@@ -303,16 +302,6 @@ window.addEventListener('paste', event => {
     }
   }
 })
-
-page.lazyLoadUpdate = () => {
-  // console.log(page.lazyLoadTimestamp)
-  if (!page.lazyLoadTimestamp) { page.lazyLoadTimestamp = 0 }
-  if (Date.now() - page.lazyLoadTimestamp >= 500) {
-    console.log('update() called')
-    page.lazyLoad.update()
-    page.lazyLoadTimestamp = Date.now()
-  }
-}
 
 window.onload = () => {
   page.checkIfPublic()
