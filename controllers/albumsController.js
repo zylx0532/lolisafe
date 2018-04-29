@@ -163,13 +163,12 @@ albumsController.delete = async (req, res, next) => {
 
   // Unlink zip archive of the album if it exists
   const zipPath = path.join(zipsDir, `${identifier}.zip`)
-  return fs.access(zipPath, error => {
-    if (error) { return res.json({ success: true, failedids }) }
-    fs.unlink(zipPath, error => {
-      if (!error) { return res.json({ success: true, failedids }) }
+  fs.unlink(zipPath, error => {
+    if (error && error.code !== 'ENOENT') {
       console.log(error)
-      res.json({ success: false, description: error.toString(), failedids })
-    })
+      return res.json({ success: false, description: error.toString(), failedids })
+    }
+    res.json({ success: true, failedids })
   })
 }
 

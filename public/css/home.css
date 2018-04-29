@@ -140,8 +140,22 @@
   }
 }
 
-img[data-dz-thumbnail] {
+#uploads progress {
+  margin-bottom: 1rem;
+}
+
+#uploads img {
   max-width: 200px;
+}
+
+.name {
+  font-size: 1rem;
+  color: #bdc3c7;
+  word-break: break-all;
+}
+
+.link > a {
+  word-break: break-all;
 }
 
 .clipboard-mobile {

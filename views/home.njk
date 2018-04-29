@@ -13,6 +13,7 @@
 <script type="text/javascript" src="libs/dropzone/dropzone.min.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="libs/axios/axios.min.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v={{ globals.v1 }}"></script>
+<script type="text/javascript" src="libs/lazyload/lazyload.min.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="js/home.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
@@ -51,18 +52,19 @@
           <div class="column is-hidden-mobile"></div>
           <div class="column">
             <progress class="progress is-small is-danger" value="0" max="100"></progress>
-            <img class="is-unselectable" data-dz-thumbnail>
+            <img class="is-unselectable">
+            <p class="name is-unselectable"></p>
             <p class="error"></p>
-            <p class="link" style="display: none">
+            <p class="link">
               <a target="_blank" rel="noopener"></a>
             </p>
             <p class="clipboard-mobile is-hidden-desktop" style="display: none">
               <a class="button is-info is-outlined clipboard-js" style="display: flex">
-              <span class="icon">
-                <i class="icon-clipboard-1"></i>
-              </span>
-              <span>Copy link to clipboard</span>
-            </a>
+                <span class="icon">
+                  <i class="icon-clipboard-1"></i>
+                </span>
+                <span>Copy link to clipboard</span>
+              </a>
             </p>
           </div>
           <div class="column is-hidden-mobile"></div>

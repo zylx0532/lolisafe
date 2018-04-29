@@ -8,8 +8,16 @@ const path = require('path')
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
 const utilsController = {}
+const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
+const thumbsDir = path.join(uploadsDir, 'thumbs')
+
 utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv']
+
+utilsController.mayGenerateThumb = extname => {
+  return (config.uploads.generateThumbnails.image && utilsController.imageExtensions.includes(extname)) ||
+    (config.uploads.generateThumbnails.video && utilsController.videoExtensions.includes(extname))
+}
 
 utilsController.getPrettyDate = date => {
   return date.getFullYear() + '-' +
@@ -48,72 +56,58 @@ utilsController.authorize = async (req, res) => {
 
   const user = await db.table('users').where('token', token).first()
   if (user) { return user }
+
   res.status(401).json({ success: false, description: 'Invalid token.' })
 }
 
 utilsController.generateThumbs = (file, basedomain) => {
-  const ext = path.extname(file.name).toLowerCase()
-  const isVideoExt = utilsController.videoExtensions.includes(ext)
-  const isImageExt = utilsController.imageExtensions.includes(ext)
+  const extname = path.extname(file.name).toLowerCase()
+  if (!utilsController.mayGenerateThumb(extname)) { return }
 
-  if ((!isVideoExt && !isImageExt) ||
-    (isVideoExt && config.uploads.generateThumbnails.video !== true) ||
-    (isImageExt && config.uploads.generateThumbnails.image !== true)) {
-    return
-  }
-
-  const thumbname = path.join(__dirname, '..', config.uploads.folder, 'thumbs', file.name.slice(0, -ext.length) + '.png')
+  const thumbname = path.join(thumbsDir, file.name.slice(0, -extname.length) + '.png')
   fs.access(thumbname, error => {
-    if (error && error.code === 'ENOENT') {
-      if (isVideoExt) {
-        ffmpeg(path.join(__dirname, '..', config.uploads.folder, file.name))
-          .thumbnail({
-            timestamps: ['1%'],
-            filename: '%b.png',
-            folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
-            size: '200x?'
-          })
-          .on('error', error => console.log('Error - ', error.message))
-      } else if (isImageExt) {
-        const size = {
-          width: 200,
-          height: 200
-        }
-        gm(path.join(__dirname, '..', config.uploads.folder, file.name))
-          .resize(size.width, size.height + '>')
-          .gravity('Center')
-          .extent(size.width, size.height)
-          .background('transparent')
-          .write(thumbname, error => {
-            if (error) { console.log('Error - ', error) }
-          })
-      }
+    // Only make thumbnail if it does not exist (ENOENT)
+    if (!error || error.code !== 'ENOENT') { return }
+
+    // If image extension
+    if (utilsController.imageExtensions.includes(extname)) {
+      const size = { width: 200, height: 200 }
+      return gm(path.join(__dirname, '..', config.uploads.folder, file.name))
+        .resize(size.width, size.height + '>')
+        .gravity('Center')
+        .extent(size.width, size.height)
+        .background('transparent')
+        .write(thumbname, error => {
+          if (error) { console.log('Error - ', error) }
+        })
     }
+
+    // Otherwise video extension
+    ffmpeg(path.join(__dirname, '..', config.uploads.folder, file.name))
+      .thumbnail({
+        timestamps: ['1%'],
+        filename: '%b.png',
+        folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
+        size: '200x?'
+      })
+      .on('error', error => console.log('Error - ', error.message))
   })
 }
 
 utilsController.deleteFile = file => {
-  const ext = path.extname(file).toLowerCase()
   return new Promise((resolve, reject) => {
-    fs.stat(path.join(__dirname, '..', config.uploads.folder, file), (error, stats) => {
-      if (error) { return reject(error) }
-      fs.unlink(path.join(__dirname, '..', config.uploads.folder, file), error => {
-        if (error) { return reject(error) }
-        if (!utilsController.imageExtensions.includes(ext) && !utilsController.videoExtensions.includes(ext)) {
-          return resolve()
-        }
-        file = file.substr(0, file.lastIndexOf('.')) + '.png'
-        fs.stat(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), (error, stats) => {
-          if (error) {
-            if (error.code !== 'ENOENT') { console.log(error) }
-            return resolve()
-          }
-          fs.unlink(path.join(__dirname, '..', config.uploads.folder, 'thumbs/', file), error => {
-            if (error) { return reject(error) }
-            return resolve()
-          })
+    const extname = path.extname(file).toLowerCase()
+    return fs.unlink(path.join(uploadsDir, file), error => {
+      if (error && error.code !== 'ENOENT') { return reject(error) }
+
+      if (utilsController.imageExtensions.includes(extname) || utilsController.videoExtensions.includes(extname)) {
+        const thumb = file.substr(0, file.lastIndexOf('.')) + '.png'
+        return fs.unlink(path.join(thumbsDir, thumb), error => {
+          if (error && error.code !== 'ENOENT') { return reject(error) }
+          resolve(true)
         })
-      })
+      }
+      resolve(true)
     })
   })
 }
@@ -136,13 +130,10 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
   await Promise.all(files.map(file => {
     return new Promise(async resolve => {
       const deleteFile = await utilsController.deleteFile(file.name)
-        .then(() => true)
         .catch(error => {
-          if (error.code === 'ENOENT') { return true }
           console.log(error)
           failedids.push(file.id)
         })
-
       if (!deleteFile) { return resolve() }
 
       await db.table('files')

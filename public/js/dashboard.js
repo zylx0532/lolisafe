@@ -1,103 +1,115 @@
-/* eslint-disable no-unused-expressions */
-/* global swal, axios, ClipboardJS */
+/* global swal, axios, ClipboardJS, LazyLoad */
 
-const panel = {
-  page: undefined,
-  username: undefined,
+const page = {
+  // #page
+  dom: null,
+
+  // user token
   token: localStorage.token,
+  username: null, // from api/tokens/verify
+
+  // view config (either list or thumbs)
   filesView: localStorage.filesView,
-  clipboardJS: undefined,
+
+  // current view (which album and which page)
+  currentView: { album: null, pageNum: null },
+
+  // id of selected files (shared across pages and will be synced with localStorage)
   selectedFiles: [],
-  selectAlbumContainer: undefined,
-  checkboxes: undefined,
-  lastSelected: undefined,
+  checkboxes: [],
+  lastSelected: null,
+
+  // select album dom, for 'add to album' dialog
+  selectAlbumContainer: null,
+
+  // cache of albums data, for 'edit album' dialog
   albums: [],
-  currentView: {
-    album: undefined,
-    page: undefined
-  }
+
+  clipboardJS: null,
+  lazyLoad: null
 }
 
-panel.preparePage = () => {
-  if (!panel.token) {
+page.preparePage = () => {
+  if (!page.token) {
     window.location = 'auth'
+    return
   }
-  panel.verifyToken(panel.token, true)
+  page.verifyToken(page.token, true)
 }
 
-panel.verifyToken = (token, reloadOnError) => {
+page.verifyToken = async (token, reloadOnError) => {
   if (reloadOnError === undefined) {
     reloadOnError = false
   }
 
-  axios.post('api/tokens/verify', { token })
-    .then(response => {
-      if (response.data.success === false) {
-        swal({
-          title: 'An error occurred!',
-          text: response.data.description,
-          icon: 'error'
-        }).then(() => {
-          if (reloadOnError) {
-            localStorage.removeItem('token')
-            location.location = 'auth'
-          }
-        })
-        return
-      }
-
-      axios.defaults.headers.common.token = token
-      localStorage.token = token
-      panel.token = token
-      panel.username = response.data.username
-      return panel.prepareDashboard()
-    })
+  const response = await axios.post('api/tokens/verify', { token })
     .catch(error => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    swal({
+      title: 'An error occurred!',
+      text: response.data.description,
+      icon: 'error'
+    }).then(() => {
+      if (reloadOnError) {
+        localStorage.removeItem('token')
+        location.location = 'auth'
+      }
+    })
+    return
+  }
+
+  axios.defaults.headers.common.token = token
+  localStorage.token = token
+  page.token = token
+  page.username = response.data.username
+  page.prepareDashboard()
 }
 
-panel.prepareDashboard = () => {
-  panel.page = document.getElementById('page')
+page.prepareDashboard = () => {
+  page.dom = document.getElementById('page')
   document.getElementById('auth').style.display = 'none'
   document.getElementById('dashboard').style.display = 'block'
 
   document.getElementById('itemUploads').addEventListener('click', function () {
-    panel.setActiveMenu(this)
+    page.setActiveMenu(this)
   })
 
   document.getElementById('itemManageGallery').addEventListener('click', function () {
-    panel.setActiveMenu(this)
+    page.setActiveMenu(this)
   })
 
   document.getElementById('itemFileLength').addEventListener('click', function () {
-    panel.setActiveMenu(this)
+    page.setActiveMenu(this)
   })
 
   document.getElementById('itemTokens').addEventListener('click', function () {
-    panel.setActiveMenu(this)
+    page.setActiveMenu(this)
   })
 
   document.getElementById('itemPassword').addEventListener('click', function () {
-    panel.setActiveMenu(this)
+    page.setActiveMenu(this)
   })
 
-  document.getElementById('itemLogout').innerHTML = `Logout ( ${panel.username} )`
+  document.getElementById('itemLogout').innerHTML = `Logout ( ${page.username} )`
 
-  panel.getAlbumsSidebar()
+  page.getAlbumsSidebar()
 }
 
-panel.logout = () => {
+page.logout = () => {
   localStorage.removeItem('token')
   location.reload('.')
 }
 
-panel.closeModal = () => {
+page.closeModal = () => {
   document.getElementById('modal').className = 'modal'
 }
 
-panel.isLoading = (element, state) => {
+page.isLoading = (element, state) => {
   if (!element) { return }
   if (state && !element.className.includes(' is-loading')) {
     element.className += ' is-loading'
@@ -106,62 +118,62 @@ panel.isLoading = (element, state) => {
   }
 }
 
-panel.getUploads = (album, page, element) => {
-  if (element) { panel.isLoading(element, true) }
-  if (page === undefined) { page = 0 }
+page.getUploads = (album, pageNum, element) => {
+  if (element) { page.isLoading(element, true) }
+  if (pageNum === undefined) { pageNum = 0 }
 
-  let url = 'api/uploads/' + page
-  if (album !== undefined) { url = 'api/album/' + album + '/' + page }
+  let url = 'api/uploads/' + pageNum
+  if (album !== undefined) { url = 'api/album/' + album + '/' + pageNum }
 
   axios.get(url).then(response => {
     if (response.data.success === false) {
       if (response.data.description === 'No token provided') {
-        return panel.verifyToken(panel.token)
+        return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
     }
 
     let prevPage = 0
-    let nextPage = page + 1
+    let nextPage = pageNum + 1
 
-    if (response.data.files.length < 25) { nextPage = page }
+    if (response.data.files.length < 25) { nextPage = pageNum }
 
-    if (page > 0) { prevPage = page - 1 }
+    if (pageNum > 0) { prevPage = pageNum - 1 }
 
     const pagination = `
       <nav class="pagination is-centered">
-        <a class="button pagination-previous" onclick="panel.getUploads(${album}, ${prevPage}, this)">Previous</a>
-        <a class="button pagination-next" onclick="panel.getUploads(${album}, ${nextPage}, this)">Next page</a>
+        <a class="button pagination-previous" onclick="page.getUploads(${album}, ${prevPage}, this)">Previous</a>
+        <a class="button pagination-next" onclick="page.getUploads(${album}, ${nextPage}, this)">Next page</a>
       </nav>
     `
     const controls = `
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
         <div class="column" style="text-align: center">
-          <a class="button is-small is-danger" title="List view" onclick="panel.setFilesView('list', this)">
+          <a class="button is-small is-danger" title="List view" onclick="page.setFilesView('list', this)">
             <span class="icon">
               <i class="icon-th-list"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Thumbs view" onclick="panel.setFilesView('thumbs', this)">
+          <a class="button is-small is-danger" title="Thumbs view" onclick="page.setFilesView('thumbs', this)">
             <span class="icon">
               <i class="icon-th-large"></i>
             </span>
           </a>
         </div>
         <div class="column" style="text-align: right">
-          <a class="button is-small is-info" title="Clear selection" onclick="panel.clearSelection()">
+          <a class="button is-small is-info" title="Clear selection" onclick="page.clearSelection()">
             <span class="icon">
               <i class="icon-cancel"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Add selected files to album" onclick="panel.addSelectedFilesToAlbum()">
+          <a class="button is-small is-warning" title="Add selected files to album" onclick="page.addSelectedFilesToAlbum()">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Bulk delete" onclick="panel.deleteSelectedFiles()">
+          <a class="button is-small is-danger" title="Bulk delete" onclick="page.deleteSelectedFiles()">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -172,8 +184,8 @@ panel.getUploads = (album, page, element) => {
     `
 
     let allFilesSelected = true
-    if (panel.filesView === 'thumbs') {
-      panel.page.innerHTML = `
+    if (page.filesView === 'thumbs') {
+      page.dom.innerHTML = `
         ${pagination}
         <hr>
         ${controls}
@@ -186,37 +198,37 @@ panel.getUploads = (album, page, element) => {
       const table = document.getElementById('table')
 
       for (const file of response.data.files) {
-        const selected = panel.selectedFiles.includes(file.id)
+        const selected = page.selectedFiles.includes(file.id)
         if (!selected && allFilesSelected) { allFilesSelected = false }
 
         const div = document.createElement('div')
 
         let displayAlbumOrUser = file.album
-        if (panel.username === 'root') {
+        if (page.username === 'root') {
           displayAlbumOrUser = ''
           if (file.username !== undefined) { displayAlbumOrUser = file.username }
         }
 
         div.className = 'image-container column is-narrow'
         if (file.thumb !== undefined) {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.name}" src="${file.thumb}"/></a>`
+          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.name}" data-src="${file.thumb}"/></a>`
         } else {
           div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
         }
         div.innerHTML += `
-          <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}>
+          <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="page.selectFile(this, event)"${selected ? ' checked' : ''}>
           <div class="controls">
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
               <span class="icon">
                 <i class="icon-clipboard-1"></i>
               </span>
             </a>
-            <a class="button is-small is-warning" title="Add to album" onclick="panel.addSingleFileToAlbum(${file.id})">
+            <a class="button is-small is-warning" title="Add to album" onclick="page.addSingleFileToAlbum(${file.id})">
               <span class="icon">
                 <i class="icon-plus"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id})">
+            <a class="button is-small is-danger" title="Delete file" onclick="page.deleteFile(${file.id})">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -228,13 +240,14 @@ panel.getUploads = (album, page, element) => {
           </div>
         `
         table.appendChild(div)
-        panel.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
+        page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
+        page.lazyLoad.update()
       }
     } else {
       let albumOrUser = 'Album'
-      if (panel.username === 'root') { albumOrUser = 'User' }
+      if (page.username === 'root') { albumOrUser = 'User' }
 
-      panel.page.innerHTML = `
+      page.dom.innerHTML = `
         ${pagination}
         <hr>
         ${controls}
@@ -242,7 +255,7 @@ panel.getUploads = (album, page, element) => {
           <table class="table is-narrow is-fullwidth is-hoverable">
             <thead>
               <tr>
-                  <th><input id="selectAll" type="checkbox" title="Select all files" onclick="panel.selectAllFiles(this)"></th>
+                  <th><input id="selectAll" type="checkbox" title="Select all files" onclick="page.selectAllFiles(this)"></th>
                   <th style="width: 25%">File</th>
                   <th>${albumOrUser}</th>
                   <th>Size</th>
@@ -261,26 +274,26 @@ panel.getUploads = (album, page, element) => {
       const table = document.getElementById('table')
 
       for (const file of response.data.files) {
-        const selected = panel.selectedFiles.includes(file.id)
+        const selected = page.selectedFiles.includes(file.id)
         if (!selected && allFilesSelected) { allFilesSelected = false }
 
         const tr = document.createElement('tr')
 
         let displayAlbumOrUser = file.album
-        if (panel.username === 'root') {
+        if (page.username === 'root') {
           displayAlbumOrUser = ''
           if (file.username !== undefined) { displayAlbumOrUser = file.username }
         }
 
         tr.innerHTML = `
           <tr>
-            <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="panel.selectFile(this, event)"${selected ? ' checked' : ''}></th>
+            <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="page.selectFile(this, event)"${selected ? ' checked' : ''}></th>
             <th><a href="${file.file}" target="_blank" rel="noopener" title="${file.file}">${file.name}</a></th>
             <th>${displayAlbumOrUser}</th>
             <td>${file.size}</td>
             <td>${file.date}</td>
             <td style="text-align: right">
-              <a class="button is-small is-primary" title="View thumbnail" onclick="panel.displayThumbnailModal(${file.thumb ? `'${file.thumb}'` : null})"${file.thumb ? '' : ' disabled'}>
+              <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnailModal(${file.thumb ? `'${file.thumb}'` : null})"${file.thumb ? '' : ' disabled'}>
                 <span class="icon">
                   <i class="icon-picture-1"></i>
                 </span>
@@ -290,12 +303,12 @@ panel.getUploads = (album, page, element) => {
                   <i class="icon-clipboard-1"></i>
                 </span>
               </a>
-              <a class="button is-small is-warning" title="Add to album" onclick="panel.addSingleFileToAlbum(${file.id})">
+              <a class="button is-small is-warning" title="Add to album" onclick="page.addSingleFileToAlbum(${file.id})">
                 <span class="icon">
                   <i class="icon-plus"></i>
                 </span>
               </a>
-              <a class="button is-small is-danger" title="Delete file" onclick="panel.deleteFile(${file.id})">
+              <a class="button is-small is-danger" title="Delete file" onclick="page.deleteFile(${file.id})">
                 <span class="icon">
                   <i class="icon-trash"></i>
                 </span>
@@ -305,7 +318,7 @@ panel.getUploads = (album, page, element) => {
         `
 
         table.appendChild(tr)
-        panel.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
+        page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
       }
     }
 
@@ -314,27 +327,27 @@ panel.getUploads = (album, page, element) => {
       if (selectAll) { selectAll.checked = true }
     }
 
-    panel.currentView.album = album
-    panel.currentView.page = page
+    page.currentView.album = album
+    page.currentView.pageNum = pageNum
   }).catch(error => {
     console.log(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-panel.setFilesView = (view, element) => {
+page.setFilesView = (view, element) => {
   localStorage.filesView = view
-  panel.filesView = view
-  panel.getUploads(panel.currentView.album, panel.currentView.page, element)
+  page.filesView = view
+  page.getUploads(page.currentView.album, page.currentView.pageNum, element)
 }
 
-panel.displayThumbnailModal = thumb => {
+page.displayThumbnailModal = thumb => {
   if (!thumb) { return }
   document.getElementById('modalImage').src = thumb
   document.getElementById('modal').className += ' is-active'
 }
 
-panel.selectAllFiles = element => {
+page.selectAllFiles = element => {
   const table = document.getElementById('table')
   const checkboxes = table.getElementsByClassName('file-checkbox')
 
@@ -344,15 +357,15 @@ panel.selectAllFiles = element => {
     if (checkbox.checked !== element.checked) {
       checkbox.checked = element.checked
       if (checkbox.checked) {
-        panel.selectedFiles.push(id)
+        page.selectedFiles.push(id)
       } else {
-        panel.selectedFiles.splice(panel.selectedFiles.indexOf(id), 1)
+        page.selectedFiles.splice(page.selectedFiles.indexOf(id), 1)
       }
     }
   }
 
-  if (panel.selectedFiles.length) {
-    localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  if (page.selectedFiles.length) {
+    localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
   } else {
     localStorage.removeItem('selectedFiles')
   }
@@ -360,54 +373,54 @@ panel.selectAllFiles = element => {
   element.title = element.checked ? 'Unselect all files' : 'Select all files'
 }
 
-panel.selectInBetween = (element, lastElement) => {
+page.selectInBetween = (element, lastElement) => {
   if (!element || !lastElement) { return }
   if (element === lastElement) { return }
-  if (!panel.checkboxes || !panel.checkboxes.length) { return }
+  if (!page.checkboxes || !page.checkboxes.length) { return }
 
-  const thisIndex = panel.checkboxes.indexOf(element)
-  const lastIndex = panel.checkboxes.indexOf(lastElement)
+  const thisIndex = page.checkboxes.indexOf(element)
+  const lastIndex = page.checkboxes.indexOf(lastElement)
 
   const distance = thisIndex - lastIndex
   if (distance >= -1 && distance <= 1) { return }
 
-  for (let i = 0; i < panel.checkboxes.length; i++) {
+  for (let i = 0; i < page.checkboxes.length; i++) {
     if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
       (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
-      panel.checkboxes[i].checked = true
-      panel.selectedFiles.push(parseInt(panel.checkboxes[i].dataset.id))
+      page.checkboxes[i].checked = true
+      page.selectedFiles.push(parseInt(page.checkboxes[i].dataset.id))
     }
   }
 
-  localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
 }
 
-panel.selectFile = (element, event) => {
-  if (event.shiftKey && panel.lastSelected) {
-    panel.selectInBetween(element, panel.lastSelected)
+page.selectFile = (element, event) => {
+  if (event.shiftKey && page.lastSelected) {
+    page.selectInBetween(element, page.lastSelected)
   } else {
-    panel.lastSelected = element
+    page.lastSelected = element
   }
 
   const id = parseInt(element.dataset.id)
 
   if (isNaN(id)) { return }
 
-  if (!panel.selectedFiles.includes(id) && element.checked) {
-    panel.selectedFiles.push(id)
-  } else if (panel.selectedFiles.includes(id) && !element.checked) {
-    panel.selectedFiles.splice(panel.selectedFiles.indexOf(id), 1)
+  if (!page.selectedFiles.includes(id) && element.checked) {
+    page.selectedFiles.push(id)
+  } else if (page.selectedFiles.includes(id) && !element.checked) {
+    page.selectedFiles.splice(page.selectedFiles.indexOf(id), 1)
   }
 
-  if (panel.selectedFiles.length) {
-    localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  if (page.selectedFiles.length) {
+    localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
   } else {
     localStorage.removeItem('selectedFiles')
   }
 }
 
-panel.clearSelection = async () => {
-  const count = panel.selectedFiles.length
+page.clearSelection = async () => {
+  const count = page.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
@@ -429,7 +442,7 @@ panel.clearSelection = async () => {
     }
   }
 
-  panel.selectedFiles = []
+  page.selectedFiles = []
   localStorage.removeItem('selectedFiles')
 
   const selectAll = document.getElementById('selectAll')
@@ -438,7 +451,7 @@ panel.clearSelection = async () => {
   return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
 }
 
-panel.deleteFile = id => {
+page.deleteFile = id => {
   // TODO: Share function with bulk delete, just like 'add selected files to album' and 'add single file to album'
   swal({
     title: 'Are you sure?',
@@ -458,14 +471,14 @@ panel.deleteFile = id => {
       .then(response => {
         if (response.data.success === false) {
           if (response.data.description === 'No token provided') {
-            return panel.verifyToken(panel.token)
+            return page.verifyToken(page.token)
           } else {
             return swal('An error occurred!', response.data.description, 'error')
           }
         }
 
         swal('Deleted!', 'The file has been deleted.', 'success')
-        panel.getUploads(panel.currentView.album, panel.currentView.page)
+        page.getUploads(page.currentView.album, page.currentView.pageNum)
       })
       .catch(error => {
         console.log(error)
@@ -474,8 +487,8 @@ panel.deleteFile = id => {
   })
 }
 
-panel.deleteSelectedFiles = async () => {
-  const count = panel.selectedFiles.length
+page.deleteSelectedFiles = async () => {
+  const count = page.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
@@ -497,7 +510,7 @@ panel.deleteSelectedFiles = async () => {
   if (!proceed) { return }
 
   const bulkdelete = await axios.post('api/upload/bulkdelete', {
-    ids: panel.selectedFiles
+    ids: page.selectedFiles
   })
     .catch(error => {
       console.log(error)
@@ -507,7 +520,7 @@ panel.deleteSelectedFiles = async () => {
 
   if (bulkdelete.data.success === false) {
     if (bulkdelete.data.description === 'No token provided') {
-      return panel.verifyToken(panel.token)
+      return page.verifyToken(page.token)
     } else {
       return swal('An error occurred!', bulkdelete.data.description, 'error')
     }
@@ -516,41 +529,41 @@ panel.deleteSelectedFiles = async () => {
   let deleted = count
   if (bulkdelete.data.failedids && bulkdelete.data.failedids.length) {
     deleted -= bulkdelete.data.failedids.length
-    panel.selectedFiles = panel.selectedFiles.filter(id => bulkdelete.data.failedids.includes(id))
+    page.selectedFiles = page.selectedFiles.filter(id => bulkdelete.data.failedids.includes(id))
   } else {
-    panel.selectedFiles = []
+    page.selectedFiles = []
   }
 
-  localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
+  localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
 
   swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
-  return panel.getUploads(panel.currentView.album, panel.currentView.page)
+  return page.getUploads(page.currentView.album, page.currentView.pageNum)
 }
 
-panel.addSelectedFilesToAlbum = async () => {
-  const count = panel.selectedFiles.length
+page.addSelectedFilesToAlbum = async () => {
+  const count = page.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
-  const failedids = await panel.addFilesToAlbum(panel.selectedFiles)
+  const failedids = await page.addFilesToAlbum(page.selectedFiles)
   if (!failedids) { return }
   if (failedids.length) {
-    panel.selectedFiles = panel.selectedFiles.filter(id => failedids.includes(id))
+    page.selectedFiles = page.selectedFiles.filter(id => failedids.includes(id))
   } else {
-    panel.selectedFiles = []
+    page.selectedFiles = []
   }
-  localStorage.selectedFiles = JSON.stringify(panel.selectedFiles)
-  panel.getUploads(panel.currentView.album, panel.currentView.page)
+  localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
+  page.getUploads(page.currentView.album, page.currentView.pageNum)
 }
 
-panel.addSingleFileToAlbum = async id => {
-  const failedids = await panel.addFilesToAlbum([id])
+page.addSingleFileToAlbum = async id => {
+  const failedids = await page.addFilesToAlbum([id])
   if (!failedids) { return }
-  panel.getUploads(panel.currentView.album, panel.currentView.page)
+  page.getUploads(page.currentView.album, page.currentView.pageNum)
 }
 
-panel.addFilesToAlbum = async ids => {
+page.addFilesToAlbum = async ids => {
   const count = ids.length
   const proceed = await swal({
     title: 'Are you sure?',
@@ -574,24 +587,24 @@ panel.addFilesToAlbum = async ids => {
 
   if (list.data.success === false) {
     if (list.data.description === 'No token provided') {
-      panel.verifyToken(panel.token)
+      page.verifyToken(page.token)
     } else {
       swal('An error occurred!', list.data.description, 'error')
     }
     return
   }
 
-  if (!panel.selectAlbumContainer) {
+  if (!page.selectAlbumContainer) {
     // We want to this to be re-usable
-    panel.selectAlbumContainer = document.createElement('div')
-    panel.selectAlbumContainer.id = 'selectAlbum'
+    page.selectAlbumContainer = document.createElement('div')
+    page.selectAlbumContainer.id = 'selectAlbum'
   }
 
   const options = list.data.albums
     .map(album => `<option value="${album.id}">${album.name}</option>`)
     .join('\n')
 
-  panel.selectAlbumContainer.innerHTML = `
+  page.selectAlbumContainer.innerHTML = `
     <div class="field">
       <label class="label">If a file is already in an album, it will be moved.</label>
       <div class="control">
@@ -606,7 +619,7 @@ panel.addFilesToAlbum = async ids => {
   `
 
   const choose = await swal({
-    content: panel.selectAlbumContainer,
+    content: page.selectAlbumContainer,
     buttons: {
       cancel: true,
       confirm: {
@@ -617,7 +630,7 @@ panel.addFilesToAlbum = async ids => {
   })
   if (!choose) { return }
 
-  const albumid = parseInt(panel.selectAlbumContainer.getElementsByTagName('select')[0].value)
+  const albumid = parseInt(page.selectAlbumContainer.getElementsByTagName('select')[0].value)
   if (isNaN(albumid)) {
     swal('An error occurred!', 'You did not choose an album.', 'error')
     return
@@ -632,7 +645,7 @@ panel.addFilesToAlbum = async ids => {
 
   if (add.data.success === false) {
     if (add.data.description === 'No token provided') {
-      panel.verifyToken(panel.token)
+      page.verifyToken(page.token)
     } else {
       swal('An error occurred!', add.data.description, 'error')
     }
@@ -654,17 +667,17 @@ panel.addFilesToAlbum = async ids => {
   return add.data.failedids
 }
 
-panel.getAlbums = () => {
+page.getAlbums = () => {
   axios.get('api/albums').then(response => {
     if (response.data.success === false) {
       if (response.data.description === 'No token provided') {
-        return panel.verifyToken(panel.token)
+        return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
     }
 
-    panel.page.innerHTML = `
+    page.dom.innerHTML = `
       <h2 class="subtitle">Create new album</h2>
 
       <div class="field has-addons has-addons-centered">
@@ -701,7 +714,7 @@ panel.getAlbums = () => {
       </div>
     `
 
-    panel.albums = response.data.albums
+    page.albums = response.data.albums
 
     const homeDomain = response.data.homeDomain
     const table = document.getElementById('table')
@@ -717,7 +730,7 @@ panel.getAlbums = () => {
           <td>${album.date}</td>
           <td><a${album.public ? ` href="${albumUrl}"` : ''} target="_blank" rel="noopener">${albumUrl}</a></td>
           <td style="text-align: right">
-            <a class="button is-small is-primary" title="Edit album" onclick="panel.editAlbum(${album.id})">
+            <a class="button is-small is-primary" title="Edit album" onclick="page.editAlbum(${album.id})">
               <span class="icon is-small">
                 <i class="icon-pencil-1"></i>
               </span>
@@ -732,7 +745,7 @@ panel.getAlbums = () => {
                 <i class="icon-download"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete album" onclick="panel.deleteAlbum(${album.id})">
+            <a class="button is-small is-danger" title="Delete album" onclick="page.deleteAlbum(${album.id})">
               <span class="icon is-small">
                 <i class="icon-trash"></i>
               </span>
@@ -745,7 +758,7 @@ panel.getAlbums = () => {
     }
 
     document.getElementById('submitAlbum').addEventListener('click', function () {
-      panel.submitAlbum(this)
+      page.submitAlbum(this)
     })
   })
     .catch(error => {
@@ -754,8 +767,8 @@ panel.getAlbums = () => {
     })
 }
 
-panel.editAlbum = async id => {
-  const album = panel.albums.find(a => a.id === id)
+page.editAlbum = async id => {
+  const album = page.albums.find(a => a.id === id)
   if (!album) {
     return swal('An error occurred!', 'Album with that ID could not be found.', 'error')
   }
@@ -820,7 +833,7 @@ panel.editAlbum = async id => {
 
   if (response.data.success === false) {
     if (response.data.description === 'No token provided') {
-      return panel.verifyToken(panel.token)
+      return page.verifyToken(page.token)
     } else if (response.data.description === 'Name already in use') {
       return swal.showInputError('That name is already in use!')
     } else {
@@ -836,11 +849,11 @@ panel.editAlbum = async id => {
     swal('Success!', 'Your album was edited!', 'success')
   }
 
-  panel.getAlbumsSidebar()
-  panel.getAlbums()
+  page.getAlbumsSidebar()
+  page.getAlbums()
 }
 
-panel.deleteAlbum = async id => {
+page.deleteAlbum = async id => {
   const proceed = await swal({
     title: 'Are you sure?',
     text: 'This won\'t delete your files, only the album!',
@@ -873,49 +886,49 @@ panel.deleteAlbum = async id => {
 
   if (response.data.success === false) {
     if (response.data.description === 'No token provided') {
-      return panel.verifyToken(panel.token)
+      return page.verifyToken(page.token)
     } else {
       return swal('An error occurred!', response.data.description, 'error')
     }
   }
 
   swal('Deleted!', 'Your album has been deleted.', 'success')
-  panel.getAlbumsSidebar()
-  panel.getAlbums()
+  page.getAlbumsSidebar()
+  page.getAlbums()
 }
 
-panel.submitAlbum = element => {
-  panel.isLoading(element, true)
+page.submitAlbum = element => {
+  page.isLoading(element, true)
   axios.post('api/albums', {
     name: document.getElementById('albumName').value
   })
     .then(response => {
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
       swal('Woohoo!', 'Album was added successfully', 'success')
-      panel.getAlbumsSidebar()
-      panel.getAlbums()
+      page.getAlbumsSidebar()
+      page.getAlbums()
     })
     .catch(error => {
       console.log(error)
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.getAlbumsSidebar = () => {
+page.getAlbumsSidebar = () => {
   axios.get('api/albums/sidebar')
     .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
@@ -933,7 +946,7 @@ panel.getAlbumsSidebar = () => {
         a.innerHTML = album.name
 
         a.addEventListener('click', function () {
-          panel.getAlbum(this)
+          page.getAlbum(this)
         })
 
         li.appendChild(a)
@@ -946,23 +959,23 @@ panel.getAlbumsSidebar = () => {
     })
 }
 
-panel.getAlbum = album => {
-  panel.setActiveMenu(album)
-  panel.getUploads(album.id)
+page.getAlbum = album => {
+  page.setActiveMenu(album)
+  page.getUploads(album.id)
 }
 
-panel.changeFileLength = () => {
+page.changeFileLength = () => {
   axios.get('api/filelength/config')
     .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
-      panel.page.innerHTML = `
+      page.dom.innerHTML = `
         <h2 class="subtitle">File name length</h2>
 
         <div class="field">
@@ -985,7 +998,7 @@ panel.changeFileLength = () => {
       `
 
       document.getElementById('setFileLength').addEventListener('click', function () {
-        panel.setFileLength(document.getElementById('fileLength').value, this)
+        page.setFileLength(document.getElementById('fileLength').value, this)
       })
     })
     .catch(error => {
@@ -994,14 +1007,14 @@ panel.changeFileLength = () => {
     })
 }
 
-panel.setFileLength = (fileLength, element) => {
-  panel.isLoading(element, true)
+page.setFileLength = (fileLength, element) => {
+  page.isLoading(element, true)
   axios.post('api/filelength/change', { fileLength })
     .then(response => {
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
@@ -1017,23 +1030,23 @@ panel.setFileLength = (fileLength, element) => {
     })
     .catch(error => {
       console.log(error)
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.changeToken = () => {
+page.changeToken = () => {
   axios.get('api/tokens')
     .then(response => {
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
       }
 
-      panel.page.innerHTML = `
+      page.dom.innerHTML = `
         <h2 class="subtitle">Manage your token</h2>
 
         <div class="field">
@@ -1055,7 +1068,7 @@ panel.changeToken = () => {
       `
 
       document.getElementById('getNewToken').addEventListener('click', function () {
-        panel.getNewToken(this)
+        page.getNewToken(this)
       })
     })
     .catch(error => {
@@ -1064,14 +1077,14 @@ panel.changeToken = () => {
     })
 }
 
-panel.getNewToken = element => {
-  panel.isLoading(element, true)
+page.getNewToken = element => {
+  page.isLoading(element, true)
   axios.post('api/tokens/change')
     .then(response => {
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
@@ -1088,13 +1101,13 @@ panel.getNewToken = element => {
     })
     .catch(error => {
       console.log(error)
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.changePassword = () => {
-  panel.page.innerHTML = `
+page.changePassword = () => {
+  page.dom.innerHTML = `
     <h2 class="subtitle">Change your password</h2>
 
     <div class="field">
@@ -1123,27 +1136,27 @@ panel.changePassword = () => {
 
   document.getElementById('sendChangePassword').addEventListener('click', function () {
     if (document.getElementById('password').value === document.getElementById('passwordConfirm').value) {
-      panel.sendNewPassword(document.getElementById('password').value, this)
+      page.sendNewPassword(document.getElementById('password').value, this)
     } else {
       swal({
         title: 'Password mismatch!',
         text: 'Your passwords do not match, please try again.',
         icon: 'error'
       }).then(() => {
-        panel.changePassword()
+        page.changePassword()
       })
     }
   })
 }
 
-panel.sendNewPassword = (pass, element) => {
-  panel.isLoading(element, true)
+page.sendNewPassword = (pass, element) => {
+  page.isLoading(element, true)
   axios.post('api/password/change', { password: pass })
     .then(response => {
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
-          return panel.verifyToken(panel.token)
+          return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
@@ -1159,12 +1172,12 @@ panel.sendNewPassword = (pass, element) => {
     })
     .catch(error => {
       console.log(error)
-      panel.isLoading(element, false)
+      page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
 }
 
-panel.setActiveMenu = item => {
+page.setActiveMenu = item => {
   const menu = document.getElementById('menu')
   const items = menu.getElementsByTagName('a')
   for (const item of items) { item.className = '' }
@@ -1180,19 +1193,21 @@ window.onload = () => {
 
   const selectedFiles = localStorage.selectedFiles
   if (selectedFiles) {
-    panel.selectedFiles = JSON.parse(selectedFiles)
+    page.selectedFiles = JSON.parse(selectedFiles)
   }
 
-  panel.preparePage()
+  page.preparePage()
 
-  panel.clipboardJS = new ClipboardJS('.clipboard-js')
+  page.clipboardJS = new ClipboardJS('.clipboard-js')
 
-  panel.clipboardJS.on('success', () => {
+  page.clipboardJS.on('success', () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  panel.clipboardJS.on('error', event => {
+  page.clipboardJS.on('error', event => {
     console.error(event)
     return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
   })
+
+  page.lazyLoad = new LazyLoad()
 }

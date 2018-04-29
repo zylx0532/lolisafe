@@ -246,7 +246,9 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
         return new Promise((resolve, reject) => {
           const chunkPath = path.join(uuidDir, chunkName)
           fs.unlink(chunkPath, error => {
-            if (error) { return reject(error) }
+            if (error && error.code !== 'ENOENT') {
+              return reject(error)
+            }
             resolve()
           })
         })
@@ -366,7 +368,7 @@ uploadsController.writeFilesToDb = (req, res, user, infoMap) => {
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
-          utils.deleteFile(info.data.filename).then(() => {}).catch(error => console.log(error))
+          utils.deleteFile(info.data.filename).catch(console.error)
           existingFiles.push(dbFile)
         }
 
@@ -447,6 +449,7 @@ uploadsController.delete = async (req, res) => {
   // TODO: Wrap utils.bulkDeleteFilesByIds() instead
   const user = await utils.authorize(req, res)
   if (!user) { return }
+
   const id = req.body.id
   if (id === undefined || id === '') {
     return res.json({ success: false, description: 'No file specified.' })
@@ -461,21 +464,17 @@ uploadsController.delete = async (req, res) => {
     })
     .first()
 
-  try {
-    await utils.deleteFile(file.name).catch(error => {
-      // ENOENT is missing file, for whatever reason, then just delete from db anyways
-      if (error.code !== 'ENOENT') { throw error }
-    })
-    await db.table('files')
-      .where('id', id)
-      .del()
-    if (file.albumid) {
-      await db.table('albums')
-        .where('id', file.albumid)
-        .update('editedAt', Math.floor(Date.now() / 1000))
-    }
-  } catch (error) {
-    console.log(error)
+  const deleteFile = await utils.deleteFile(file.name).catch(console.error)
+  if (!deleteFile) { return }
+
+  await db.table('files')
+    .where('id', id)
+    .del()
+
+  if (file.albumid) {
+    await db.table('albums')
+      .where('id', file.albumid)
+      .update('editedAt', Math.floor(Date.now() / 1000))
   }
 
   return res.json({ success: true })

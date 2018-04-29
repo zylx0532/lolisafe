@@ -1,28 +1,34 @@
-/* eslint-disable no-unused-expressions */
-/* global swal, axios, Dropzone, ClipboardJS */
+/* global swal, axios, Dropzone, ClipboardJS, LazyLoad */
 
-const upload = {
-  private: undefined,
-  enableUserAccounts: undefined,
+const page = {
+  // user token
   token: localStorage.token,
-  maxFileSize: undefined,
-  chunkedUploads: undefined,
-  // Add the album let to the upload so we can store the album id in there
-  album: undefined,
-  dropzone: undefined,
-  clipboardJS: undefined
+
+  // configs from api/check
+  private: null,
+  enableUserAccounts: null,
+  maxFileSize: null,
+  chunkedUploads: null, // chunked uploads config
+
+  // store album id that will be used with upload requests
+  album: null,
+
+  dropzone: null,
+  clipboardJS: null,
+  lazyLoad: null,
+  lazyLoadTimestamp: null
 }
 
 const imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 
-upload.checkIfPublic = () => {
+page.checkIfPublic = () => {
   axios.get('api/check')
     .then(response => {
-      upload.private = response.data.private
-      upload.enableUserAccounts = response.data.enableUserAccounts
-      upload.maxFileSize = response.data.maxFileSize
-      upload.chunkedUploads = response.data.chunkedUploads
-      upload.preparePage()
+      page.private = response.data.private
+      page.enableUserAccounts = response.data.enableUserAccounts
+      page.maxFileSize = response.data.maxFileSize
+      page.chunkedUploads = response.data.chunkedUploads
+      page.preparePage()
     })
     .catch(error => {
       console.log(error)
@@ -33,27 +39,27 @@ upload.checkIfPublic = () => {
     })
 }
 
-upload.preparePage = () => {
-  if (upload.private) {
-    if (upload.token) {
-      return upload.verifyToken(upload.token, true)
+page.preparePage = () => {
+  if (page.private) {
+    if (page.token) {
+      return page.verifyToken(page.token, true)
     } else {
       const button = document.getElementById('loginToUpload')
       button.href = 'auth'
       button.className = button.className.replace(' is-loading', '')
 
-      if (upload.enableUserAccounts) {
-        button.innerText = 'Anonymous upload is disabled. Log in to upload.'
+      if (page.enableUserAccounts) {
+        button.innerText = 'Anonymous upload is disabled. Log in to page.'
       } else {
-        button.innerText = 'Running in private mode. Log in to upload.'
+        button.innerText = 'Running in private mode. Log in to page.'
       }
     }
   } else {
-    return upload.prepareUpload()
+    return page.prepareUpload()
   }
 }
 
-upload.verifyToken = (token, reloadOnError) => {
+page.verifyToken = (token, reloadOnError) => {
   if (reloadOnError === undefined) { reloadOnError = false }
 
   axios.post('api/tokens/verify', { token })
@@ -73,8 +79,8 @@ upload.verifyToken = (token, reloadOnError) => {
       }
 
       localStorage.token = token
-      upload.token = token
-      return upload.prepareUpload()
+      page.token = token
+      return page.prepareUpload()
     })
     .catch(error => {
       console.log(error)
@@ -82,16 +88,16 @@ upload.verifyToken = (token, reloadOnError) => {
     })
 }
 
-upload.prepareUpload = () => {
+page.prepareUpload = () => {
   // I think this fits best here because we need to check for a valid token before we can get the albums
-  if (upload.token) {
+  if (page.token) {
     const select = document.getElementById('albumSelect')
 
     select.addEventListener('change', () => {
-      upload.album = parseInt(select.value)
+      page.album = parseInt(select.value)
     })
 
-    axios.get('api/albums', { headers: { token: upload.token } })
+    axios.get('api/albums', { headers: { token: page.token } })
       .then(res => {
         const albums = res.data.albums
 
@@ -126,38 +132,38 @@ upload.prepareUpload = () => {
   `
   div.style.display = 'flex'
 
-  document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${upload.maxFileSize}`
+  document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${page.maxFileSize}`
   document.getElementById('loginToUpload').style.display = 'none'
 
-  if (upload.token === undefined && upload.enableUserAccounts) {
+  if (!page.token && page.enableUserAccounts) {
     document.getElementById('loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
   }
 
   document.getElementById('uploadContainer').appendChild(div)
 
-  upload.prepareDropzone()
+  page.prepareDropzone()
 }
 
-upload.prepareDropzone = () => {
+page.prepareDropzone = () => {
   const previewNode = document.querySelector('#template')
   previewNode.id = ''
   const previewTemplate = previewNode.parentNode.innerHTML
   previewNode.parentNode.removeChild(previewNode)
 
-  upload.dropzone = new Dropzone('div#dropzone', {
+  page.dropzone = new Dropzone('#dropzone', {
     url: 'api/upload',
     paramName: 'files[]',
-    maxFilesize: parseInt(upload.maxFileSize),
+    maxFilesize: parseInt(page.maxFileSize),
     parallelUploads: 2,
     uploadMultiple: false,
-    previewsContainer: 'div#uploads',
+    previewsContainer: '#uploads',
     previewTemplate,
     createImageThumbnails: false,
     maxFiles: 1000,
     autoProcessQueue: true,
-    headers: { token: upload.token },
-    chunking: upload.chunkedUploads.enabled,
-    chunkSize: parseInt(upload.chunkedUploads.chunkSize) * 1000000, // 1000000 B = 1 MB,
+    headers: { token: page.token },
+    chunking: page.chunkedUploads.enabled,
+    chunkSize: parseInt(page.chunkedUploads.chunkSize) * 1000000, // 1000000 B = 1 MB,
     parallelChunkUploads: false, // when set to true, sometimes it often hangs with hundreds of parallel uploads
     chunksUploaded: async (file, done) => {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
@@ -167,19 +173,17 @@ upload.prepareDropzone = () => {
       const response = await axios.post(
         'api/upload/finishchunks',
         {
-          files: [
-            {
-              uuid: file.upload.uuid,
-              original: file.name,
-              size: file.size,
-              type: file.type,
-              count: file.upload.totalChunkCount,
-              albumid: upload.album
-            }
-          ]
+          files: [{
+            uuid: file.upload.uuid,
+            original: file.name,
+            size: file.size,
+            type: file.type,
+            count: file.upload.totalChunkCount,
+            albumid: page.album
+          }]
         },
         {
-          headers: { token: upload.token }
+          headers: { token: page.token }
         })
         .then(response => response.data)
         .catch(error => {
@@ -195,32 +199,31 @@ upload.prepareDropzone = () => {
         file.previewTemplate.querySelector('.error').innerHTML = response.description
       }
 
-      if (response.files && response.files[0] && response.files[0].url) {
-        upload.appendLink(file, response.files[0].url)
-        upload.showThumbnail(file, response.files[0].url)
+      if (response.files && response.files[0]) {
+        page.updateTemplate(file, response.files[0])
       }
       return done()
     }
   })
 
-  upload.dropzone.on('addedfile', file => {
+  page.dropzone.on('addedfile', file => {
     document.getElementById('uploads').style.display = 'block'
   })
 
   // Add the selected albumid, if an album is selected, as a header
-  upload.dropzone.on('sending', (file, xhr, formData) => {
+  page.dropzone.on('sending', (file, xhr, formData) => {
     if (file.upload.chunked) { return }
-    if (upload.album) { xhr.setRequestHeader('albumid', upload.album) }
+    if (page.album) { xhr.setRequestHeader('albumid', page.album) }
   })
 
   // Update the total progress bar
-  upload.dropzone.on('uploadprogress', (file, progress, bytesSent) => {
+  page.dropzone.on('uploadprogress', (file, progress, bytesSent) => {
     if (file.upload.chunked && progress === 100) { return }
     file.previewElement.querySelector('.progress').setAttribute('value', progress)
     file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
   })
 
-  upload.dropzone.on('success', (file, response) => {
+  page.dropzone.on('success', (file, response) => {
     if (!response) { return }
     file.previewTemplate.querySelector('.progress').style.display = 'none'
 
@@ -228,37 +231,42 @@ upload.prepareDropzone = () => {
       file.previewTemplate.querySelector('.error').innerHTML = response.description
     }
 
-    if (response.files && response.files[0] && response.files[0].url) {
-      upload.appendLink(file, response.files[0].url)
-      upload.showThumbnail(file, response.files[0].url)
+    if (response.files && response.files[0]) {
+      page.updateTemplate(file, response.files[0])
     }
   })
 
-  upload.dropzone.on('error', (file, error) => {
+  page.dropzone.on('error', (file, error) => {
     file.previewTemplate.querySelector('.progress').style.display = 'none'
     file.previewTemplate.querySelector('.error').innerHTML = error
   })
 
-  upload.prepareShareX()
+  page.prepareShareX()
 }
 
-upload.appendLink = (file, url) => {
+page.updateTemplate = (file, response) => {
+  if (!response.url) { return }
+
   const a = file.previewTemplate.querySelector('.link > a')
   const clipboard = file.previewTemplate.querySelector('.clipboard-mobile > .clipboard-js')
+  a.href = a.innerHTML = clipboard.dataset['clipboardText'] = response.url
+  clipboard.parentElement.style.display = 'block'
 
-  a.href = a.innerHTML = clipboard.dataset['clipboardText'] = url
-  a.parentElement.style = clipboard.parentElement.style = ''
-}
+  const name = file.previewTemplate.querySelector('.name')
+  name.innerHTML = file.name
 
-upload.showThumbnail = (file, url) => {
-  const exec = /.[\w]+(\?|$)/.exec(url)
+  const exec = /.[\w]+(\?|$)/.exec(response.url)
   if (exec && exec[0] && imageExtensions.includes(exec[0].toLowerCase())) {
-    upload.dropzone.emit('thumbnail', file, url)
+    const img = file.previewTemplate.querySelector('img')
+    img.setAttribute('alt', response.name || '')
+    img.dataset['src'] = response.url
+    img.onerror = function () { this.style.display = 'none' } // hide webp in firefox and ie
+    page.lazyLoad.update(file.previewTemplate.querySelectorAll('img'))
   }
 }
 
-upload.prepareShareX = () => {
-  if (upload.token) {
+page.prepareShareX = () => {
+  if (page.token) {
     const sharexElement = document.getElementById('ShareX')
     const sharexFile =
       '{\r\n' +
@@ -268,7 +276,7 @@ upload.prepareShareX = () => {
       `  "RequestURL": "${location.origin}/api/upload",\r\n` +
       '  "FileFormName": "files[]",\r\n' +
       '  "Headers": {\r\n' +
-      `    "token": "${upload.token}"\r\n` +
+      `    "token": "${page.token}"\r\n` +
       '  },\r\n' +
       '  "ResponseType": "Text",\r\n' +
       '  "URL": "$json:files[0].url$",\r\n' +
@@ -291,22 +299,34 @@ window.addEventListener('paste', event => {
       const file = new File([blob], `pasted-image.${blob.type.match(/(?:[^/]*\/)([^;]*)/)[1]}`)
       file.type = blob.type
       console.log(file)
-      upload.dropzone.addFile(file)
+      page.dropzone.addFile(file)
     }
   }
 })
 
+page.lazyLoadUpdate = () => {
+  // console.log(page.lazyLoadTimestamp)
+  if (!page.lazyLoadTimestamp) { page.lazyLoadTimestamp = 0 }
+  if (Date.now() - page.lazyLoadTimestamp >= 500) {
+    console.log('update() called')
+    page.lazyLoad.update()
+    page.lazyLoadTimestamp = Date.now()
+  }
+}
+
 window.onload = () => {
-  upload.checkIfPublic()
+  page.checkIfPublic()
 
-  upload.clipboardJS = new ClipboardJS('.clipboard-js')
+  page.clipboardJS = new ClipboardJS('.clipboard-js')
 
-  upload.clipboardJS.on('success', () => {
+  page.clipboardJS.on('success', () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  upload.clipboardJS.on('error', event => {
+  page.clipboardJS.on('error', event => {
     console.error(event)
     return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
   })
+
+  page.lazyLoad = new LazyLoad()
 }

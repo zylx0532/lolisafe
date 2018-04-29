@@ -12,6 +12,7 @@
 <script type="text/javascript" src="libs/sweetalert/sweetalert.min.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="libs/axios/axios.min.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="libs/clipboard.js/clipboard.min.js?v={{ globals.v1 }}"></script>
+<script type="text/javascript" src="libs/lazyload/lazyload.min.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="js/dashboard.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
@@ -52,13 +53,13 @@
               <a href=".">Frontpage</a>
             </li>
             <li>
-              <a id="itemUploads" onclick="panel.getUploads()">Uploads</a>
+              <a id="itemUploads" onclick="page.getUploads()">Uploads</a>
             </li>
           </ul>
           <p class="menu-label">Albums</p>
           <ul class="menu-list">
             <li>
-              <a id="itemManageGallery" onclick="panel.getAlbums()">Manage your albums</a>
+              <a id="itemManageGallery" onclick="page.getAlbums()">Manage your albums</a>
             </li>
             <li>
               <ul id="albumsContainer"></ul>
@@ -67,16 +68,16 @@
           <p class="menu-label">Administration</p>
           <ul class="menu-list">
             <li>
-              <a id="itemFileLength" onclick="panel.changeFileLength()">File name length</a>
+              <a id="itemFileLength" onclick="page.changeFileLength()">File name length</a>
             </li>
             <li>
-              <a id="itemTokens" onclick="panel.changeToken()">Manage your token</a>
+              <a id="itemTokens" onclick="page.changeToken()">Manage your token</a>
             </li>
             <li>
-              <a id="itemPassword" onclick="panel.changePassword()">Change your password</a>
+              <a id="itemPassword" onclick="page.changePassword()">Change your password</a>
             </li>
             <li>
-              <a id="itemLogout" onclick="panel.logout()">Logout</a>
+              <a id="itemLogout" onclick="page.logout()">Logout</a>
             </li>
           </ul>
         </aside>
@@ -89,13 +90,13 @@
 </section>
 
 <div id="modal" class="modal">
-  <div class="modal-background" onclick="panel.closeModal()"></div>
+  <div class="modal-background" onclick="page.closeModal()"></div>
   <div class="modal-content">
     <figure class="image">
       <img id="modalImage" alt="modal-image">
     </figure>
   </div>
-  <button class="modal-close is-large" aria-label="close" onclick="panel.closeModal()"></button>
+  <button class="modal-close is-large" aria-label="close" onclick="page.closeModal()"></button>
 </div>
 
 {% include "_partial/noscript.njk" %}
