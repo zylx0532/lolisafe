@@ -107,7 +107,7 @@ albumsController.getUniqueRandomName = () => {
         .where('identifier', identifier)
         .then(rows => {
           if (!rows || !rows.length) { return resolve(identifier) }
-          console.log(`An album with identifier ${name} already exists (${++i}/${maxTries}).`)
+          console.log(`An album with identifier ${identifier} already exists (${++i}/${maxTries}).`)
           if (i < maxTries) { return select(i) }
           // eslint-disable-next-line prefer-promise-reject-errors
           return reject('Sorry, we could not allocate a unique random identifier. Try again?')

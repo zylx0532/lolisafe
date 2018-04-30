@@ -11,7 +11,7 @@
     "url": "https://github.com/WeebDev/lolisafe/issues"
   },
   "engines": {
-    "node": ">=7.0.0"
+    "node": ">=8.0.0"
   },
   "license": "MIT",
   "scripts": {
@@ -43,38 +43,5 @@
   },
   "resolutions": {
     "chokidar": "^2.0.3"
-  },
-  "eslintConfig": {
-    "env": {
-      "browser": true,
-      "node": true
-    },
-    "extends": [
-      "standard"
-    ],
-    "rules": {
-      "curly": [
-        "error",
-        "all"
-      ],
-      "prefer-const": [
-        "error",
-        {
-          "destructuring": "any",
-          "ignoreReadBeforeAssign": false
-        }
-      ],
-      "object-shorthand": [
-        "error",
-        "always"
-      ],
-      "quotes": [
-        "error",
-        "single"
-      ]
-    }
-  },
-  "eslintIgnore": [
-    "**/*.min.js"
-  ]
+  }
 }
