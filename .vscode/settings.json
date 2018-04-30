@@ -1,7 +1,9 @@
 {
+    "beautify.tabSize": 2,
     "beautify.options": {
         "css": {
-            "indent_size": 2
+            "indent_size": 2,
+            "indent_char": " "
         }
     },
     "discord.enabled": true,
