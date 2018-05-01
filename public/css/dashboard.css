@@ -213,23 +213,3 @@ html {
 .table td a:not([href]) {
   text-decoration: line-through;
 }
-
-#modal .modal-content {
-  background-color: #31363b;
-  border-radius: 5px;
-  -webkit-box-shadow: 0 2px 3px rgba(10, 10, 10, .1), 0 0 0 1px rgba(10, 10, 10, .1);
-  box-shadow: 0 2px 3px rgba(10, 10, 10, .1), 0 0 0 1px rgba(10, 10, 10, .1);
-  padding: 20px;
-  width: auto;
-}
-
-#modal .modal-content .image {
-  width: 200px;
-  height: 200px;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}

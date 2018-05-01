@@ -105,17 +105,10 @@ page.logout = () => {
   location.reload('.')
 }
 
-page.closeModal = () => {
-  document.getElementById('modal').className = 'modal'
-}
-
 page.isLoading = (element, state) => {
   if (!element) { return }
-  if (state && !element.className.includes(' is-loading')) {
-    element.className += ' is-loading'
-  } else if (!state && element.className.includes(' is-loading')) {
-    element.className = element.className.replace(' is-loading', '')
-  }
+  if (state) { return element.classList.add('is-loading') }
+  element.classList.remove('is-loading')
 }
 
 page.getUploads = (album, pageNum, element) => {
@@ -293,7 +286,7 @@ page.getUploads = (album, pageNum, element) => {
             <td>${file.size}</td>
             <td>${file.date}</td>
             <td style="text-align: right">
-              <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnailModal(${file.thumb ? `'${file.thumb}'` : null})"${file.thumb ? '' : ' disabled'}>
+              <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnail(${file.thumb ? `'${file.thumb}'` : null}, '${file.name}')"${file.thumb ? '' : ' disabled'}>
                 <span class="icon">
                   <i class="icon-picture-1"></i>
                 </span>
@@ -341,10 +334,16 @@ page.setFilesView = (view, element) => {
   page.getUploads(page.currentView.album, page.currentView.pageNum, element)
 }
 
-page.displayThumbnailModal = thumb => {
-  if (!thumb) { return }
-  document.getElementById('modalImage').src = thumb
-  document.getElementById('modal').className += ' is-active'
+page.displayThumbnail = (src, text) => {
+  if (!src) { return }
+  swal({
+    text,
+    content: {
+      element: 'img',
+      attributes: { src }
+    },
+    button: true
+  })
 }
 
 page.selectAllFiles = element => {
@@ -735,7 +734,7 @@ page.getAlbums = () => {
                 <i class="icon-pencil-1"></i>
               </span>
             </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${album.identifier}"` : 'disabled'}>
+            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
               <span class="icon is-small">
                 <i class="icon-clipboard-1"></i>
               </span>
@@ -1177,18 +1176,18 @@ page.sendNewPassword = (pass, element) => {
     })
 }
 
-page.setActiveMenu = item => {
+page.setActiveMenu = activeItem => {
   const menu = document.getElementById('menu')
   const items = menu.getElementsByTagName('a')
-  for (const item of items) { item.className = '' }
+  for (const item of items) { item.classList.remove('is-active') }
 
-  item.className = 'is-active'
+  activeItem.classList.add('is-active')
 }
 
 window.onload = () => {
   // Add 'no-touch' class to non-touch devices
   if (!('ontouchstart' in document.documentElement)) {
-    document.documentElement.className += ' no-touch'
+    document.documentElement.classList.add('no-touch')
   }
 
   const selectedFiles = localStorage.selectedFiles

@@ -35,12 +35,6 @@ page.do = async dest => {
   window.location = 'dashboard'
 }
 
-page.onkeypress = (event, element) => {
-  event = event || window.event
-  if (!event) { return }
-  if (event.keyCode === 13 || event.which === 13) { page.do('login') }
-}
-
 page.verify = async () => {
   if (!page.token) { return }
 
@@ -62,4 +56,12 @@ page.verify = async () => {
 
 window.onload = () => {
   page.verify()
+
+  document.body.addEventListener('keydown', event => {
+    event = event || window.event
+    if (!event) { return }
+    const id = event.target.id
+    if (!['user', 'pass'].includes(id)) { return }
+    if (event.keyCode === 13 || event.which === 13) { page.do('login') }
+  })
 }
