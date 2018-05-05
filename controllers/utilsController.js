@@ -112,18 +112,29 @@ utilsController.deleteFile = file => {
   })
 }
 
-// This will return an array of IDs that could not be deleted
-utilsController.bulkDeleteFilesByIds = async (ids, user) => {
+/**
+ * Delete files by matching whether the specified field contains any value
+ * in the array of values. This will return an array of values that could
+ * not be deleted. At the moment it's hard-coded to only accept either
+ * "id" or "name" field.
+ *
+ * @param  {string} field
+ * @param  {any} values
+ * @param  {user} user
+ * @return {any[]} failed
+ */
+utilsController.bulkDeleteFiles = async (field, values, user) => {
   if (!user) { return }
+  if (!['id', 'name'].includes(field)) { return }
   const files = await db.table('files')
-    .whereIn('id', ids)
+    .whereIn(field, values)
     .where(function () {
       if (user.username !== 'root') {
         this.where('userid', user.id)
       }
     })
 
-  const failedids = ids.filter(id => !files.find(file => file.id === id))
+  const failed = values.filter(value => !files.find(file => file[field] === value))
   const albumids = []
 
   // Delete all files
@@ -132,12 +143,12 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
       const deleteFile = await utilsController.deleteFile(file.name)
         .catch(error => {
           console.log(error)
-          failedids.push(file.id)
+          failed.push(file[field])
         })
       if (!deleteFile) { return resolve() }
 
       await db.table('files')
-        .where('id', file.id)
+        .where(field, file[field])
         .del()
         .then(() => {
           if (file.albumid && !albumids.includes(file.albumid)) {
@@ -146,7 +157,7 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
         })
         .catch(error => {
           console.error(error)
-          failedids.push(file.id)
+          failed.push(file[field])
         })
 
       return resolve()
@@ -162,7 +173,7 @@ utilsController.bulkDeleteFilesByIds = async (ids, user) => {
     }))
   }
 
-  return failedids
+  return failed
 }
 
 module.exports = utilsController

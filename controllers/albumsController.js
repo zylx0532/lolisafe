@@ -129,7 +129,7 @@ albumsController.delete = async (req, res, next) => {
   }
 
   let ids = []
-  let failedids = []
+  let failed = []
   if (purge) {
     const files = await db.table('files')
       .where({
@@ -138,9 +138,9 @@ albumsController.delete = async (req, res, next) => {
       })
 
     ids = files.map(file => file.id)
-    failedids = await utils.bulkDeleteFilesByIds(ids, user)
+    failed = await utils.bulkDeleteFiles('id', ids, user)
 
-    if (failedids.length === ids.length) {
+    if (failed.length === ids.length) {
       return res.json({ success: false, description: 'Could not delete any of the files associated with the album.' })
     }
   }
@@ -166,9 +166,9 @@ albumsController.delete = async (req, res, next) => {
   fs.unlink(zipPath, error => {
     if (error && error.code !== 'ENOENT') {
       console.log(error)
-      return res.json({ success: false, description: error.toString(), failedids })
+      return res.json({ success: false, description: error.toString(), failed })
     }
-    res.json({ success: true, failedids })
+    res.json({ success: true, failed })
   })
 }
 
@@ -443,7 +443,7 @@ albumsController.addFiles = async (req, res, next) => {
       }
     })
 
-  const failedids = ids.filter(id => !files.find(file => file.id === id))
+  const failed = ids.filter(id => !files.find(file => file.id === id))
 
   await Promise.all(files.map(file => {
     if (file.albumid && !albumids.includes(file.albumid)) {
@@ -455,23 +455,23 @@ albumsController.addFiles = async (req, res, next) => {
       .update('albumid', albumid)
       .catch(error => {
         console.error(error)
-        failedids.push(file.id)
+        failed.push(file.id)
       })
   }))
 
-  if (failedids.length < ids.length) {
+  if (failed.length < ids.length) {
     await Promise.all(albumids.map(albumid => {
       return db.table('albums')
         .where('id', albumid)
         .update('editedAt', Math.floor(Date.now() / 1000))
     }))
 
-    return res.json({ success: true, failedids })
+    return res.json({ success: true, failed })
   }
 
   return res.json({
     success: false,
-    description: `Could not ${albumid === null ? 'add' : 'remove'} any of the selected files ${albumid === null ? 'to' : 'from'} the album.`
+    description: `Could not ${albumid === null ? 'add' : 'remove'} any files ${albumid === null ? 'to' : 'from'} the album.`
   })
 }
 

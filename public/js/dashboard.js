@@ -19,11 +19,12 @@ const page = {
   checkboxes: [],
   lastSelected: null,
 
-  // select album dom, for 'add to album' dialog
+  // select album dom for dialogs/modals
   selectAlbumContainer: null,
 
-  // cache of albums data, for 'edit album' dialog
-  albums: [],
+  // cache of files and albums data for dialogs/modals
+  files: new Map(),
+  albums: new Map(),
 
   clipboardJS: null,
   lazyLoad: null
@@ -37,11 +38,7 @@ page.preparePage = () => {
   page.verifyToken(page.token, true)
 }
 
-page.verifyToken = async (token, reloadOnError) => {
-  if (reloadOnError === undefined) {
-    reloadOnError = false
-  }
-
+page.verifyToken = async (token, reloadOnError = false) => {
   const response = await axios.post('api/tokens/verify', { token })
     .catch(error => {
       console.log(error)
@@ -50,7 +47,7 @@ page.verifyToken = async (token, reloadOnError) => {
   if (!response) { return }
 
   if (response.data.success === false) {
-    swal({
+    return swal({
       title: 'An error occurred!',
       text: response.data.description,
       icon: 'error'
@@ -60,7 +57,6 @@ page.verifyToken = async (token, reloadOnError) => {
         location.location = 'auth'
       }
     })
-    return
   }
 
   axios.defaults.headers.common.token = token
@@ -76,6 +72,10 @@ page.prepareDashboard = () => {
   document.getElementById('dashboard').style.display = 'block'
 
   document.getElementById('itemUploads').addEventListener('click', function () {
+    page.setActiveMenu(this)
+  })
+
+  document.getElementById('itemDeleteByNames').addEventListener('click', function () {
     page.setActiveMenu(this)
   })
 
@@ -126,6 +126,8 @@ page.getUploads = (album, pageNum, element) => {
         return swal('An error occurred!', response.data.description, 'error')
       }
     }
+
+    page.files.clear()
 
     let prevPage = 0
     let nextPage = pageNum + 1
@@ -270,6 +272,11 @@ page.getUploads = (album, pageNum, element) => {
         const selected = page.selectedFiles.includes(file.id)
         if (!selected && allFilesSelected) { allFilesSelected = false }
 
+        page.files.set(file.id, {
+          name: file.name,
+          thumb: file.thumb
+        })
+
         const tr = document.createElement('tr')
 
         let displayAlbumOrUser = file.album
@@ -286,7 +293,7 @@ page.getUploads = (album, pageNum, element) => {
             <td>${file.size}</td>
             <td>${file.date}</td>
             <td style="text-align: right">
-              <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnail(${file.thumb ? `'${file.thumb}'` : null}, '${file.name}')"${file.thumb ? '' : ' disabled'}>
+              <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnail(${file.id})"${file.thumb ? '' : ' disabled'}>
                 <span class="icon">
                   <i class="icon-picture-1"></i>
                 </span>
@@ -334,13 +341,14 @@ page.setFilesView = (view, element) => {
   page.getUploads(page.currentView.album, page.currentView.pageNum, element)
 }
 
-page.displayThumbnail = (src, text) => {
-  if (!src) { return }
+page.displayThumbnail = id => {
+  const file = page.files.get(id)
+  if (!file.thumb) { return }
   swal({
-    text,
+    text: file.name,
     content: {
       element: 'img',
-      attributes: { src }
+      attributes: { src: file.thumb }
     },
     button: true
   })
@@ -509,7 +517,8 @@ page.deleteSelectedFiles = async () => {
   if (!proceed) { return }
 
   const bulkdelete = await axios.post('api/upload/bulkdelete', {
-    ids: page.selectedFiles
+    field: 'id',
+    values: page.selectedFiles
   })
     .catch(error => {
       console.log(error)
@@ -526,9 +535,9 @@ page.deleteSelectedFiles = async () => {
   }
 
   let deleted = count
-  if (bulkdelete.data.failedids && bulkdelete.data.failedids.length) {
-    deleted -= bulkdelete.data.failedids.length
-    page.selectedFiles = page.selectedFiles.filter(id => bulkdelete.data.failedids.includes(id))
+  if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
+    deleted -= bulkdelete.data.failed.length
+    page.selectedFiles = page.selectedFiles.filter(id => bulkdelete.data.failed.includes(id))
   } else {
     page.selectedFiles = []
   }
@@ -539,16 +548,91 @@ page.deleteSelectedFiles = async () => {
   return page.getUploads(page.currentView.album, page.currentView.pageNum)
 }
 
+page.deleteByNames = () => {
+  page.dom.innerHTML = `
+    <h2 class="subtitle">Delete by names</h2>
+
+    <div class="field">
+      <label class="label">File names:</label>
+      <div class="control">
+        <textarea id="names" class="textarea"></textarea>
+      </div>
+      <p class="help">Separate each entry with a new line.</p>
+    </div>
+
+    <div class="field">
+      <div class="control">
+        <a class="button is-danger is-fullwidth" onclick="page.deleteFileByNames()">
+          <span class="icon">
+            <i class="icon-trash"></i>
+          </span>
+          <span>Bulk delete</span>
+        </a>
+      </div>
+    </div>
+  `
+}
+
+page.deleteFileByNames = async () => {
+  const names = document.getElementById('names').value.split(/\r?\n/).filter(n => n.trim().length)
+  const count = names.length
+  if (!count) {
+    return swal('An error occurred!', 'You have not entered any file names.', 'error')
+  }
+
+  const suffix = `file${count === 1 ? '' : 's'}`
+  const proceed = await swal({
+    title: 'Are you sure?',
+    text: `You won't be able to recover ${count} ${suffix}!`,
+    icon: 'warning',
+    dangerMode: true,
+    buttons: {
+      cancel: true,
+      confirm: {
+        text: `Yes, nuke the ${suffix}!`,
+        closeModal: false
+      }
+    }
+  })
+  if (!proceed) { return }
+
+  const bulkdelete = await axios.post('api/upload/bulkdelete', {
+    field: 'name',
+    values: names
+  })
+    .catch(error => {
+      console.log(error)
+      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!bulkdelete) { return }
+
+  if (bulkdelete.data.success === false) {
+    if (bulkdelete.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', bulkdelete.data.description, 'error')
+    }
+  }
+
+  let deleted = count
+  if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
+    deleted -= bulkdelete.data.failed.length
+    document.getElementById('names').value = bulkdelete.data.failed.join('\n')
+  }
+
+  swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
+}
+
 page.addSelectedFilesToAlbum = async () => {
   const count = page.selectedFiles.length
   if (!count) {
     return swal('An error occurred!', 'You have not selected any files.', 'error')
   }
 
-  const failedids = await page.addFilesToAlbum(page.selectedFiles)
-  if (!failedids) { return }
-  if (failedids.length) {
-    page.selectedFiles = page.selectedFiles.filter(id => failedids.includes(id))
+  const failed = await page.addFilesToAlbum(page.selectedFiles)
+  if (!failed) { return }
+  if (failed.length) {
+    page.selectedFiles = page.selectedFiles.filter(id => failed.includes(id))
   } else {
     page.selectedFiles = []
   }
@@ -557,8 +641,8 @@ page.addSelectedFilesToAlbum = async () => {
 }
 
 page.addSingleFileToAlbum = async id => {
-  const failedids = await page.addFilesToAlbum([id])
-  if (!failedids) { return }
+  const failed = await page.addFilesToAlbum([id])
+  if (!failed) { return }
   page.getUploads(page.currentView.album, page.currentView.pageNum)
 }
 
@@ -652,8 +736,8 @@ page.addFilesToAlbum = async ids => {
   }
 
   let added = ids.length
-  if (add.data.failedids && add.data.failedids.length) {
-    added -= add.data.failedids.length
+  if (add.data.failed && add.data.failed.length) {
+    added -= add.data.failed.length
   }
   const suffix = `file${ids.length === 1 ? '' : 's'}`
 
@@ -663,7 +747,7 @@ page.addFilesToAlbum = async ids => {
   }
 
   swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
-  return add.data.failedids
+  return add.data.failed
 }
 
 page.getAlbums = () => {
@@ -676,22 +760,29 @@ page.getAlbums = () => {
       }
     }
 
+    page.albums.clear()
+
     page.dom.innerHTML = `
       <h2 class="subtitle">Create new album</h2>
 
-      <div class="field has-addons has-addons-centered">
-        <div class="control is-expanded">
+      <div class="field">
+        <div class="control">
           <input id="albumName" class="input" type="text" placeholder="Name">
         </div>
+      </div>
+
+      <div class="field">
         <div class="control">
-          <a id="submitAlbum" class="button is-breeze">
+          <a id="submitAlbum" class="button is-breeze is-fullwidth">
             <span class="icon">
               <i class="icon-paper-plane-empty"></i>
             </span>
-            <span>Submit</span>
+            <span>Create</span>
           </a>
         </div>
       </div>
+
+      <hr>
 
       <h2 class="subtitle">List of albums</h2>
 
@@ -713,13 +804,18 @@ page.getAlbums = () => {
       </div>
     `
 
-    page.albums = response.data.albums
-
     const homeDomain = response.data.homeDomain
     const table = document.getElementById('table')
 
     for (const album of response.data.albums) {
       const albumUrl = `${homeDomain}/a/${album.identifier}`
+
+      page.albums.set(album.id, {
+        name: album.name,
+        download: album.download,
+        public: album.public
+      })
+
       const tr = document.createElement('tr')
       tr.innerHTML = `
         <tr>
@@ -767,10 +863,8 @@ page.getAlbums = () => {
 }
 
 page.editAlbum = async id => {
-  const album = page.albums.find(a => a.id === id)
-  if (!album) {
-    return swal('An error occurred!', 'Album with that ID could not be found.', 'error')
-  }
+  const album = page.albums.get(id)
+  if (!album) { return }
 
   const div = document.createElement('div')
   div.innerHTML = `
@@ -978,21 +1072,24 @@ page.changeFileLength = () => {
         <h2 class="subtitle">File name length</h2>
 
         <div class="field">
-          <label class="label">Your current file name length:</label>
-          <div class="field has-addons">
-            <div class="control is-expanded">
+          <div class="field">
+            <label class="label">Your current file name length:</label>
+            <div class="control">
               <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${response.data.fileLength ? Math.min(Math.max(response.data.fileLength, response.data.config.min), response.data.config.max) : response.data.config.default}">
             </div>
+            <p class="help">Default file name length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file name length is disabled at the moment.'}</p>
+          </div>
+
+          <div class="field">
             <div class="control">
-              <a id="setFileLength" class="button is-breeze">
+              <a id="setFileLength" class="button is-breeze is-fullwidth">
                 <span class="icon">
                   <i class="icon-paper-plane-empty"></i>
                 </span>
                 <span>Set file name length</span>
               </a>
             </div>
-          </div>
-          <p class="help">Default file name length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file name length is disabled at the moment.'}</p>
+          <div>
         </div>
       `
 
@@ -1024,7 +1121,8 @@ page.setFileLength = (fileLength, element) => {
         text: 'Your file length was successfully changed.',
         icon: 'success'
       }).then(() => {
-        location.reload()
+        // location.reload()
+        page.changeFileLength()
       })
     })
     .catch(error => {
@@ -1050,18 +1148,21 @@ page.changeToken = () => {
 
         <div class="field">
           <label class="label">Your current token:</label>
-          <div class="field has-addons">
-            <div class="control is-expanded">
+          <div class="field">
+            <div class="control">
               <input id="token" readonly class="input" type="text" placeholder="Your token" value="${response.data.token}">
             </div>
-            <div class="control">
-              <a id="getNewToken" class="button is-breeze">
-                <span class="icon">
-                  <i class="icon-arrows-cw"></i>
-                </span>
-                <span>Request new token</span>
-              </a>
-            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="control">
+            <a id="getNewToken" class="button is-breeze is-fullwidth">
+              <span class="icon">
+                <i class="icon-arrows-cw"></i>
+              </span>
+              <span>Request new token</span>
+            </a>
           </div>
         </div>
       `
@@ -1094,8 +1195,11 @@ page.getNewToken = element => {
         text: 'Your token was successfully changed.',
         icon: 'success'
       }).then(() => {
+        axios.defaults.headers.common.token = response.data.token
         localStorage.token = response.data.token
-        location.reload()
+        page.token = response.data.token
+        // location.reload()
+        page.changeToken()
       })
     })
     .catch(error => {
@@ -1112,23 +1216,25 @@ page.changePassword = () => {
     <div class="field">
       <label class="label">New password:</label>
       <div class="control">
-        <input id="password" class="input" type="password" placeholder="Your new password">
+        <input id="password" class="input" type="password">
       </div>
     </div>
+
     <div class="field">
-      <label class="label">Confirm password:</label>
-      <div class="field has-addons">
-        <div class="control is-expanded">
-          <input id="passwordConfirm" class="input is-expanded" type="password" placeholder="Verify your new password">
-        </div>
-        <div class="control">
-          <a id="sendChangePassword" class="button is-breeze">
-            <span class="icon">
-              <i class="icon-paper-plane-empty"></i>
-            </span>
-            <span>Set new password</span>
-          </a>
-        </div>
+      <label class="label">Re-type new password:</label>
+      <div class="control">
+        <input id="passwordConfirm" class="input" type="password">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="control">
+        <a id="sendChangePassword" class="button is-breeze is-fullwidth">
+          <span class="icon">
+            <i class="icon-paper-plane-empty"></i>
+          </span>
+          <span>Set new password</span>
+        </a>
       </div>
     </div>
   `
@@ -1142,7 +1248,7 @@ page.changePassword = () => {
         text: 'Your passwords do not match, please try again.',
         icon: 'error'
       }).then(() => {
-        page.changePassword()
+        // page.changePassword()
       })
     }
   })
@@ -1166,7 +1272,8 @@ page.sendNewPassword = (pass, element) => {
         text: 'Your password was successfully changed.',
         icon: 'success'
       }).then(() => {
-        location.reload()
+        // location.reload()
+        page.changePassword()
       })
     })
     .catch(error => {

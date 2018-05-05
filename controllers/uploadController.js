@@ -446,7 +446,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 }
 
 uploadsController.delete = async (req, res) => {
-  // TODO: Wrap utils.bulkDeleteFilesByIds() instead
+  // TODO: Wrap utils.bulkDeleteFiles() instead
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
@@ -483,17 +483,19 @@ uploadsController.delete = async (req, res) => {
 uploadsController.bulkDelete = async (req, res) => {
   const user = await utils.authorize(req, res)
   if (!user) { return }
-  const ids = req.body.ids
-  if (ids === undefined || !ids.length) {
+
+  const field = req.body.field || 'id'
+  const values = req.body.values
+  if (values === undefined || !values.length) {
     return res.json({ success: false, description: 'No files specified.' })
   }
 
-  const failedids = await utils.bulkDeleteFilesByIds(ids, user)
-  if (failedids.length < ids.length) {
-    return res.json({ success: true, failedids })
+  const failed = await utils.bulkDeleteFiles(field, values, user)
+  if (failed.length < values.length) {
+    return res.json({ success: true, failed })
   }
 
-  return res.json({ success: false, description: 'Could not delete any of the selected files.' })
+  return res.json({ success: false, description: 'Could not delete any files.' })
 }
 
 uploadsController.list = async (req, res) => {
