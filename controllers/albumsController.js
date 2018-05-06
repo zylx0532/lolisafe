@@ -84,7 +84,7 @@ albumsController.create = async (req, res, next) => {
     })
   if (!identifier) { return }
 
-  await db.table('albums').insert({
+  const ids = await db.table('albums').insert({
     name,
     enabled: 1,
     userid: user.id,
@@ -92,11 +92,11 @@ albumsController.create = async (req, res, next) => {
     timestamp: Math.floor(Date.now() / 1000),
     editedAt: 0,
     zipGeneratedAt: 0,
-    download: 1,
-    public: 1
+    download: (req.body.download === false || req.body.download === 0) ? 0 : 1,
+    public: (req.body.public === false || req.body.public === 0) ? 0 : 1
   })
 
-  return res.json({ success: true })
+  return res.json({ success: true, id: ids[0] })
 }
 
 albumsController.getUniqueRandomName = () => {

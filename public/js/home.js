@@ -13,6 +13,8 @@ const page = {
   // store album id that will be used with upload requests
   album: null,
 
+  albumSelect: null,
+
   dropzone: null,
   clipboardJS: null,
   lazyLoad: null
@@ -20,22 +22,22 @@ const page = {
 
 const imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 
-page.checkIfPublic = () => {
-  axios.get('api/check')
-    .then(response => {
-      page.private = response.data.private
-      page.enableUserAccounts = response.data.enableUserAccounts
-      page.maxFileSize = response.data.maxFileSize
-      page.chunkedUploads = response.data.chunkedUploads
-      page.preparePage()
-    })
+page.checkIfPublic = async () => {
+  const response = await axios.get('api/check')
     .catch(error => {
       console.log(error)
       const button = document.getElementById('loginToUpload')
-      button.className = button.className.replace(' is-loading', '')
+      button.classList.remove('is-loading')
       button.innerText = 'Error occurred. Reload the page?'
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  page.private = response.data.private
+  page.enableUserAccounts = response.data.enableUserAccounts
+  page.maxFileSize = response.data.maxFileSize
+  page.chunkedUploads = response.data.chunkedUploads
+  page.preparePage()
 }
 
 page.preparePage = () => {
@@ -45,7 +47,7 @@ page.preparePage = () => {
     } else {
       const button = document.getElementById('loginToUpload')
       button.href = 'auth'
-      button.className = button.className.replace(' is-loading', '')
+      button.classList.remove('is-loading')
 
       if (page.enableUserAccounts) {
         button.innerText = 'Anonymous upload is disabled. Log in to page.'
@@ -58,71 +60,52 @@ page.preparePage = () => {
   }
 }
 
-page.verifyToken = (token, reloadOnError) => {
+page.verifyToken = async (token, reloadOnError) => {
   if (reloadOnError === undefined) { reloadOnError = false }
 
-  axios.post('api/tokens/verify', { token })
-    .then(response => {
-      if (response.data.success === false) {
-        swal({
-          title: 'An error occurred!',
-          text: response.data.description,
-          icon: 'error'
-        }).then(() => {
-          if (reloadOnError) {
-            localStorage.removeItem('token')
-            location.reload()
-          }
-        })
-        return
-      }
-
-      localStorage.token = token
-      page.token = token
-      return page.prepareUpload()
-    })
+  const response = await axios.post('api/tokens/verify', { token })
     .catch(error => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    await swal({
+      title: 'An error occurred!',
+      text: response.data.description,
+      icon: 'error'
+    })
+    if (reloadOnError) {
+      localStorage.removeItem('token')
+      location.reload()
+    }
+    return
+  }
+
+  localStorage.token = token
+  page.token = token
+  return page.prepareUpload()
 }
 
 page.prepareUpload = () => {
   // I think this fits best here because we need to check for a valid token before we can get the albums
   if (page.token) {
-    const select = document.getElementById('albumSelect')
+    page.albumSelect = document.getElementById('albumSelect')
 
-    select.addEventListener('change', () => {
-      page.album = parseInt(select.value)
+    page.albumSelect.addEventListener('change', () => {
+      page.album = parseInt(page.albumSelect.value)
     })
 
-    axios.get('api/albums', { headers: { token: page.token } })
-      .then(res => {
-        const albums = res.data.albums
+    page.prepareAlbums()
 
-        // If the user doesn't have any albums we don't really need to display
-        // an album selection
-        if (albums.length === 0) { return }
-
-        // Loop through the albums and create an option for each album
-        for (const album of albums) {
-          const opt = document.createElement('option')
-          opt.value = album.id
-          opt.innerHTML = album.name
-          select.appendChild(opt)
-        }
-        // Display the album selection
-        document.getElementById('albumDiv').style.display = 'block'
-      })
-      .catch(error => {
-        console.log(error)
-        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-      })
+    // Display the album selection
+    document.getElementById('albumDiv').style.display = 'flex'
   }
 
   const div = document.createElement('div')
   div.id = 'dropzone'
-  div.className = 'button is-unselectable'
+  div.className = 'button is-danger is-unselectable'
   div.innerHTML = `
     <span class="icon">
       <i class="icon-upload-cloud"></i>
@@ -141,6 +124,40 @@ page.prepareUpload = () => {
   document.getElementById('uploadContainer').appendChild(div)
 
   page.prepareDropzone()
+}
+
+page.prepareAlbums = async () => {
+  const option = document.createElement('option')
+  option.value = ''
+  option.innerHTML = 'Upload to album'
+  option.disabled = true
+  option.selected = true
+  page.albumSelect.appendChild(option)
+
+  const response = await axios.get('api/albums', { headers: { token: page.token } })
+    .catch(error => {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    return swal('An error occurred!', response.data.description, 'error')
+  }
+
+  const albums = response.data.albums
+
+  // If the user doesn't have any albums we don't really need to display
+  // an album selection
+  if (albums.length === 0) { return }
+
+  // Loop through the albums and create an option for each album
+  for (const album of albums) {
+    const option = document.createElement('option')
+    option.value = album.id
+    option.innerHTML = album.name
+    page.albumSelect.appendChild(option)
+  }
 }
 
 page.prepareDropzone = () => {
@@ -169,8 +186,7 @@ page.prepareDropzone = () => {
       file.previewElement.querySelector('.progress').innerHTML = '100%'
 
       // The API supports an array of multiple files
-      const response = await axios.post(
-        'api/upload/finishchunks',
+      const response = await axios.post('api/upload/finishchunks',
         {
           files: [{
             uuid: file.upload.uuid,
@@ -181,9 +197,7 @@ page.prepareDropzone = () => {
             albumid: page.album
           }]
         },
-        {
-          headers: { token: page.token }
-        })
+        { headers: { token: page.token } })
         .then(response => response.data)
         .catch(error => {
           return {
@@ -285,6 +299,69 @@ page.prepareShareX = () => {
     sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
     sharexElement.setAttribute('download', `${location.hostname}.sxcu`)
   }
+}
+
+page.createAlbum = async () => {
+  const div = document.createElement('div')
+  div.innerHTML = `
+    <div class="field">
+      <label class="label">Album name</label>
+      <div class="controls">
+        <input id="_name" class="input" type="text" placeholder="My super album">
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="_download" type="checkbox" checked>
+          Enable download
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="_public" type="checkbox" checked>
+          Enable public link
+        </label>
+      </div>
+    </div>
+  `
+  const value = await swal({
+    title: 'Create new album',
+    icon: 'info',
+    content: div,
+    buttons: {
+      cancel: true,
+      confirm: {
+        closeModal: false
+      }
+    }
+  })
+  if (!value) { return }
+
+  const name = document.getElementById('_name').value
+  const response = await axios.post('api/albums', {
+    name,
+    download: document.getElementById('_download').checked,
+    public: document.getElementById('_public').checked
+  }, { headers: { token: page.token } })
+    .catch(error => {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    return swal('An error occurred!', response.data.description, 'error')
+  }
+
+  const option = document.createElement('option')
+  option.value = response.data.id
+  option.innerHTML = name
+  page.albumSelect.appendChild(option)
+
+  swal('Woohoo!', 'Album was created successfully', 'success')
 }
 
 // Handle image paste event

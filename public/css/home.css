@@ -24,6 +24,7 @@
   max-height: 200px;
 }
 
+/*
 #dropzone {
   border: 1px solid #dbdbdb;
   background-color: rgba(0, 0, 0, 0);
@@ -46,6 +47,7 @@
   text-align: center;
   cursor: pointer;
 }
+*/
 
 #dropzone * {
   pointer-events: none;
@@ -154,7 +156,7 @@
   word-break: break-all;
 }
 
-.link > a {
+.link>a {
   word-break: break-all;
 }
 

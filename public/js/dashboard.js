@@ -47,16 +47,16 @@ page.verifyToken = async (token, reloadOnError = false) => {
   if (!response) { return }
 
   if (response.data.success === false) {
-    return swal({
+    await swal({
       title: 'An error occurred!',
       text: response.data.description,
       icon: 'error'
-    }).then(() => {
-      if (reloadOnError) {
-        localStorage.removeItem('token')
-        location.location = 'auth'
-      }
     })
+    if (reloadOnError) {
+      localStorage.removeItem('token')
+      location.location = 'auth'
+    }
+    return
   }
 
   axios.defaults.headers.common.token = token
@@ -111,108 +111,199 @@ page.isLoading = (element, state) => {
   element.classList.remove('is-loading')
 }
 
-page.getUploads = (album, pageNum, element) => {
+page.getUploads = async (album, pageNum, element) => {
   if (element) { page.isLoading(element, true) }
   if (pageNum === undefined) { pageNum = 0 }
 
   let url = 'api/uploads/' + pageNum
   if (album !== undefined) { url = 'api/album/' + album + '/' + pageNum }
 
-  axios.get(url).then(response => {
-    if (response.data.success === false) {
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        return swal('An error occurred!', response.data.description, 'error')
-      }
+  const response = await axios.get(url)
+    .catch(error => {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
     }
+  }
 
-    page.files.clear()
+  page.files.clear()
 
-    let prevPage = 0
-    let nextPage = pageNum + 1
+  let prevPage = 0
+  let nextPage = pageNum + 1
 
-    if (response.data.files.length < 25) { nextPage = pageNum }
+  if (response.data.files.length < 25) { nextPage = pageNum }
 
-    if (pageNum > 0) { prevPage = pageNum - 1 }
+  if (pageNum > 0) { prevPage = pageNum - 1 }
 
-    const pagination = `
-      <nav class="pagination is-centered">
-        <a class="button pagination-previous" onclick="page.getUploads(${album}, ${prevPage}, this)">Previous</a>
-        <a class="button pagination-next" onclick="page.getUploads(${album}, ${nextPage}, this)">Next page</a>
-      </nav>
+  const pagination = `
+    <nav class="pagination is-centered">
+      <a class="button pagination-previous" onclick="page.getUploads(${album}, ${prevPage}, this)">Previous</a>
+      <a class="button pagination-next" onclick="page.getUploads(${album}, ${nextPage}, this)">Next page</a>
+    </nav>
+  `
+  const controls = `
+    <div class="columns">
+      <div class="column is-hidden-mobile"></div>
+      <div class="column" style="text-align: center">
+        <a class="button is-small is-danger" title="List view" onclick="page.setFilesView('list', this)">
+          <span class="icon">
+            <i class="icon-th-list"></i>
+          </span>
+        </a>
+        <a class="button is-small is-danger" title="Thumbs view" onclick="page.setFilesView('thumbs', this)">
+          <span class="icon">
+            <i class="icon-th-large"></i>
+          </span>
+        </a>
+      </div>
+      <div class="column" style="text-align: right">
+        <a class="button is-small is-info" title="Clear selection" onclick="page.clearSelection()">
+          <span class="icon">
+            <i class="icon-cancel"></i>
+          </span>
+        </a>
+        <a class="button is-small is-warning" title="Add selected files to album" onclick="page.addSelectedFilesToAlbum()">
+          <span class="icon">
+            <i class="icon-plus"></i>
+          </span>
+        </a>
+        <a class="button is-small is-danger" title="Bulk delete" onclick="page.deleteSelectedFiles()">
+          <span class="icon">
+            <i class="icon-trash"></i>
+          </span>
+          <span>Bulk delete</span>
+        </a>
+      </div>
+    </div>
+  `
+
+  let allFilesSelected = true
+  if (page.filesView === 'thumbs') {
+    page.dom.innerHTML = `
+      ${pagination}
+      <hr>
+      ${controls}
+      <div id="table" class="columns is-multiline is-mobile is-centered">
+
+      </div>
+      ${pagination}
     `
-    const controls = `
-      <div class="columns">
-        <div class="column is-hidden-mobile"></div>
-        <div class="column" style="text-align: center">
-          <a class="button is-small is-danger" title="List view" onclick="page.setFilesView('list', this)">
+
+    const table = document.getElementById('table')
+
+    for (const file of response.data.files) {
+      const selected = page.selectedFiles.includes(file.id)
+      if (!selected && allFilesSelected) { allFilesSelected = false }
+
+      const div = document.createElement('div')
+
+      let displayAlbumOrUser = file.album
+      if (page.username === 'root') {
+        displayAlbumOrUser = ''
+        if (file.username !== undefined) { displayAlbumOrUser = file.username }
+      }
+
+      div.className = 'image-container column is-narrow'
+      if (file.thumb !== undefined) {
+        div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.name}" data-src="${file.thumb}"/></a>`
+      } else {
+        div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
+      }
+      div.innerHTML += `
+        <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="page.selectFile(this, event)"${selected ? ' checked' : ''}>
+        <div class="controls">
+          <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
             <span class="icon">
-              <i class="icon-th-list"></i>
+              <i class="icon-clipboard-1"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Thumbs view" onclick="page.setFilesView('thumbs', this)">
-            <span class="icon">
-              <i class="icon-th-large"></i>
-            </span>
-          </a>
-        </div>
-        <div class="column" style="text-align: right">
-          <a class="button is-small is-info" title="Clear selection" onclick="page.clearSelection()">
-            <span class="icon">
-              <i class="icon-cancel"></i>
-            </span>
-          </a>
-          <a class="button is-small is-warning" title="Add selected files to album" onclick="page.addSelectedFilesToAlbum()">
+          <a class="button is-small is-warning" title="Add to album" onclick="page.addSingleFileToAlbum(${file.id})">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Bulk delete" onclick="page.deleteSelectedFiles()">
+          <a class="button is-small is-danger" title="Delete file" onclick="page.deleteFile(${file.id})">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
-            <span>Bulk delete</span>
           </a>
         </div>
+        <div class="details">
+          <p><span class="name" title="${file.file}">${file.name}</span></p>
+          <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</p>
+        </div>
+      `
+      table.appendChild(div)
+      page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
+      page.lazyLoad.update()
+    }
+  } else {
+    let albumOrUser = 'Album'
+    if (page.username === 'root') { albumOrUser = 'User' }
+
+    page.dom.innerHTML = `
+      ${pagination}
+      <hr>
+      ${controls}
+      <div class="table-container">
+        <table class="table is-narrow is-fullwidth is-hoverable">
+          <thead>
+            <tr>
+                <th><input id="selectAll" type="checkbox" title="Select all files" onclick="page.selectAllFiles(this)"></th>
+                <th style="width: 25%">File</th>
+                <th>${albumOrUser}</th>
+                <th>Size</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+          </thead>
+          <tbody id="table">
+          </tbody>
+        </table>
       </div>
+      <hr>
+      ${pagination}
     `
 
-    let allFilesSelected = true
-    if (page.filesView === 'thumbs') {
-      page.dom.innerHTML = `
-        ${pagination}
-        <hr>
-        ${controls}
-        <div id="table" class="columns is-multiline is-mobile is-centered">
+    const table = document.getElementById('table')
 
-        </div>
-        ${pagination}
-      `
+    for (const file of response.data.files) {
+      const selected = page.selectedFiles.includes(file.id)
+      if (!selected && allFilesSelected) { allFilesSelected = false }
 
-      const table = document.getElementById('table')
+      page.files.set(file.id, {
+        name: file.name,
+        thumb: file.thumb
+      })
 
-      for (const file of response.data.files) {
-        const selected = page.selectedFiles.includes(file.id)
-        if (!selected && allFilesSelected) { allFilesSelected = false }
+      const tr = document.createElement('tr')
 
-        const div = document.createElement('div')
+      let displayAlbumOrUser = file.album
+      if (page.username === 'root') {
+        displayAlbumOrUser = ''
+        if (file.username !== undefined) { displayAlbumOrUser = file.username }
+      }
 
-        let displayAlbumOrUser = file.album
-        if (page.username === 'root') {
-          displayAlbumOrUser = ''
-          if (file.username !== undefined) { displayAlbumOrUser = file.username }
-        }
-
-        div.className = 'image-container column is-narrow'
-        if (file.thumb !== undefined) {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><img alt="${file.name}" data-src="${file.thumb}"/></a>`
-        } else {
-          div.innerHTML = `<a class="image" href="${file.file}" target="_blank" rel="noopener"><h1 class="title">${file.extname || 'N/A'}</h1></a>`
-        }
-        div.innerHTML += `
-          <input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="page.selectFile(this, event)"${selected ? ' checked' : ''}>
-          <div class="controls">
+      tr.innerHTML = `
+        <tr>
+          <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="page.selectFile(this, event)"${selected ? ' checked' : ''}></th>
+          <th><a href="${file.file}" target="_blank" rel="noopener" title="${file.file}">${file.name}</a></th>
+          <th>${displayAlbumOrUser}</th>
+          <td>${file.size}</td>
+          <td>${file.date}</td>
+          <td style="text-align: right">
+            <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnail(${file.id})"${file.thumb ? '' : ' disabled'}>
+              <span class="icon">
+                <i class="icon-picture-1"></i>
+              </span>
+            </a>
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
               <span class="icon">
                 <i class="icon-clipboard-1"></i>
@@ -228,111 +319,22 @@ page.getUploads = (album, pageNum, element) => {
                 <i class="icon-trash"></i>
               </span>
             </a>
-          </div>
-          <div class="details">
-            <p><span class="name" title="${file.file}">${file.name}</span></p>
-            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${file.size}</p>
-          </div>
-        `
-        table.appendChild(div)
-        page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
-        page.lazyLoad.update()
-      }
-    } else {
-      let albumOrUser = 'Album'
-      if (page.username === 'root') { albumOrUser = 'User' }
-
-      page.dom.innerHTML = `
-        ${pagination}
-        <hr>
-        ${controls}
-        <div class="table-container">
-          <table class="table is-narrow is-fullwidth is-hoverable">
-            <thead>
-              <tr>
-                  <th><input id="selectAll" type="checkbox" title="Select all files" onclick="page.selectAllFiles(this)"></th>
-                  <th style="width: 25%">File</th>
-                  <th>${albumOrUser}</th>
-                  <th>Size</th>
-                  <th>Date</th>
-                  <th></th>
-              </tr>
-            </thead>
-            <tbody id="table">
-            </tbody>
-          </table>
-        </div>
-        <hr>
-        ${pagination}
+          </td>
+        </tr>
       `
 
-      const table = document.getElementById('table')
-
-      for (const file of response.data.files) {
-        const selected = page.selectedFiles.includes(file.id)
-        if (!selected && allFilesSelected) { allFilesSelected = false }
-
-        page.files.set(file.id, {
-          name: file.name,
-          thumb: file.thumb
-        })
-
-        const tr = document.createElement('tr')
-
-        let displayAlbumOrUser = file.album
-        if (page.username === 'root') {
-          displayAlbumOrUser = ''
-          if (file.username !== undefined) { displayAlbumOrUser = file.username }
-        }
-
-        tr.innerHTML = `
-          <tr>
-            <th><input type="checkbox" class="file-checkbox" title="Select this file" data-id="${file.id}" onclick="page.selectFile(this, event)"${selected ? ' checked' : ''}></th>
-            <th><a href="${file.file}" target="_blank" rel="noopener" title="${file.file}">${file.name}</a></th>
-            <th>${displayAlbumOrUser}</th>
-            <td>${file.size}</td>
-            <td>${file.date}</td>
-            <td style="text-align: right">
-              <a class="button is-small is-primary" title="View thumbnail" onclick="page.displayThumbnail(${file.id})"${file.thumb ? '' : ' disabled'}>
-                <span class="icon">
-                  <i class="icon-picture-1"></i>
-                </span>
-              </a>
-              <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${file.file}">
-                <span class="icon">
-                  <i class="icon-clipboard-1"></i>
-                </span>
-              </a>
-              <a class="button is-small is-warning" title="Add to album" onclick="page.addSingleFileToAlbum(${file.id})">
-                <span class="icon">
-                  <i class="icon-plus"></i>
-                </span>
-              </a>
-              <a class="button is-small is-danger" title="Delete file" onclick="page.deleteFile(${file.id})">
-                <span class="icon">
-                  <i class="icon-trash"></i>
-                </span>
-              </a>
-            </td>
-          </tr>
-        `
-
-        table.appendChild(tr)
-        page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
-      }
+      table.appendChild(tr)
+      page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
     }
+  }
 
-    if (allFilesSelected && response.data.files.length) {
-      const selectAll = document.getElementById('selectAll')
-      if (selectAll) { selectAll.checked = true }
-    }
+  if (allFilesSelected && response.data.files.length) {
+    const selectAll = document.getElementById('selectAll')
+    if (selectAll) { selectAll.checked = true }
+  }
 
-    page.currentView.album = album
-    page.currentView.pageNum = pageNum
-  }).catch(error => {
-    console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
+  page.currentView.album = album
+  page.currentView.pageNum = pageNum
 }
 
 page.setFilesView = (view, element) => {
@@ -458,9 +460,9 @@ page.clearSelection = async () => {
   return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
 }
 
-page.deleteFile = id => {
+page.deleteFile = async id => {
   // TODO: Share function with bulk delete, just like 'add selected files to album' and 'add single file to album'
-  swal({
+  const proceed = await swal({
     title: 'Are you sure?',
     text: 'You won\'t be able to recover the file!',
     icon: 'warning',
@@ -472,26 +474,26 @@ page.deleteFile = id => {
         closeModal: false
       }
     }
-  }).then(value => {
-    if (!value) { return }
-    axios.post('api/upload/delete', { id })
-      .then(response => {
-        if (response.data.success === false) {
-          if (response.data.description === 'No token provided') {
-            return page.verifyToken(page.token)
-          } else {
-            return swal('An error occurred!', response.data.description, 'error')
-          }
-        }
-
-        swal('Deleted!', 'The file has been deleted.', 'success')
-        page.getUploads(page.currentView.album, page.currentView.pageNum)
-      })
-      .catch(error => {
-        console.log(error)
-        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-      })
   })
+  if (!proceed) { return }
+
+  const response = await axios.post('api/upload/delete', { id })
+    .catch(error => {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  swal('Deleted!', 'The file has been deleted.', 'success')
+  page.getUploads(page.currentView.album, page.currentView.pageNum)
 }
 
 page.deleteSelectedFiles = async () => {
@@ -750,116 +752,113 @@ page.addFilesToAlbum = async ids => {
   return add.data.failed
 }
 
-page.getAlbums = () => {
-  axios.get('api/albums').then(response => {
-    if (response.data.success === false) {
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        return swal('An error occurred!', response.data.description, 'error')
-      }
-    }
-
-    page.albums.clear()
-
-    page.dom.innerHTML = `
-      <h2 class="subtitle">Create new album</h2>
-
-      <div class="field">
-        <div class="control">
-          <input id="albumName" class="input" type="text" placeholder="Name">
-        </div>
-      </div>
-
-      <div class="field">
-        <div class="control">
-          <a id="submitAlbum" class="button is-breeze is-fullwidth">
-            <span class="icon">
-              <i class="icon-paper-plane-empty"></i>
-            </span>
-            <span>Create</span>
-          </a>
-        </div>
-      </div>
-
-      <hr>
-
-      <h2 class="subtitle">List of albums</h2>
-
-      <div class="table-container">
-        <table class="table is-fullwidth is-hoverable">
-          <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Files</th>
-                <th>Created at</th>
-                <th>Public link</th>
-                <th></th>
-            </tr>
-          </thead>
-          <tbody id="table">
-          </tbody>
-        </table>
-      </div>
-    `
-
-    const homeDomain = response.data.homeDomain
-    const table = document.getElementById('table')
-
-    for (const album of response.data.albums) {
-      const albumUrl = `${homeDomain}/a/${album.identifier}`
-
-      page.albums.set(album.id, {
-        name: album.name,
-        download: album.download,
-        public: album.public
-      })
-
-      const tr = document.createElement('tr')
-      tr.innerHTML = `
-        <tr>
-          <th>${album.id}</th>
-          <th>${album.name}</th>
-          <th>${album.files}</th>
-          <td>${album.date}</td>
-          <td><a${album.public ? ` href="${albumUrl}"` : ''} target="_blank" rel="noopener">${albumUrl}</a></td>
-          <td style="text-align: right">
-            <a class="button is-small is-primary" title="Edit album" onclick="page.editAlbum(${album.id})">
-              <span class="icon is-small">
-                <i class="icon-pencil-1"></i>
-              </span>
-            </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
-              <span class="icon is-small">
-                <i class="icon-clipboard-1"></i>
-              </span>
-            </a>
-            <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
-              <span class="icon is-small">
-                <i class="icon-download"></i>
-              </span>
-            </a>
-            <a class="button is-small is-danger" title="Delete album" onclick="page.deleteAlbum(${album.id})">
-              <span class="icon is-small">
-                <i class="icon-trash"></i>
-              </span>
-            </a>
-          </td>
-        </tr>
-      `
-
-      table.appendChild(tr)
-    }
-
-    document.getElementById('submitAlbum').addEventListener('click', function () {
-      page.submitAlbum(this)
-    })
-  })
+page.getAlbums = async () => {
+  const response = await axios.get('api/albums')
     .catch(error => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  page.albums.clear()
+
+  page.dom.innerHTML = `
+    <h2 class="subtitle">Create new album</h2>
+
+    <div class="field">
+      <div class="control">
+        <input id="albumName" class="input" type="text" placeholder="Name">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="control">
+        <a id="submitAlbum" class="button is-breeze is-fullwidth" onclick="page.submitAlbum(this)">
+          <span class="icon">
+            <i class="icon-paper-plane-empty"></i>
+          </span>
+          <span>Create</span>
+        </a>
+      </div>
+    </div>
+
+    <hr>
+
+    <h2 class="subtitle">List of albums</h2>
+
+    <div class="table-container">
+      <table class="table is-fullwidth is-hoverable">
+        <thead>
+          <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Files</th>
+              <th>Created at</th>
+              <th>Public link</th>
+              <th></th>
+          </tr>
+        </thead>
+        <tbody id="table">
+        </tbody>
+      </table>
+    </div>
+  `
+
+  const homeDomain = response.data.homeDomain
+  const table = document.getElementById('table')
+
+  for (const album of response.data.albums) {
+    const albumUrl = `${homeDomain}/a/${album.identifier}`
+
+    page.albums.set(album.id, {
+      name: album.name,
+      download: album.download,
+      public: album.public
+    })
+
+    const tr = document.createElement('tr')
+    tr.innerHTML = `
+      <tr>
+        <th>${album.id}</th>
+        <th>${album.name}</th>
+        <th>${album.files}</th>
+        <td>${album.date}</td>
+        <td><a${album.public ? ` href="${albumUrl}"` : ''} target="_blank" rel="noopener">${albumUrl}</a></td>
+        <td style="text-align: right">
+          <a class="button is-small is-primary" title="Edit album" onclick="page.editAlbum(${album.id})">
+            <span class="icon is-small">
+              <i class="icon-pencil-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
+            <span class="icon is-small">
+              <i class="icon-clipboard-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
+            <span class="icon is-small">
+              <i class="icon-download"></i>
+            </span>
+          </a>
+          <a class="button is-small is-danger" title="Delete album" onclick="page.deleteAlbum(${album.id})">
+            <span class="icon is-small">
+              <i class="icon-trash"></i>
+            </span>
+          </a>
+        </td>
+      </tr>
+    `
+
+    table.appendChild(tr)
+  }
 }
 
 page.editAlbum = async id => {
@@ -871,7 +870,7 @@ page.editAlbum = async id => {
     <div class="field">
       <label class="label">Album name</label>
       <div class="controls">
-        <input id="_name" class="input" type="text" value="${album.name || 'My super album'}">
+        <input id="_name" class="input" type="text" value="${album.name || ''}">
       </div>
     </div>
     <div class="field">
@@ -923,12 +922,11 @@ page.editAlbum = async id => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
 
   if (response.data.success === false) {
     if (response.data.description === 'No token provided') {
       return page.verifyToken(page.token)
-    } else if (response.data.description === 'Name already in use') {
-      return swal.showInputError('That name is already in use!')
     } else {
       return swal('An error occurred!', response.data.description, 'error')
     }
@@ -990,66 +988,68 @@ page.deleteAlbum = async id => {
   page.getAlbums()
 }
 
-page.submitAlbum = element => {
+page.submitAlbum = async element => {
   page.isLoading(element, true)
-  axios.post('api/albums', {
+
+  const response = await axios.post('api/albums', {
     name: document.getElementById('albumName').value
   })
-    .then(response => {
-      page.isLoading(element, false)
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
-
-      swal('Woohoo!', 'Album was added successfully', 'success')
-      page.getAlbumsSidebar()
-      page.getAlbums()
-    })
     .catch(error => {
       console.log(error)
       page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  page.isLoading(element, false)
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  swal('Woohoo!', 'Album was created successfully', 'success')
+  page.getAlbumsSidebar()
+  page.getAlbums()
 }
 
-page.getAlbumsSidebar = () => {
-  axios.get('api/albums/sidebar')
-    .then(response => {
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
-
-      const albumsContainer = document.getElementById('albumsContainer')
-      albumsContainer.innerHTML = ''
-
-      if (response.data.albums === undefined) { return }
-
-      for (const album of response.data.albums) {
-        const li = document.createElement('li')
-        const a = document.createElement('a')
-        a.id = album.id
-        a.innerHTML = album.name
-
-        a.addEventListener('click', function () {
-          page.getAlbum(this)
-        })
-
-        li.appendChild(a)
-        albumsContainer.appendChild(li)
-      }
-    })
+page.getAlbumsSidebar = async () => {
+  const response = await axios.get('api/albums/sidebar')
     .catch(error => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  const albumsContainer = document.getElementById('albumsContainer')
+  albumsContainer.innerHTML = ''
+
+  if (response.data.albums === undefined) { return }
+
+  for (const album of response.data.albums) {
+    const li = document.createElement('li')
+    const a = document.createElement('a')
+    a.id = album.id
+    a.innerHTML = album.name
+
+    a.addEventListener('click', function () {
+      page.getAlbum(this)
+    })
+
+    li.appendChild(a)
+    albumsContainer.appendChild(li)
+  }
 }
 
 page.getAlbum = album => {
@@ -1057,156 +1057,154 @@ page.getAlbum = album => {
   page.getUploads(album.id)
 }
 
-page.changeFileLength = () => {
-  axios.get('api/filelength/config')
-    .then(response => {
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
-
-      page.dom.innerHTML = `
-        <h2 class="subtitle">File name length</h2>
-
-        <div class="field">
-          <div class="field">
-            <label class="label">Your current file name length:</label>
-            <div class="control">
-              <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${response.data.fileLength ? Math.min(Math.max(response.data.fileLength, response.data.config.min), response.data.config.max) : response.data.config.default}">
-            </div>
-            <p class="help">Default file name length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file name length is disabled at the moment.'}</p>
-          </div>
-
-          <div class="field">
-            <div class="control">
-              <a id="setFileLength" class="button is-breeze is-fullwidth">
-                <span class="icon">
-                  <i class="icon-paper-plane-empty"></i>
-                </span>
-                <span>Set file name length</span>
-              </a>
-            </div>
-          <div>
-        </div>
-      `
-
-      document.getElementById('setFileLength').addEventListener('click', function () {
-        page.setFileLength(document.getElementById('fileLength').value, this)
-      })
-    })
+page.changeFileLength = async () => {
+  const response = await axios.get('api/filelength/config')
     .catch(error => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  page.dom.innerHTML = `
+    <h2 class="subtitle">File name length</h2>
+
+    <div class="field">
+      <div class="field">
+        <label class="label">Your current file name length:</label>
+        <div class="control">
+          <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${response.data.fileLength ? Math.min(Math.max(response.data.fileLength, response.data.config.min), response.data.config.max) : response.data.config.default}">
+        </div>
+        <p class="help">Default file name length is <b>${response.data.config.default}</b> characters. ${response.data.config.userChangeable ? `Range allowed for user is <b>${response.data.config.min}</b> to <b>${response.data.config.max}</b> characters.` : 'Changing file name length is disabled at the moment.'}</p>
+      </div>
+
+      <div class="field">
+        <div class="control">
+          <a id="setFileLength" class="button is-breeze is-fullwidth">
+            <span class="icon">
+              <i class="icon-paper-plane-empty"></i>
+            </span>
+            <span>Set file name length</span>
+          </a>
+        </div>
+      <div>
+    </div>
+  `
+
+  document.getElementById('setFileLength').addEventListener('click', function () {
+    page.setFileLength(document.getElementById('fileLength').value, this)
+  })
 }
 
-page.setFileLength = (fileLength, element) => {
+page.setFileLength = async (fileLength, element) => {
   page.isLoading(element, true)
-  axios.post('api/filelength/change', { fileLength })
-    .then(response => {
-      page.isLoading(element, false)
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
 
-      swal({
-        title: 'Woohoo!',
-        text: 'Your file length was successfully changed.',
-        icon: 'success'
-      }).then(() => {
-        // location.reload()
-        page.changeFileLength()
-      })
-    })
+  const response = await axios.post('api/filelength/change', { fileLength })
     .catch(error => {
       console.log(error)
       page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  page.isLoading(element, false)
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  await swal({
+    title: 'Woohoo!',
+    text: 'Your file length was successfully changed.',
+    icon: 'success'
+  })
+
+  page.changeFileLength()
 }
 
-page.changeToken = () => {
-  axios.get('api/tokens')
-    .then(response => {
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
-
-      page.dom.innerHTML = `
-        <h2 class="subtitle">Manage your token</h2>
-
-        <div class="field">
-          <label class="label">Your current token:</label>
-          <div class="field">
-            <div class="control">
-              <input id="token" readonly class="input" type="text" placeholder="Your token" value="${response.data.token}">
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="control">
-            <a id="getNewToken" class="button is-breeze is-fullwidth">
-              <span class="icon">
-                <i class="icon-arrows-cw"></i>
-              </span>
-              <span>Request new token</span>
-            </a>
-          </div>
-        </div>
-      `
-
-      document.getElementById('getNewToken').addEventListener('click', function () {
-        page.getNewToken(this)
-      })
-    })
+page.changeToken = async () => {
+  const response = await axios.get('api/tokens')
     .catch(error => {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  page.dom.innerHTML = `
+    <h2 class="subtitle">Manage your token</h2>
+
+    <div class="field">
+      <label class="label">Your current token:</label>
+      <div class="field">
+        <div class="control">
+          <input id="token" readonly class="input" type="text" placeholder="Your token" value="${response.data.token}">
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="control">
+        <a id="getNewToken" class="button is-breeze is-fullwidth" onclick="page.getNewToken(this)">
+          <span class="icon">
+            <i class="icon-arrows-cw"></i>
+          </span>
+          <span>Request new token</span>
+        </a>
+      </div>
+    </div>
+  `
 }
 
-page.getNewToken = element => {
+page.getNewToken = async element => {
   page.isLoading(element, true)
-  axios.post('api/tokens/change')
-    .then(response => {
-      page.isLoading(element, false)
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
 
-      swal({
-        title: 'Woohoo!',
-        text: 'Your token was successfully changed.',
-        icon: 'success'
-      }).then(() => {
-        axios.defaults.headers.common.token = response.data.token
-        localStorage.token = response.data.token
-        page.token = response.data.token
-        // location.reload()
-        page.changeToken()
-      })
-    })
+  const response = await axios.post('api/tokens/change')
     .catch(error => {
       console.log(error)
       page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  page.isLoading(element, false)
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  await swal({
+    title: 'Woohoo!',
+    text: 'Your token was successfully changed.',
+    icon: 'success'
+  })
+
+  axios.defaults.headers.common.token = response.data.token
+  localStorage.token = response.data.token
+  page.token = response.data.token
+  page.changeToken()
 }
 
 page.changePassword = () => {
@@ -1247,40 +1245,39 @@ page.changePassword = () => {
         title: 'Password mismatch!',
         text: 'Your passwords do not match, please try again.',
         icon: 'error'
-      }).then(() => {
-        // page.changePassword()
       })
     }
   })
 }
 
-page.sendNewPassword = (pass, element) => {
+page.sendNewPassword = async (pass, element) => {
   page.isLoading(element, true)
-  axios.post('api/password/change', { password: pass })
-    .then(response => {
-      page.isLoading(element, false)
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
 
-      swal({
-        title: 'Woohoo!',
-        text: 'Your password was successfully changed.',
-        icon: 'success'
-      }).then(() => {
-        // location.reload()
-        page.changePassword()
-      })
-    })
+  const response = await axios.post('api/password/change', { password: pass })
     .catch(error => {
       console.log(error)
       page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  if (!response) { return }
+
+  page.isLoading(element, false)
+
+  if (response.data.success === false) {
+    if (response.data.description === 'No token provided') {
+      return page.verifyToken(page.token)
+    } else {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
+  }
+
+  await swal({
+    title: 'Woohoo!',
+    text: 'Your password was successfully changed.',
+    icon: 'success'
+  })
+
+  page.changePassword()
 }
 
 page.setActiveMenu = activeItem => {
