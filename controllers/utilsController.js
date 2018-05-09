@@ -4,12 +4,14 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
+const snekfetch = require('snekfetch')
 
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
 const utilsController = {}
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
+const cloudflareAuth = config.cloudflare.apiKey && config.cloudflare.email && config.cloudflare.zoneId
 
 utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv']
@@ -179,7 +181,40 @@ utilsController.bulkDeleteFiles = async (field, values, user) => {
     }))
   }
 
+  if (config.cloudflare.purgeCache) {
+    // purgeCloudflareCache() is an async function, but let us not wait for it
+    const names = files.filter(file => !failed.includes(file[field])).map(file => file.name)
+    utilsController.purgeCloudflareCache(names)
+  }
+
   return failed
+}
+
+utilsController.purgeCloudflareCache = async names => {
+  if (!cloudflareAuth) { return }
+
+  const thumbs = []
+  names = names.map(name => {
+    const url = `${config.domain}/${name}`
+    const extname = path.extname(name).toLowerCase()
+    if (utilsController.mayGenerateThumb(extname)) {
+      thumbs.push(`${config.domain}/thumbs/${name.slice(0, -extname.length)}.png`)
+    }
+    return url
+  })
+
+  const purge = await snekfetch
+    .post(`https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`)
+    .set({
+      'X-Auth-Email': config.cloudflare.email,
+      'X-Auth-Key': config.cloudflare.apiKey
+    })
+    .send({ files: names.concat(thumbs) })
+    .catch(error => error)
+
+  if (purge.body && !purge.body.success) {
+    purge.body.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
+  }
 }
 
 module.exports = utilsController

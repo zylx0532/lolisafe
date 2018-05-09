@@ -153,7 +153,17 @@ module.exports = {
       Cloudflare will not cache files bigger than 512MB.
       NOTE: Set to falsy value (false, null, etc.) to disable.
     */
-    zipMaxTotalSize: '512MB'
+    zipMaxTotalSize: '512MB',
+
+    /*
+      If you want to make it automatically calls Cloudflare's API to purge cache on file delete,
+      fill your api key, email and your site's zone id below, then set "purgeCache" to true.
+      This will only purge cache of the deleted file and its associated thumb.
+    */
+    apiKey: '',
+    email: '',
+    zoneId: '',
+    purgeCache: false
   },
 
   /*

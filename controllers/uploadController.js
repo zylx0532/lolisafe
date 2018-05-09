@@ -448,38 +448,10 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 }
 
 uploadsController.delete = async (req, res) => {
-  // TODO: Wrap utils.bulkDeleteFiles() instead
-  const user = await utils.authorize(req, res)
-  if (!user) { return }
-
-  const id = req.body.id
-  if (id === undefined || id === '') {
-    return res.json({ success: false, description: 'No file specified.' })
-  }
-
-  const file = await db.table('files')
-    .where('id', id)
-    .where(function () {
-      if (user.username !== 'root') {
-        this.where('userid', user.id)
-      }
-    })
-    .first()
-
-  const deleteFile = await utils.deleteFile(file.name).catch(console.error)
-  if (!deleteFile) { return }
-
-  await db.table('files')
-    .where('id', id)
-    .del()
-
-  if (file.albumid) {
-    await db.table('albums')
-      .where('id', file.albumid)
-      .update('editedAt', Math.floor(Date.now() / 1000))
-  }
-
-  return res.json({ success: true })
+  req.body.field = 'id'
+  req.body.values = [req.body.id]
+  delete req.body.id
+  return uploadsController.bulkDelete(req, res)
 }
 
 uploadsController.bulkDelete = async (req, res) => {

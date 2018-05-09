@@ -22,9 +22,7 @@ class ZipEmitter extends EventEmitter {
   constructor (identifier) {
     super()
     this.identifier = identifier
-    this.once('done', () => {
-      albumsController.zipEmitters.delete(this.identifier)
-    })
+    this.once('done', () => albumsController.zipEmitters.delete(this.identifier))
   }
 }
 
