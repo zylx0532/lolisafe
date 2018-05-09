@@ -11,6 +11,7 @@ const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 const utilsController = {}
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
+const thumbUnavailable = path.join(__dirname, '../public/images/unavailable.png')
 const cloudflareAuth = config.cloudflare.apiKey && config.cloudflare.email && config.cloudflare.zoneId
 
 utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
@@ -82,8 +83,7 @@ utilsController.generateThumbs = (file, basedomain) => {
         .write(thumbname, error => {
           if (error) {
             console.error(`${file.name}: ${error.message.trim()}`)
-            const placeholder = path.join(__dirname, '../public/images/unavailable.png')
-            fs.symlink(placeholder, thumbname, error => {
+            fs.symlink(thumbUnavailable, thumbname, error => {
               if (error) { console.error(error) }
             })
           }
@@ -98,7 +98,12 @@ utilsController.generateThumbs = (file, basedomain) => {
         folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
         size: '200x?'
       })
-      .on('error', error => console.log(`${file.name}: ${error.message}`))
+      .on('error', error => {
+        console.log(`${file.name}: ${error.message}`)
+        fs.symlink(thumbUnavailable, thumbname, error => {
+          if (error) { console.error(error) }
+        })
+      })
   })
 }
 
