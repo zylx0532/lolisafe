@@ -217,7 +217,9 @@ utilsController.purgeCloudflareCache = async names => {
     .send({ files: names.concat(thumbs) })
     .catch(error => error)
 
-  if (purge.body && !purge.body.success) {
+  if (!purge.body) {
+    console.error(`CF: ${purge.toString()}`)
+  } else if (!purge.body.success && purge.body.errors) {
     purge.body.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
   }
 }
