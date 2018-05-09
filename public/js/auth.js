@@ -22,7 +22,7 @@ page.do = async dest => {
     password: pass
   })
     .catch(error => {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   if (!response) { return }
@@ -42,7 +42,7 @@ page.verify = async () => {
     token: page.token
   })
     .catch(error => {
-      console.log(error)
+      console.error(error)
       swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   if (!response) { return }

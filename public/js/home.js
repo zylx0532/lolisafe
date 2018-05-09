@@ -8,7 +8,7 @@ const page = {
   private: null,
   enableUserAccounts: null,
   maxFileSize: null,
-  chunkedUploads: null, // chunked uploads config
+  chunkSize: null,
 
   // store album id that will be used with upload requests
   album: null,
@@ -36,7 +36,7 @@ page.checkIfPublic = async () => {
   page.private = response.data.private
   page.enableUserAccounts = response.data.enableUserAccounts
   page.maxFileSize = response.data.maxFileSize
-  page.chunkedUploads = response.data.chunkedUploads
+  page.chunkSize = response.data.chunkSize
   page.preparePage()
 }
 
@@ -178,8 +178,8 @@ page.prepareDropzone = () => {
     maxFiles: 1000,
     autoProcessQueue: true,
     headers: { token: page.token },
-    chunking: page.chunkedUploads.enabled,
-    chunkSize: parseInt(page.chunkedUploads.chunkSize) * 1000000, // 1000000 B = 1 MB,
+    chunking: Boolean(page.chunkSize),
+    chunkSize: parseInt(page.chunkSize) * 1000000, // 1000000 B = 1 MB,
     parallelChunkUploads: false, // when set to true, sometimes it often hangs with hundreds of parallel uploads
     chunksUploaded: async (file, done) => {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)

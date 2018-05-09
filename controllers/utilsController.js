@@ -15,8 +15,8 @@ utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.p
 utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv']
 
 utilsController.mayGenerateThumb = extname => {
-  return (config.uploads.generateThumbnails.image && utilsController.imageExtensions.includes(extname)) ||
-    (config.uploads.generateThumbnails.video && utilsController.videoExtensions.includes(extname))
+  return (config.uploads.generateThumbs.image && utilsController.imageExtensions.includes(extname)) ||
+    (config.uploads.generateThumbs.video && utilsController.videoExtensions.includes(extname))
 }
 
 utilsController.getPrettyDate = date => {
@@ -78,7 +78,13 @@ utilsController.generateThumbs = (file, basedomain) => {
         .extent(size.width, size.height)
         .background('transparent')
         .write(thumbname, error => {
-          if (error) { console.log('Error - ', error) }
+          if (error) {
+            console.error(`${file.name}: ${error.message.trim()}`)
+            const placeholder = path.join(__dirname, '../public/images/unavailable.png')
+            fs.symlink(placeholder, thumbname, error => {
+              if (error) { console.error(error) }
+            })
+          }
         })
     }
 
@@ -90,7 +96,7 @@ utilsController.generateThumbs = (file, basedomain) => {
         folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
         size: '200x?'
       })
-      .on('error', error => console.log('Error - ', error.message))
+      .on('error', error => console.log(`${file.name}: ${error.message}`))
   })
 }
 
@@ -142,7 +148,7 @@ utilsController.bulkDeleteFiles = async (field, values, user) => {
     return new Promise(async resolve => {
       const deleteFile = await utilsController.deleteFile(file.name)
         .catch(error => {
-          console.log(error)
+          console.error(error)
           failed.push(file[field])
         })
       if (!deleteFile) { return resolve() }

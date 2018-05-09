@@ -21,7 +21,7 @@ authController.verify = async (req, res, next) => {
 
   bcrypt.compare(password, user.password, (error, result) => {
     if (error) {
-      console.log(error)
+      console.error(error)
       return res.json({ success: false, description: 'There was an error.' })
     }
     if (result === false) { return res.json({ success: false, description: 'Wrong password.' }) }
@@ -52,7 +52,7 @@ authController.register = async (req, res, next) => {
 
   bcrypt.hash(password, 10, async (error, hash) => {
     if (error) {
-      console.log(error)
+      console.error(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
     const token = randomstring.generate(64)
@@ -79,7 +79,7 @@ authController.changePassword = async (req, res, next) => {
 
   bcrypt.hash(password, 10, async (error, hash) => {
     if (error) {
-      console.log(error)
+      console.error(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
 

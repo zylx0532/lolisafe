@@ -619,9 +619,9 @@ page.deleteFileByNames = async () => {
   let deleted = count
   if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
     deleted -= bulkdelete.data.failed.length
-    document.getElementById('names').value = bulkdelete.data.failed.join('\n')
   }
 
+  document.getElementById('names').value = bulkdelete.data.failed.join('\n')
   swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
 }
 

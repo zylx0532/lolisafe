@@ -4,7 +4,7 @@ const uploadController = require('./../controllers/uploadController')
 
 const renderOptions = {
   uploadDisabled: false,
-  maxFileSize: config.uploads.chunkedUploads.noJsMaxSize || config.uploads.maxSize
+  maxFileSize: config.cloudflare.noJsMaxSize || config.uploads.maxSize
 }
 
 if (config.private) {

@@ -10,7 +10,7 @@ routes.get('/check', (req, res, next) => {
     private: config.private,
     enableUserAccounts: config.enableUserAccounts,
     maxFileSize: config.uploads.maxSize,
-    chunkedUploads: config.uploads.chunkedUploads
+    chunkSize: config.uploads.chunkSize
   })
 })
 

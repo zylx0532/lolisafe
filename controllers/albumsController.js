@@ -1,5 +1,6 @@
 const config = require('./../config')
 const db = require('knex')(config.database)
+const EventEmitter = require('events')
 const fs = require('fs')
 const path = require('path')
 const randomstring = require('randomstring')
@@ -8,13 +9,24 @@ const Zip = require('jszip')
 
 const albumsController = {}
 
-// Let's default it to only 1 try (for missing config key)
 const maxTries = config.uploads.maxTries || 1
 const homeDomain = config.homeDomain || config.domain
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const zipsDir = path.join(uploadsDir, 'zips')
-const maxTotalSize = config.uploads.generateZips.maxTotalSize
-const maxTotalSizeBytes = parseInt(maxTotalSize) * 1000000
+const zipMaxTotalSize = config.cloudflare.zipMaxTotalSize
+const zipMaxTotalSizeBytes = parseInt(config.cloudflare.zipMaxTotalSize) * 1000000
+
+albumsController.zipEmitters = new Map()
+
+class ZipEmitter extends EventEmitter {
+  constructor (identifier) {
+    super()
+    this.identifier = identifier
+    this.once('done', () => {
+      albumsController.zipEmitters.delete(this.identifier)
+    })
+  }
+}
 
 albumsController.list = async (req, res, next) => {
   const user = await utils.authorize(req, res)
@@ -165,7 +177,7 @@ albumsController.delete = async (req, res, next) => {
   const zipPath = path.join(zipsDir, `${identifier}.zip`)
   fs.unlink(zipPath, error => {
     if (error && error.code !== 'ENOENT') {
-      console.log(error)
+      console.error(error)
       return res.json({ success: false, description: error.toString(), failed })
     }
     res.json({ success: true, failed })
@@ -240,7 +252,7 @@ albumsController.edit = async (req, res, next) => {
       if (error) { return res.json({ success: true, identifier }) }
       fs.rename(zipPath, path.join(zipsDir, `${identifier}.zip`), error => {
         if (!error) { return res.json({ success: true, identifier }) }
-        console.log(error)
+        console.error(error)
         res.json({ success: false, description: error.toString() })
       })
     })
@@ -288,7 +300,7 @@ albumsController.get = async (req, res, next) => {
     file.file = `${config.domain}/${file.name}`
 
     const ext = path.extname(file.name).toLowerCase()
-    if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
+    if ((config.uploads.generateThumbs.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbs.video && utils.videoExtensions.includes(ext))) {
       file.thumb = `${config.domain}/thumbs/${file.name.slice(0, -ext.length)}.png`
     }
   }
@@ -320,7 +332,7 @@ albumsController.generateZip = async (req, res, next) => {
     })
   }
 
-  if (!config.uploads.generateZips || !config.uploads.generateZips.enabled) {
+  if (!config.uploads.generateZips) {
     return res.status(401).json({ success: false, description: 'Zip generation disabled.' })
   }
 
@@ -350,21 +362,40 @@ albumsController.generateZip = async (req, res, next) => {
     }
   }
 
-  console.log(`Generating zip for album identifier: ${identifier}`)
+  if (albumsController.zipEmitters.has(identifier)) {
+    console.log(`Waiting previous zip task for album: ${identifier}.`)
+    return albumsController.zipEmitters.get(identifier).once('done', (filePath, fileName, json) => {
+      if (filePath && fileName) {
+        download(filePath, fileName)
+      } else if (json) {
+        res.json(json)
+      }
+    })
+  }
+
+  albumsController.zipEmitters.set(identifier, new ZipEmitter(identifier))
+
+  console.log(`Starting zip task for album: ${identifier}.`)
   const files = await db.table('files')
     .select('name', 'size')
     .where('albumid', album.id)
   if (files.length === 0) {
-    return res.json({ success: false, description: 'There are no files in the album.' })
+    console.log(`Finished zip task for album: ${identifier} (no files).`)
+    const json = { success: false, description: 'There are no files in the album.' }
+    albumsController.zipEmitters.get(identifier).emit('done', null, null, json)
+    return res.json(json)
   }
 
-  if (maxTotalSize) {
+  if (zipMaxTotalSize) {
     const totalSizeBytes = files.reduce((accumulator, file) => accumulator + parseInt(file.size), 0)
-    if (totalSizeBytes > maxTotalSizeBytes) {
-      return res.json({
+    if (totalSizeBytes > zipMaxTotalSizeBytes) {
+      console.log(`Finished zip task for album: ${identifier} (size exceeds).`)
+      const json = {
         success: false,
-        description: `Total size of all files in the album exceeds the configured limit (${maxTotalSize}).`
-      })
+        description: `Total size of all files in the album exceeds the configured limit (${zipMaxTotalSize}).`
+      }
+      albumsController.zipEmitters.get(identifier).emit('done', null, null, json)
+      return res.json(json)
     }
   }
 
@@ -375,7 +406,7 @@ albumsController.generateZip = async (req, res, next) => {
   for (const file of files) {
     fs.readFile(path.join(uploadsDir, file.name), (error, data) => {
       if (error) {
-        console.log(error)
+        console.error(error)
       } else {
         archive.file(file.name, data)
       }
@@ -391,13 +422,15 @@ albumsController.generateZip = async (req, res, next) => {
           })
           .pipe(fs.createWriteStream(zipPath))
           .on('finish', async () => {
-            console.log(`Generated zip for album identifier: ${identifier}`)
+            console.log(`Finished zip task for album: ${identifier} (success).`)
             await db.table('albums')
               .where('id', album.id)
               .update('zipGeneratedAt', Math.floor(Date.now() / 1000))
 
             const filePath = path.join(zipsDir, `${identifier}.zip`)
             const fileName = `${album.name}.zip`
+
+            albumsController.zipEmitters.get(identifier).emit('done', filePath, fileName)
             return download(filePath, fileName)
           })
       }

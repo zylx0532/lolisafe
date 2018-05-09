@@ -9,10 +9,9 @@ const utils = require('./utilsController')
 
 const uploadsController = {}
 
-// Let's default it to only 1 try (for missing config key)
 const maxTries = config.uploads.maxTries || 1
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
-const chunkedUploads = config.uploads.chunkedUploads && config.uploads.chunkedUploads.enabled
+const chunkedUploads = Boolean(config.uploads.chunkSize)
 const chunksDir = path.join(uploadsDir, 'chunks')
 const maxSizeBytes = parseInt(config.uploads.maxSize) * 1000000
 
@@ -28,7 +27,7 @@ const storage = multer.diskStorage({
       if (!error) { return cb(null, uuidDir) }
       fs.mkdir(uuidDir, error => {
         if (!error) { return cb(null, uuidDir) }
-        console.log(error)
+        console.error(error)
         // eslint-disable-next-line standard/no-callback-literal
         return cb('Could not process the chunked upload. Try again?')
       })
@@ -69,18 +68,21 @@ const upload = multer({
       }
     }
 
-    if (chunkedUploads) {
-      // Re-map Dropzone keys so people can manually use the API without prepending 'dz'
-      for (const key in req.body) {
-        if (!/^dz/.test(key)) { continue }
-        req.body[key.replace(/^dz/, '')] = req.body[key]
-        delete req.body[key]
-      }
+    // Re-map Dropzone keys so people can manually use the API without prepending 'dz'
+    for (const key in req.body) {
+      if (!/^dz/.test(key)) { continue }
+      req.body[key.replace(/^dz/, '')] = req.body[key]
+      delete req.body[key]
+    }
 
-      const totalFileSize = parseInt(req.body.totalfilesize)
-      if (totalFileSize > maxSizeBytes) {
+    if (req.body.chunkindex) {
+      if (chunkedUploads && parseInt(req.body.totalfilesize) > maxSizeBytes) {
+        // This will not be true if "totalfilesize" key does not exist, since "NaN > number" is false.
         // eslint-disable-next-line standard/no-callback-literal
         return cb('Chunk error occurred. Total file size is larger than the maximum file size.')
+      } else if (!chunkedUploads) {
+        // eslint-disable-next-line standard/no-callback-literal
+        return cb('Chunked uploads is disabled at the moment.')
       }
     }
 
@@ -139,7 +141,7 @@ uploadsController.upload = async (req, res, next) => {
 uploadsController.actuallyUpload = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
-    if (isError) { console.log(error) }
+    if (isError) { console.error(error) }
     res.json({
       success: false,
       description: isError ? error.toString() : `Error: ${error}`
@@ -200,7 +202,7 @@ uploadsController.finishChunks = async (req, res, next) => {
 uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
-    if (isError) { console.log(error) }
+    if (isError) { console.error(error) }
     res.json({
       success: false,
       description: isError ? error.toString() : `Error: ${error}`
@@ -299,7 +301,7 @@ uploadsController.appendToStream = (destFileStream, uuidDr, chunkNames) => {
             append(++i)
           })
           .on('error', error => {
-            console.log(error)
+            console.erred(error)
             destFileStream.end()
             return reject(error)
           })
@@ -398,7 +400,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     const albumids = []
     for (const file of files) {
       const ext = path.extname(file.name).toLowerCase()
-      if ((config.uploads.generateThumbnails.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbnails.video && utils.videoExtensions.includes(ext))) {
+      if ((config.uploads.generateThumbs.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbs.video && utils.videoExtensions.includes(ext))) {
         file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
         utils.generateThumbs(file)
       }
@@ -415,7 +417,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
           .update('editedAt', editedAt)
           .then(() => {})
           .catch(error => {
-            console.log(error)
+            console.erred(error)
             albumSuccess = false
           })
       }))
@@ -560,8 +562,8 @@ uploadsController.list = async (req, res) => {
     const isImageExt = utils.imageExtensions.includes(file.extname)
 
     if ((!isVideoExt && !isImageExt) ||
-      (isVideoExt && config.uploads.generateThumbnails.video !== true) ||
-      (isImageExt && config.uploads.generateThumbnails.image !== true)) {
+      (isVideoExt && config.uploads.generateThumbs.video !== true) ||
+      (isImageExt && config.uploads.generateThumbs.image !== true)) {
       continue
     }
 

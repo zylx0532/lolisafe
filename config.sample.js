@@ -1,5 +1,4 @@
 module.exports = {
-
   /*
     If set to true the user will need to specify the auto-generated token
     on each API call, meaning random strangers won't be able to use the service
@@ -8,7 +7,9 @@ module.exports = {
   */
   private: true,
 
-  // If true, users will be able to create accounts and access their uploaded files
+  /*
+    If true, users will be able to create accounts and access their uploaded files.
+  */
   enableUserAccounts: true,
 
   /*
@@ -34,10 +35,14 @@ module.exports = {
   */
   homeDomain: null,
 
-  // Port on which to run the server
+  /*
+    Port on which to run the server.
+  */
   port: 9999,
 
-  // Pages to process for the frontend
+  /*
+    Pages to process for the frontend.
+  */
   pages: ['home', 'auth', 'dashboard', 'faq'],
 
   /*
@@ -58,34 +63,30 @@ module.exports = {
     '.sh'
   ],
 
-  // Uploads config
+  /*
+    Uploads config.
+  */
   uploads: {
-
-    // Folder where images should be stored
+    /*
+      Folder where images should be stored.
+    */
     folder: 'uploads',
 
     /*
-      Max file size allowed. Needs to be in MB
+      Max file size allowed. Needs to be in MB.
       Note: When maxSize is greater than 1 MiB, you must set the client_max_body_size to the same as maxSize.
     */
     maxSize: '512MB',
 
     /*
-      Chunked uploads.
+      Chunk size for chunk uploads. Needs to be in MB.
       If this is enabled, every files uploaded from the homepage uploader will forcibly be chunked
       by the size specified in "chunkSize". People will still be able to upload bigger files with
       the API as long as they don't surpass the limit specified in the "maxSize" option above.
       Total size of the whole chunks will also later be checked against the "maxSize" option.
-      No-JS uploader page will not have chunked uploads support, if you want to change the maximum
-      file size 'displayed' on it, you can change the value of "noJsMaxSize".
-      You can also set it to null (or other falsy values) to inherit the value of "maxSize" option.
-      "chunkSize", and "noJsMaxSize" if set, need to be in MB.
+      NOTE: Set to falsy value (false, null, etc.) to disable.
     */
-    chunkedUploads: {
-      enabled: true,
-      chunkSize: '10MB',
-      noJsMaxSize: null
-    },
+    chunkSize: '10MB',
 
     /*
       The length of the randomly generated name for uploaded files.
@@ -103,7 +104,9 @@ module.exports = {
       userChangeable: false
     },
 
-    // The length of the randomly generated identifier for albums.
+    /*
+      The length of the randomly generated identifier for albums.
+    */
     albumIdentifierLength: 8,
 
     /*
@@ -114,11 +117,11 @@ module.exports = {
     maxTries: 1,
 
     /*
-      NOTE: Thumbnails are only for the admin panel and they require you
-      to install a separate binary called graphicsmagick (http://www.graphicsmagick.org)
-      for images and ffmpeg (https://ffmpeg.org/) for video files
+      Thumbnails are only for the admin panel and they require you to install
+      a separate binary called graphicsmagick (http://www.graphicsmagick.org) for images
+      and ffmpeg (https://ffmpeg.org/) for video files.
     */
-    generateThumbnails: {
+    generateThumbs: {
       image: true,
       video: false
     },
@@ -127,21 +130,40 @@ module.exports = {
       Allows users to download a ZIP file of all files in an album.
       The file is generated when the user clicks the download button in the view
       and is re-used if the album has not changed between download requests.
-      If "maxTotalSize" is set (needs to be in MB), generating ZIP file will be disabled
-      if the total size of all the files in the album exceeds the set limit.
-      If you have CloudFlare properly caching the zipping API route, it's recommended to
-      set this to '512MB' as CloudFlare will not cache files bigger than that.
     */
-    generateZips: {
-      enabled: true,
-      maxTotalSize: null
-    }
+    generateZips: true
   },
 
-  // Folder where to store logs
+  /*
+    Cloudflare support.
+  */
+  cloudflare: {
+    /*
+      No-JS uploader page will not chunk the uploads, so it's recommended to change this
+      into the maximum upload size you have in Cloudflare.
+      This limit will only be applied to the subtitle in the page.
+      NOTE: Set to falsy value (false, null, etc.) to disable.
+    */
+    noJsMaxSize: '100MB',
+
+    /*
+      If you have a Page Rule in Cloudflare to cache everything in the album zippping
+      API route (HOME_DOMAIN/api/album/zip/*), with this option you can limit the
+      maximum total size of files in an album that can be zipped.
+      Cloudflare will not cache files bigger than 512MB.
+      NOTE: Set to falsy value (false, null, etc.) to disable.
+    */
+    zipMaxTotalSize: '512MB'
+  },
+
+  /*
+    Folder where to store logs.
+  */
   logsFolder: 'logs',
 
-  // The following values shouldn't be touched
+  /*
+    The following values shouldn't be touched, unless you know what you are doing.
+  */
   database: {
     client: 'sqlite3',
     connection: { filename: './database/db' },
