@@ -164,7 +164,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
       }
     })
 
-    const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
+    const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
       .catch(erred)
 
     if (result) {
@@ -254,9 +254,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
             resolve()
           })
         })
-      }))
-        .then(() => true)
-        .catch(erred)
+      })).catch(erred)
       if (!chunksDeleted) { return }
 
       // Delete UUID dir
@@ -280,7 +278,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
         iteration++
         if (iteration === files.length) {
-          const result = await uploadsController.writeFilesToDb(req, res, user, infoMap)
+          const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
             .catch(erred)
 
           if (result) {
@@ -301,7 +299,7 @@ uploadsController.appendToStream = (destFileStream, uuidDr, chunkNames) => {
             append(++i)
           })
           .on('error', error => {
-            console.erred(error)
+            console.error(error)
             destFileStream.end()
             return reject(error)
           })
@@ -315,7 +313,7 @@ uploadsController.appendToStream = (destFileStream, uuidDr, chunkNames) => {
   })
 }
 
-uploadsController.writeFilesToDb = (req, res, user, infoMap) => {
+uploadsController.formatInfoMap = (req, res, user, infoMap) => {
   return new Promise((resolve, reject) => {
     let iteration = 0
     const files = []
@@ -410,17 +408,13 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     }
 
     if (albumids.length) {
-      const editedAt = Math.floor(Date.now() / 1000)
-      await Promise.all(albumids.map(albumid => {
-        return db.table('albums')
-          .where('id', albumid)
-          .update('editedAt', editedAt)
-          .then(() => {})
-          .catch(error => {
-            console.erred(error)
-            albumSuccess = false
-          })
-      }))
+      await db.table('albums')
+        .whereIn('id', albumids)
+        .update('editedAt', Math.floor(Date.now() / 1000))
+        .catch(error => {
+          console.error(error)
+          albumSuccess = false
+        })
     }
 
     mappedFiles = files.map(file => {

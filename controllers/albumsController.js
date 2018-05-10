@@ -453,9 +453,11 @@ albumsController.addFiles = async (req, res, next) => {
 
   if (albumid !== null) {
     const album = await db.table('albums')
-      .where({
-        id: albumid,
-        userid: user.id
+      .where('id', albumid)
+      .where(function () {
+        if (user.username !== 'root') {
+          this.where('userid', user.id)
+        }
       })
       .first()
 
@@ -476,34 +478,30 @@ albumsController.addFiles = async (req, res, next) => {
 
   const failed = ids.filter(id => !files.find(file => file.id === id))
 
-  await Promise.all(files.map(file => {
+  const updateDb = await db.table('files')
+    .whereIn('id', files.map(file => file.id))
+    .update('albumid', albumid)
+    .catch(console.error)
+
+  if (!updateDb) {
+    return res.json({
+      success: false,
+      description: `Could not ${albumid === null ? 'add' : 'remove'} any files ${albumid === null ? 'to' : 'from'} the album.`
+    })
+  }
+
+  files.forEach(file => {
     if (file.albumid && !albumids.includes(file.albumid)) {
       albumids.push(file.albumid)
     }
-
-    return db.table('files')
-      .where('id', file.id)
-      .update('albumid', albumid)
-      .catch(error => {
-        console.error(error)
-        failed.push(file.id)
-      })
-  }))
-
-  if (failed.length < ids.length) {
-    await Promise.all(albumids.map(albumid => {
-      return db.table('albums')
-        .where('id', albumid)
-        .update('editedAt', Math.floor(Date.now() / 1000))
-    }))
-
-    return res.json({ success: true, failed })
-  }
-
-  return res.json({
-    success: false,
-    description: `Could not ${albumid === null ? 'add' : 'remove'} any files ${albumid === null ? 'to' : 'from'} the album.`
   })
+
+  await db.table('albums')
+    .whereIn('id', albumids)
+    .update('editedAt', Math.floor(Date.now() / 1000))
+    .catch(console.error)
+
+  return res.json({ success: true, failed })
 }
 
 module.exports = albumsController

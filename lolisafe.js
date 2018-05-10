@@ -73,9 +73,11 @@ safe.use((error, req, res, next) => {
 safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))
 
 process.on('uncaughtException', error => {
-  console.error(`Uncaught Exception:\n${error}`)
+  console.error('Uncaught Exception:')
+  console.error(error)
 })
 
 process.on('unhandledRejection', error => {
-  console.error(`Unhandled Rejection (Promise):\n${error}`)
+  console.error('Unhandled Rejection (Promise):')
+  console.error(error)
 })

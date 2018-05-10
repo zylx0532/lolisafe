@@ -137,8 +137,8 @@ utilsController.deleteFile = file => {
  * @return {any[]} failed
  */
 utilsController.bulkDeleteFiles = async (field, values, user) => {
-  if (!user) { return }
-  if (!['id', 'name'].includes(field)) { return }
+  if (!user || !['id', 'name'].includes(field)) { return }
+
   const files = await db.table('files')
     .whereIn(field, values)
     .where(function () {
@@ -147,48 +147,50 @@ utilsController.bulkDeleteFiles = async (field, values, user) => {
       }
     })
 
+  const deleted = []
   const failed = values.filter(value => !files.find(file => file[field] === value))
-  const albumids = []
 
-  // Delete all files
+  // Delete all files physically
   await Promise.all(files.map(file => {
     return new Promise(async resolve => {
-      const deleteFile = await utilsController.deleteFile(file.name)
+      await utilsController.deleteFile(file.name)
+        .then(() => deleted.push(file.id))
         .catch(error => {
-          console.error(error)
           failed.push(file[field])
-        })
-      if (!deleteFile) { return resolve() }
-
-      await db.table('files')
-        .where(field, file[field])
-        .del()
-        .then(() => {
-          if (file.albumid && !albumids.includes(file.albumid)) {
-            albumids.push(file.albumid)
-          }
-        })
-        .catch(error => {
           console.error(error)
-          failed.push(file[field])
         })
-
       return resolve()
     })
   }))
 
+  if (!deleted.length) { return failed }
+
+  // Delete all files from database
+  const deleteDb = await db.table('files')
+    .whereIn('id', deleted)
+    .del()
+    .catch(console.error)
+  if (!deleteDb) { return failed }
+
+  const filtered = files.filter(file => deleted.includes(file.id))
+
   // Update albums if necessary
-  if (albumids.length) {
-    await Promise.all(albumids.map(albumid => {
-      return db.table('albums')
-        .where('id', albumid)
-        .update('editedAt', Math.floor(Date.now() / 1000))
-    }))
+  if (deleteDb) {
+    const albumids = []
+    filtered.forEach(file => {
+      if (file.albumid && !albumids.includes(file.albumid)) {
+        albumids.push(file.albumid)
+      }
+    })
+    await db.table('albums')
+      .whereIn('id', albumids)
+      .update('editedAt', Math.floor(Date.now() / 1000))
+      .catch(console.error)
   }
 
   if (config.cloudflare.purgeCache) {
     // purgeCloudflareCache() is an async function, but let us not wait for it
-    const names = files.filter(file => !failed.includes(file[field])).map(file => file.name)
+    const names = filtered.map(file => file.name)
     utilsController.purgeCloudflareCache(names)
   }
 
