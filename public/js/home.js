@@ -298,6 +298,7 @@ page.uploadUrls = async button => {
   if (button.classList.contains('is-loading')) { return }
   button.classList.add('is-loading')
 
+  const albumid = page.album
   const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
   const files = document.getElementById('urls').value
     .split(/\r?\n/)
@@ -305,8 +306,9 @@ page.uploadUrls = async button => {
       const previewTemplate = document.createElement('template')
       previewTemplate.innerHTML = page.previewTemplate.trim()
       const previewElement = previewTemplate.content.firstChild
+      previewElement.querySelector('.name').innerHTML = url
+      previewsContainer.appendChild(previewElement)
       return {
-        name: url,
         url,
         previewElement
       }
@@ -316,9 +318,6 @@ page.uploadUrls = async button => {
     const post = async i => {
       if (i === files.length) { return resolve() }
       const file = files[i]
-      file.previewElement.querySelector('.name').innerHTML = file.name
-      previewsContainer.appendChild(file.previewElement)
-
       const response = await axios.post('api/upload',
         {
           urls: [file.url]
@@ -326,7 +325,7 @@ page.uploadUrls = async button => {
         {
           headers: {
             token: page.token,
-            albumid: page.album
+            albumid
           }
         })
         .then(response => response.data)
