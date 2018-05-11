@@ -169,6 +169,11 @@
   border-bottom-color: #7f8c8d;
 }
 
+.tabs li.is-active a {
+  border-bottom-color: #3794d2;
+  color: #3794d2;
+}
+
 .tab-content {
   margin-bottom: -.75rem;
 }
