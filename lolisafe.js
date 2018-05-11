@@ -56,7 +56,7 @@ for (const page of config.pages) {
   if (fs.existsSync(`./pages/custom/${page}.html`)) {
     safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root: './pages/custom/' }))
   } else if (page === 'home') {
-    safe.get('/', (req, res, next) => res.render('home'))
+    safe.get('/', (req, res, next) => res.render('home', { urlMaxSize: config.uploads.urlMaxSize }))
   } else {
     safe.get(`/${page}`, (req, res, next) => res.render(page))
   }

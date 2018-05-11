@@ -159,7 +159,7 @@ utilsController.bulkDeleteFiles = async (field, values, user) => {
           failed.push(file[field])
           console.error(error)
         })
-      return resolve()
+      resolve()
     })
   }))
 

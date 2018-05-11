@@ -79,12 +79,18 @@ module.exports = {
     maxSize: '512MB',
 
     /*
+      Max file size allowed for upload by URLs. Needs to be in MB.
+      NOTE: Set to falsy value (false, null, etc.) to disable upload by URLs.
+    */
+    urlMaxSize: '32MB',
+
+    /*
       Chunk size for chunk uploads. Needs to be in MB.
       If this is enabled, every files uploaded from the homepage uploader will forcibly be chunked
       by the size specified in "chunkSize". People will still be able to upload bigger files with
       the API as long as they don't surpass the limit specified in the "maxSize" option above.
       Total size of the whole chunks will also later be checked against the "maxSize" option.
-      NOTE: Set to falsy value (false, null, etc.) to disable.
+      NOTE: Set to falsy value (false, null, etc.) to disable chunked uploads.
     */
     chunkSize: '10MB',
 
@@ -142,7 +148,7 @@ module.exports = {
       No-JS uploader page will not chunk the uploads, so it's recommended to change this
       into the maximum upload size you have in Cloudflare.
       This limit will only be applied to the subtitle in the page.
-      NOTE: Set to falsy value (false, null, etc.) to disable.
+      NOTE: Set to falsy value (false, null, etc.) to inherit "maxSize" option.
     */
     noJsMaxSize: '100MB',
 
@@ -151,7 +157,7 @@ module.exports = {
       API route (HOME_DOMAIN/api/album/zip/*), with this option you can limit the
       maximum total size of files in an album that can be zipped.
       Cloudflare will not cache files bigger than 512MB.
-      NOTE: Set to falsy value (false, null, etc.) to disable.
+      NOTE: Set to falsy value (false, null, etc.) to disable max total size.
     */
     zipMaxTotalSize: '512MB',
 

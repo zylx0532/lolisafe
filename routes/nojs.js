@@ -20,6 +20,7 @@ routes.get('/nojs', async (req, res, next) => {
 })
 
 routes.post('/nojs', (req, res, next) => {
+  // TODO: Support upload by URLs.
   res._json = res.json
   res.json = (...args) => {
     const result = args[0]

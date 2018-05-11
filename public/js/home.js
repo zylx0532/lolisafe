@@ -14,6 +14,7 @@ const page = {
   album: null,
 
   albumSelect: null,
+  previewTemplate: null,
 
   dropzone: null,
   clipboardJS: null,
@@ -103,17 +104,6 @@ page.prepareUpload = () => {
     document.getElementById('albumDiv').style.display = 'flex'
   }
 
-  const div = document.createElement('div')
-  div.id = 'dropzone'
-  div.className = 'button is-danger is-unselectable'
-  div.innerHTML = `
-    <span class="icon">
-      <i class="icon-upload-cloud"></i>
-    </span>
-    <span>Click here or drag and drop files</span>
-  `
-  div.style.display = 'flex'
-
   document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${page.maxFileSize}`
   document.getElementById('loginToUpload').style.display = 'none'
 
@@ -121,9 +111,28 @@ page.prepareUpload = () => {
     document.getElementById('loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
   }
 
-  document.getElementById('uploadContainer').appendChild(div)
+  const previewNode = document.querySelector('#tpl')
+  page.previewTemplate = previewNode.innerHTML
+  previewNode.parentNode.removeChild(previewNode)
 
   page.prepareDropzone()
+
+  const tabs = document.getElementById('tabs')
+  if (tabs) {
+    tabs.style.display = 'flex'
+    const items = tabs.getElementsByTagName('li')
+    for (const item of items) {
+      item.addEventListener('click', function () {
+        page.setActiveTab(this.dataset.id)
+      })
+    }
+    document.getElementById('uploadUrls').addEventListener('click', function () {
+      page.uploadUrls(this)
+    })
+    page.setActiveTab('tab-files')
+  } else {
+    document.getElementById('tab-files').style.display = 'block'
+  }
 }
 
 page.prepareAlbums = async () => {
@@ -160,20 +169,43 @@ page.prepareAlbums = async () => {
   }
 }
 
-page.prepareDropzone = () => {
-  const previewNode = document.querySelector('#template')
-  previewNode.id = ''
-  const previewTemplate = previewNode.parentNode.innerHTML
-  previewNode.parentNode.removeChild(previewNode)
+page.setActiveTab = activeId => {
+  const items = document.getElementById('tabs').getElementsByTagName('li')
+  for (const item of items) {
+    const tabId = item.dataset.id
+    if (tabId === activeId) {
+      item.classList.add('is-active')
+      document.getElementById(tabId).style.display = 'block'
+    } else {
+      item.classList.remove('is-active')
+      document.getElementById(tabId).style.display = 'none'
+    }
+  }
+}
 
+page.prepareDropzone = () => {
+  const tabDiv = document.getElementById('tab-files')
+  const div = document.createElement('div')
+  div.className = 'control is-expanded'
+  div.innerHTML = `
+    <div id="dropzone" class="button is-danger is-fullwidth is-unselectable">
+      <span class="icon">
+        <i class="icon-upload-cloud"></i>
+      </span>
+      <span>Click here or drag and drop files</span>
+    </div>
+  `
+  tabDiv.getElementsByClassName('dz-container')[0].appendChild(div)
+
+  const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
   page.dropzone = new Dropzone('#dropzone', {
     url: 'api/upload',
     paramName: 'files[]',
     maxFilesize: parseInt(page.maxFileSize),
     parallelUploads: 2,
     uploadMultiple: false,
-    previewsContainer: '#uploads',
-    previewTemplate,
+    previewsContainer,
+    previewTemplate: page.previewTemplate,
     createImageThumbnails: false,
     maxFiles: 1000,
     autoProcessQueue: true,
@@ -206,10 +238,10 @@ page.prepareDropzone = () => {
           }
         })
 
-      file.previewTemplate.querySelector('.progress').style.display = 'none'
+      file.previewElement.querySelector('.progress').style.display = 'none'
 
       if (response.success === false) {
-        file.previewTemplate.querySelector('.error').innerHTML = response.description
+        file.previewElement.querySelector('.error').innerHTML = response.description
       }
 
       if (response.files && response.files[0]) {
@@ -220,7 +252,7 @@ page.prepareDropzone = () => {
   })
 
   page.dropzone.on('addedfile', file => {
-    document.getElementById('uploads').style.display = 'block'
+    file.previewElement.querySelector('.name').innerHTML = file.name
   })
 
   // Add the selected albumid, if an album is selected, as a header
@@ -238,10 +270,11 @@ page.prepareDropzone = () => {
 
   page.dropzone.on('success', (file, response) => {
     if (!response) { return }
-    file.previewTemplate.querySelector('.progress').style.display = 'none'
+    file.previewElement.querySelector('.progress').style.display = 'none'
+    // file.previewElement.querySelector('.name').innerHTML = file.name
 
     if (response.success === false) {
-      file.previewTemplate.querySelector('.error').innerHTML = response.description
+      file.previewElement.querySelector('.error').innerHTML = response.description
     }
 
     if (response.files && response.files[0]) {
@@ -250,31 +283,89 @@ page.prepareDropzone = () => {
   })
 
   page.dropzone.on('error', (file, error) => {
-    file.previewTemplate.querySelector('.progress').style.display = 'none'
-    file.previewTemplate.querySelector('.error').innerHTML = error
+    file.previewElement.querySelector('.progress').style.display = 'none'
+    file.previewElement.querySelector('.name').innerHTML = file.name
+    file.previewElement.querySelector('.error').innerHTML = error
   })
 
   page.prepareShareX()
 }
 
+page.uploadUrls = async button => {
+  const tabDiv = document.getElementById('tab-urls')
+  if (!tabDiv) { return }
+
+  if (button.classList.contains('is-loading')) { return }
+  button.classList.add('is-loading')
+
+  const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
+  const files = document.getElementById('urls').value
+    .split(/\r?\n/)
+    .map(url => {
+      const previewTemplate = document.createElement('template')
+      previewTemplate.innerHTML = page.previewTemplate.trim()
+      const previewElement = previewTemplate.content.firstChild
+      return {
+        name: url,
+        url,
+        previewElement
+      }
+    })
+
+  await new Promise(resolve => {
+    const post = async i => {
+      if (i === files.length) { return resolve() }
+      const file = files[i]
+      file.previewElement.querySelector('.name').innerHTML = file.name
+      previewsContainer.appendChild(file.previewElement)
+
+      const response = await axios.post('api/upload',
+        {
+          urls: [file.url]
+        },
+        {
+          headers: {
+            token: page.token,
+            albumid: page.album
+          }
+        })
+        .then(response => response.data)
+        .catch(error => {
+          return {
+            success: false,
+            description: error.toString()
+          }
+        })
+
+      file.previewElement.querySelector('.progress').style.display = 'none'
+      if (response.success) {
+        page.updateTemplate(file, response.files[0])
+      } else {
+        file.previewElement.querySelector('.error').innerHTML = response.description
+      }
+      post(i + 1)
+    }
+    post(0)
+  })
+
+  button.classList.remove('is-loading')
+}
+
 page.updateTemplate = (file, response) => {
   if (!response.url) { return }
 
-  const a = file.previewTemplate.querySelector('.link > a')
-  const clipboard = file.previewTemplate.querySelector('.clipboard-mobile > .clipboard-js')
+  const a = file.previewElement.querySelector('.link > a')
+  const clipboard = file.previewElement.querySelector('.clipboard-mobile > .clipboard-js')
   a.href = a.innerHTML = clipboard.dataset['clipboardText'] = response.url
   clipboard.parentElement.style.display = 'block'
 
-  const name = file.previewTemplate.querySelector('.name')
-  name.innerHTML = file.name
-
   const exec = /.[\w]+(\?|$)/.exec(response.url)
   if (exec && exec[0] && imageExtensions.includes(exec[0].toLowerCase())) {
-    const img = file.previewTemplate.querySelector('img')
+    const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
     img.dataset['src'] = response.url
     img.onerror = function () { this.style.display = 'none' } // hide webp in firefox and ie
-    page.lazyLoad.update(file.previewTemplate.querySelectorAll('img'))
+    page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
   }
 }
 
