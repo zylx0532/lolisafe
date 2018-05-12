@@ -504,63 +504,51 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
 }
 
 uploadsController.processFilesForDisplay = async (req, res, files, existingFiles) => {
-  const basedomain = config.domain
-  let albumSuccess = true
-  let mappedFiles
+  const responseFiles = []
 
   if (files.length) {
     // Insert new files to DB
     await db.table('files').insert(files)
 
-    // Push existing files to array for response
-    for (const efile of existingFiles) {
-      files.push(efile)
-    }
-
-    const albumids = []
     for (const file of files) {
-      const ext = path.extname(file.name).toLowerCase()
-      if ((config.uploads.generateThumbs.image && utils.imageExtensions.includes(ext)) || (config.uploads.generateThumbs.video && utils.videoExtensions.includes(ext))) {
-        file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`
-        utils.generateThumbs(file)
-      }
-      if (file.albumid && !albumids.includes(file.albumid)) {
-        albumids.push(file.albumid)
-      }
+      responseFiles.push(file)
     }
-
-    if (albumids.length) {
-      await db.table('albums')
-        .whereIn('id', albumids)
-        .update('editedAt', Math.floor(Date.now() / 1000))
-        .catch(error => {
-          console.error(error)
-          albumSuccess = false
-        })
-    }
-
-    mappedFiles = files.map(file => {
-      return {
-        name: file.name,
-        size: file.size,
-        url: `${basedomain}/${file.name}`
-      }
-    })
-  } else {
-    mappedFiles = existingFiles.map(file => {
-      return {
-        name: file.name,
-        size: file.size,
-        url: `${basedomain}/${file.name}`
-      }
-    })
   }
 
-  return res.json({
-    success: albumSuccess,
-    description: albumSuccess ? null : 'Warning: Album may not have been properly updated.',
-    files: mappedFiles
+  if (existingFiles.length) {
+    for (const file of existingFiles) {
+      responseFiles.push(file)
+    }
+  }
+
+  // We send response first before generating thumbnails and updating album timestamps
+  res.json({
+    success: true,
+    files: responseFiles.map(file => {
+      return {
+        name: file.name,
+        size: file.size,
+        url: `${config.domain}/${file.name}`
+      }
+    })
   })
+
+  const albumids = []
+  for (const file of files) {
+    if (file.albumid && !albumids.includes(file.albumid)) {
+      albumids.push(file.albumid)
+    }
+    if (utils.mayGenerateThumb(path.extname(file.name).toLowerCase())) {
+      utils.generateThumbs(file.name)
+    }
+  }
+
+  if (albumids.length) {
+    await db.table('albums')
+      .whereIn('id', albumids)
+      .update('editedAt', Math.floor(Date.now() / 1000))
+      .catch(console.error)
+  }
 }
 
 uploadsController.delete = async (req, res) => {
@@ -624,12 +612,10 @@ uploadsController.list = async (req, res) => {
 
   for (const file of files) {
     file.file = `${basedomain}/${file.name}`
-    file.date = new Date(file.timestamp * 1000)
-    file.date = utils.getPrettyDate(file.date)
+    file.date = utils.getPrettyDate(new Date(file.timestamp * 1000))
     file.size = utils.getPrettyBytes(parseInt(file.size))
 
     file.album = ''
-
     if (file.albumid !== undefined) {
       for (const album of albums) {
         if (file.albumid === album.id) {
@@ -646,16 +632,9 @@ uploadsController.list = async (req, res) => {
     }
 
     file.extname = path.extname(file.name).toLowerCase()
-    const isVideoExt = utils.videoExtensions.includes(file.extname)
-    const isImageExt = utils.imageExtensions.includes(file.extname)
-
-    if ((!isVideoExt && !isImageExt) ||
-      (isVideoExt && config.uploads.generateThumbs.video !== true) ||
-      (isImageExt && config.uploads.generateThumbs.image !== true)) {
-      continue
+    if (utils.mayGenerateThumb(file.extname)) {
+      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
     }
-
-    file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
   }
 
   // If we are a normal user, send response

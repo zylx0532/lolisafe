@@ -42,17 +42,18 @@ routes.get('/a/:identifier', async (req, res, next) => {
   for (const file of files) {
     file.file = `${basedomain}/${file.name}`
     file.size = utils.getPrettyBytes(parseInt(file.size))
+
     file.extname = path.extname(file.name).toLowerCase()
+    if (utils.mayGenerateThumb(file.extname)) {
+      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
 
-    if (!utils.mayGenerateThumb(file.extname)) { continue }
-    file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
-
-    /*
-      If thumbnail for album is still not set, do it.
-      A potential improvement would be to let the user upload a specific image as an album cover
-      since embedding the first image could potentially result in nsfw content when pasting links.
-    */
-    if (thumb === '') { thumb = file.thumb }
+      /*
+        If thumbnail for album is still not set, do it.
+        A potential improvement would be to let the user upload a specific image as an album cover
+        since embedding the first image could potentially result in nsfw content when pasting links.
+      */
+      if (thumb === '') { thumb = file.thumb }
+    }
   }
 
   return res.render('album', {

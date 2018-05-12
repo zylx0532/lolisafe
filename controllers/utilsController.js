@@ -63,47 +63,56 @@ utilsController.authorize = async (req, res) => {
   res.status(401).json({ success: false, description: 'Invalid token.' })
 }
 
-utilsController.generateThumbs = (file, basedomain) => {
-  const extname = path.extname(file.name).toLowerCase()
-  if (!utilsController.mayGenerateThumb(extname)) { return }
+utilsController.generateThumbs = (name, force) => {
+  return new Promise(resolve => {
+    const extname = path.extname(name).toLowerCase()
+    const thumbname = path.join(thumbsDir, name.slice(0, -extname.length) + '.png')
+    fs.access(thumbname, error => {
+      if (error && error.code !== 'ENOENT') {
+        console.error(error)
+        return resolve(false)
+      }
 
-  const thumbname = path.join(thumbsDir, file.name.slice(0, -extname.length) + '.png')
-  fs.access(thumbname, error => {
-    // Only make thumbnail if it does not exist (ENOENT)
-    if (!error || error.code !== 'ENOENT') { return }
+      // Only make thumbnail if it does not exist (ENOENT)
+      if (!error && !force) { return resolve(true) }
 
-    // If image extension
-    if (utilsController.imageExtensions.includes(extname)) {
-      const size = { width: 200, height: 200 }
-      return gm(path.join(__dirname, '..', config.uploads.folder, file.name))
-        .resize(size.width, size.height + '>')
-        .gravity('Center')
-        .extent(size.width, size.height)
-        .background('transparent')
-        .write(thumbname, error => {
-          if (error) {
-            console.error(`${file.name}: ${error.message.trim()}`)
+      // If image extension
+      if (utilsController.imageExtensions.includes(extname)) {
+        const size = { width: 200, height: 200 }
+        return gm(path.join(__dirname, '..', config.uploads.folder, name))
+          .resize(size.width, size.height + '>')
+          .gravity('Center')
+          .extent(size.width, size.height)
+          .background('transparent')
+          .write(thumbname, error => {
+            if (!error) { return resolve(true) }
+            console.error(`${name}: ${error.message.trim()}`)
             fs.symlink(thumbUnavailable, thumbname, error => {
               if (error) { console.error(error) }
+              resolve(!error)
             })
-          }
-        })
-    }
+          })
+      }
 
-    // Otherwise video extension
-    ffmpeg(path.join(__dirname, '..', config.uploads.folder, file.name))
-      .thumbnail({
-        timestamps: ['1%'],
-        filename: '%b.png',
-        folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
-        size: '200x?'
-      })
-      .on('error', error => {
-        console.log(`${file.name}: ${error.message}`)
-        fs.symlink(thumbUnavailable, thumbname, error => {
-          if (error) { console.error(error) }
+      // Otherwise video extension
+      ffmpeg(path.join(__dirname, '..', config.uploads.folder, name))
+        .thumbnail({
+          timestamps: ['1%'],
+          filename: '%b.png',
+          folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
+          size: '200x?'
         })
-      })
+        .on('error', error => {
+          console.log(`${name}: ${error.message}`)
+          fs.symlink(thumbUnavailable, thumbname, error => {
+            if (error) { console.error(error) }
+            resolve(!error)
+          })
+        })
+        .on('end', () => {
+          resolve(true)
+        })
+    })
   })
 }
 
