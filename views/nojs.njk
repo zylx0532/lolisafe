@@ -23,49 +23,40 @@
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
         <div class="column">
-          <div class="content">
-            <p class="subtitle" style="font-size: 1rem">
-              Files uploaded through this No-JS uploader will not be associated to your account, if you have any.
-            </p>
+          <p class="subtitle" style="font-size: 1rem">
+            Files uploaded through this No-JS uploader will not be associated to your account, if you have any.
+          </p>
+          {% if renderOptions.uploadDisabled -%}
+          <a class="button is-danger" style="display: flex" href="auth">{{ renderOptions.uploadDisabled }}</a>
+          {%- else -%}
+          <form id="form" class="field" action="" method="post" enctype="multipart/form-data">
+            <div class="field">
+              <input type="file" name="files[]" multiple="multiple" style="width: 100%">
+            </div>
+            <div class="field">
+              <input type="submit" class="button is-danger" value="Upload" style="width: 100%">
+            </div>
+          </form>
+          {%- endif %}
+          {% if files -%}
+          <div class="field uploads nojs">
+            {% for file in files -%}
+            <div class="field">
+              {% if errorMessage -%}
+              <p class="error">{{ errorMessage | safe }}</p>
+              {%- endif %}
+              {% if file.url -%}
+              <p class="link">
+                <a href="{{ file.url }}" target="_blank" rel="noopener">{{ file.url | safe }}</a>
+              </p>
+              {%- endif %}
+            </div>
+            {% endfor %}
           </div>
-          <div class="content">
-            {% if renderOptions.uploadDisabled -%}
-            <a class="button is-danger" style="display: flex" href="auth">{{ renderOptions.uploadDisabled }}</a>
-            {%- else -%}
-            <form id="form" action="" method="post" enctype="multipart/form-data">
-              <div class="field">
-                <input type="file" name="files[]" multiple="multiple" style="width: 100%">
-              </div>
-              <div class="field">
-                <input type="submit" class="button is-danger" value="Upload" style="width: 100%">
-              </div>
-            </form>
-            {%- endif %}
-          </div>
+          {%- endif %}
         </div>
         <div class="column is-hidden-mobile"></div>
       </div>
-
-      {% if files -%}
-      <div id="uploads" style="display: block">
-        {% for file in files -%}
-        <div class="columns">
-          <div class="column is-hidden-mobile"></div>
-          <div class="column">
-            {% if errorMessage -%}
-            <p class="error">{{ errorMessage | safe }}</p>
-            {%- endif %}
-            {% if file.url -%}
-            <p class="link">
-              <a href="{{ file.url }}" target="_blank" rel="noopener">{{ file.url | safe }}</a>
-            </p>
-            {%- endif %}
-          </div>
-          <div class="column is-hidden-mobile"></div>
-        </div>
-        {% endfor %}
-      </div>
-      {%- endif %}
 
       {% set plain_links = true %}
       {% include "_partial/links.njk" %}

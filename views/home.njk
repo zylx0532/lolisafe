@@ -46,41 +46,39 @@
               </a>
             </div>
           </div>
-          <div class="field">
-            {% if urlMaxSize -%}
-            <div id="tabs" class="tabs is-centered" style="display: none">
-              <ul>
-                <li data-id="tab-files" class="is-active"><a>Files</a></li>
-                <li data-id="tab-urls"><a>URLs</a></li>
-              </ul>
-            </div>
-            {%- endif %}
-            <div id="tab-files" class="tab-content" style="display: none">
-              <div class="field dz-container"></div>
-              <div class="field uploads"></div>
-            </div>
-            {% if urlMaxSize -%}
-            <div id="tab-urls" class="tab-content" style="display: none">
-              <div class="field">
-                <div class="control">
-                  <textarea id="urls" class="textarea" rows="2"></textarea>
-                </div>
-                <p class="help">Maximum file size for URL upload is {{ urlMaxSize }}.</p>
-              </div>
-              <div class="field">
-                <div class="control is-expanded">
-                  <a id="uploadUrls" class="button is-danger is-fullwidth is-unselectable">
-                    <span class="icon">
-                      <i class="icon-upload-cloud"></i>
-                    </span>
-                    <span>Upload URLs</span>
-                  </a>
-                </div>
-              </div>
-              <div class="field uploads"></div>
-            </div>
-            {%- endif %}
+          {% if urlMaxSize -%}
+          <div id="tabs" class="tabs is-centered" style="display: none">
+            <ul>
+              <li data-id="tab-files" class="is-active"><a>Files</a></li>
+              <li data-id="tab-urls"><a>URLs</a></li>
+            </ul>
           </div>
+          {%- endif %}
+          <div id="tab-files" class="tab-content" style="display: none">
+            <div class="field dz-container"></div>
+            <div class="field uploads" style="display: none"></div>
+          </div>
+          {% if urlMaxSize -%}
+          <div id="tab-urls" class="tab-content" style="display: none">
+            <div class="field">
+              <div class="control">
+                <textarea id="urls" class="textarea" rows="2"></textarea>
+              </div>
+              <p class="help">Maximum file size for URL upload is {{ urlMaxSize }}.</p>
+            </div>
+            <div class="field">
+              <div class="control is-expanded">
+                <a id="uploadUrls" class="button is-danger is-fullwidth is-unselectable">
+                  <span class="icon">
+                    <i class="icon-upload-cloud"></i>
+                  </span>
+                  <span>Upload URLs</span>
+                </a>
+              </div>
+            </div>
+            <div class="field uploads" style="display: none"></div>
+          </div>
+          {%- endif %}
         </div>
         <div class="column is-hidden-mobile"></div>
       </div>

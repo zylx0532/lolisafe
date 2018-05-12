@@ -252,6 +252,7 @@ page.prepareDropzone = () => {
   })
 
   page.dropzone.on('addedfile', file => {
+    tabDiv.getElementsByClassName('uploads')[0].style.display = 'block'
     file.previewElement.querySelector('.name').innerHTML = file.name
   })
 
@@ -298,11 +299,21 @@ page.uploadUrls = async button => {
   if (button.classList.contains('is-loading')) { return }
   button.classList.add('is-loading')
 
-  const albumid = page.album
-  const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
-  const files = document.getElementById('urls').value
-    .split(/\r?\n/)
-    .map(url => {
+  await new Promise(async (resolve, reject) => {
+    const albumid = page.album
+    const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
+    const urls = document.getElementById('urls').value
+      .split(/\r?\n/)
+      .filter(url => url.trim().length)
+    document.getElementById('urls').value = urls.join('\n')
+
+    if (!urls.length) {
+      // eslint-disable-next-line prefer-promise-reject-errors
+      return reject('You have not entered any URLs.')
+    }
+
+    tabDiv.getElementsByClassName('uploads')[0].style.display = 'block'
+    const files = urls.map(url => {
       const previewTemplate = document.createElement('template')
       previewTemplate.innerHTML = page.previewTemplate.trim()
       const previewElement = previewTemplate.content.firstChild
@@ -314,7 +325,6 @@ page.uploadUrls = async button => {
       }
     })
 
-  await new Promise(resolve => {
     const post = async i => {
       if (i === files.length) { return resolve() }
       const file = files[i]
@@ -345,6 +355,8 @@ page.uploadUrls = async button => {
       post(i + 1)
     }
     post(0)
+  }).catch(error => {
+    swal('An error occurred!', error.toString(), 'error')
   })
 
   button.classList.remove('is-loading')

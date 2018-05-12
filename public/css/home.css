@@ -107,7 +107,12 @@
 }
 
 .uploads {
-  margin-bottom: .75rem;
+  padding-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.uploads.nojs {
+  margin-bottom: 0;
 }
 
 .uploads progress {
