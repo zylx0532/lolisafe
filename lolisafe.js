@@ -54,9 +54,23 @@ safe.use('/api', api)
 
 for (const page of config.pages) {
   if (fs.existsSync(`./pages/custom/${page}.html`)) {
-    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, { root: './pages/custom/' }))
+    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, {
+      root: './pages/custom/'
+    }))
   } else if (page === 'home') {
-    safe.get('/', (req, res, next) => res.render('home', { urlMaxSize: config.uploads.urlMaxSize }))
+    safe.get('/', (req, res, next) => res.render('home', {
+      urlMaxSize: config.uploads.urlMaxSize
+    }))
+  } else if (page === 'faq') {
+    const fileLength = config.uploads.fileLength
+    safe.get('/faq', (req, res, next) => res.render('faq', {
+      filterBlacklist: config.filterBlacklist,
+      extensionsFilter: config.extensionsFilter,
+      fileLength,
+      tooShort: (fileLength.max - fileLength.default) > (fileLength.default - fileLength.min),
+      noJsMaxSize: parseInt(config.cloudflare.noJsMaxSize) < parseInt(config.uploads.maxSize),
+      chunkSize: config.uploads.chunkSize
+    }))
   } else {
     safe.get(`/${page}`, (req, res, next) => res.render(page))
   }
