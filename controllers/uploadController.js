@@ -180,10 +180,9 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 
     const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
       .catch(erred)
+    if (!result) { return }
 
-    if (result) {
-      return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
-    }
+    uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
   })
 }
 
@@ -213,6 +212,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
     const head = await snekfetch.head(url)
       .catch(erred)
+    if (!head) { return }
 
     const size = parseInt(head.headers['content-length'])
     if (isNaN(size)) {
@@ -224,6 +224,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
     const download = await snekfetch.get(url)
       .catch(erred)
+    if (!download) { return }
 
     const length = uploadsController.getFileNameLength(req)
     const name = await uploadsController.getUniqueRandomName(length, extension)
@@ -251,10 +252,9 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
       if (iteration === urls.length) {
         const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
           .catch(erred)
+        if (!result) { return }
 
-        if (result) {
-          return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
-        }
+        uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
       }
     })
   }
@@ -299,20 +299,21 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
   const files = req.body.files
   if (!files || !(files instanceof Array)) { return erred('Missing "files" property (Array).') }
+  if (!files.length) { return erred('"files" property can not be empty.') }
 
   let iteration = 0
   const infoMap = []
   for (const file of files) {
-    const { uuid, original, count } = file
-    if (!uuid || typeof uuid !== 'string') { return erred('Missing "uuid" property (string).') }
-    if (!count || typeof count !== 'number') { return erred('Missing "count" property (number).') }
+    if (!file.uuid || typeof file.uuid !== 'string') { return erred('Missing or empty "uuid" property (string).') }
+    if (typeof file.count !== 'number') { return erred('Missing "count" property (number).') }
+    if (file.count < 1) { return erred('"count" property can not be less than 1.') }
 
-    const uuidDir = path.join(chunksDir, uuid)
+    const uuidDir = path.join(chunksDir, file.uuid)
     fs.readdir(uuidDir, async (error, chunkNames) => {
       if (error) { return erred(error) }
-      if (count < chunkNames.length) { return erred('Chunks count mismatch.') }
+      if (file.count < chunkNames.length) { return erred('Chunks count mismatch.') }
 
-      const extension = typeof original === 'string' ? path.extname(original) : ''
+      const extension = typeof file.original === 'string' ? path.extname(file.original) : ''
       if (uploadsController.isExtensionFiltered(extension)) {
         return erred(`${extension.substr(1).toUpperCase()} files are not permitted for security reasons.`)
       }
@@ -330,6 +331,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       // Get total chunks size
       const chunksTotalSize = await uploadsController.getTotalSize(uuidDir, chunkNames)
         .catch(erred)
+      if (typeof chunksTotalSize !== 'number') { return }
       if (chunksTotalSize > maxSizeBytes) {
         // Delete all chunks and remove chunks dir
         const chunksCleaned = await uploadsController.cleanUpChunks(uuidDir, chunkNames)
@@ -368,10 +370,9 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       if (iteration === files.length) {
         const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
           .catch(erred)
+        if (!result) { return }
 
-        if (result) {
-          return uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
-        }
+        uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
       }
     })
   }
