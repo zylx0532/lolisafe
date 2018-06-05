@@ -85,6 +85,13 @@ module.exports = {
     urlMaxSize: '32MB',
 
     /*
+      Use DuckDuckGo's proxy when fetching any URL uploads.
+      This may be considered a hack and not supported by DuckDuckGo, so USE AT YOUR OWN RISK.
+      This have only been tested with pictures, GIFs, WEBMs and MP4s.
+    */
+    urlDuckDuckGoProxy: false,
+
+    /*
       Chunk size for chunk uploads. Needs to be in MB.
       If this is enabled, every files uploaded from the homepage uploader will forcibly be chunked
       by the size specified in "chunkSize". People will still be able to upload bigger files with

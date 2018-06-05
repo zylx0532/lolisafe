@@ -198,8 +198,13 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
   if (!config.uploads.urlMaxSize) { return erred('Upload by URLs is disabled at the moment.') }
 
-  const urls = req.body.urls
+  let urls = req.body.urls
   if (!urls || !(urls instanceof Array)) { return erred('Missing "urls" property (Array).') }
+
+  // DuckDuckGo's proxy
+  if (config.uploads.urlDuckDuckGoProxy) {
+    urls = urls.map(url => `https://proxy.duckduckgo.com/iur/?f=1&image_host=${encodeURIComponent(url)}&u=${url}`)
+  }
 
   let iteration = 0
   const infoMap = []
