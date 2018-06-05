@@ -216,7 +216,8 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
     }
 
     const head = await snekfetch.head(url)
-      .catch(erred)
+      .catch(error => error)
+    if (head.status !== 200) { return erred(head.toString()) }
     if (!head) { return }
 
     const size = parseInt(head.headers['content-length'])
@@ -228,7 +229,8 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
     }
 
     const download = await snekfetch.get(url)
-      .catch(erred)
+      .catch(error => error)
+    if (download.status !== 200) { return erred(download.toString()) }
     if (!download) { return }
 
     const length = uploadsController.getFileNameLength(req)
