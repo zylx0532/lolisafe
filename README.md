@@ -78,6 +78,9 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [safe.fiery.me](https://safe.fiery.me): Just another clone.
 - [kayo.pics](https://kayo.pics): File hosting for all~
 - [dmca.gripe](https://dmca.gripe): a dmca-resistant, permanent file hosting service.
+- [succmy.wang](https://succmy.wang): A private clone with a funny name
+- [i-want-to.2dgirls.date](https://i-want-to.2dgirls.date): A clone that screams what you want
+- [namir.in](https://namir.in): A private clone dedicated to best girl.
 - Feel free to add yours here.
 
 ## Author
