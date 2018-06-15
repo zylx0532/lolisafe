@@ -81,6 +81,7 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [succmy.wang](https://succmy.wang): A private clone with a funny name
 - [i-want-to.2dgirls.date](https://i-want-to.2dgirls.date): A clone that screams what you want
 - [namir.in](https://namir.in): A private clone dedicated to best girl.
+- [safe.waliant.pw](https://safe.waliant.pw): A generic private clone for personal use.
 - Feel free to add yours here.
 
 ## Author
