@@ -17,11 +17,11 @@ Configuration file of lolisafe, `config.js`, is also not 100% compatible with th
 
 ## Running
 
-1. Ensure you have at least version 7.6.0 of node installed
+1. Ensure you have at least version 8.0.0 of node installed
 2. Clone the repo
 3. Rename `config.sample.js` to `config.js`
 4. Modify port, domain and privacy options if desired
-5. run `npm install` to install all dependencies
+5. run `yarn install` to install all dependencies (yes, use [yarn](https://yarnpkg.com))
 6. run `pm2 start lolisafe.js` or `node lolisafe.js` to start the service
 
 ## Getting started
