@@ -212,7 +212,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
     const original = path.basename(url).split(/[?#]/)[0]
     const extension = path.extname(original)
     if (uploadsController.isExtensionFiltered(extension)) {
-      return erred(`${extension.substr(1).toUpperCase()} files are not permitted for security reasons.`)
+      return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
     }
 
     const head = await snekfetch.head(url)
