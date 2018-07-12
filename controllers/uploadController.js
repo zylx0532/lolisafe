@@ -63,7 +63,7 @@ const upload = multer({
     const extname = path.extname(file.originalname).toLowerCase()
     if (uploadsController.isExtensionFiltered(extname)) {
       // eslint-disable-next-line standard/no-callback-literal
-      return cb(`${extname.substr(1).toUpperCase()} files are not permitted for security reasons.`)
+      return cb(`${extname.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
     }
 
     // Re-map Dropzone keys so people can manually use the API without prepending 'dz'
@@ -322,7 +322,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
       const extension = typeof file.original === 'string' ? path.extname(file.original) : ''
       if (uploadsController.isExtensionFiltered(extension)) {
-        return erred(`${extension.substr(1).toUpperCase()} files are not permitted for security reasons.`)
+        return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
       }
 
       const length = uploadsController.getFileNameLength(req)
