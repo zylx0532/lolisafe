@@ -364,12 +364,12 @@ page.selectAllFiles = function (element) {
   var table = document.getElementById('table')
   var checkboxes = table.getElementsByClassName('file-checkbox')
 
-  for (var checkbox of checkboxes) {
-    var id = parseInt(checkbox.dataset.id)
+  for (var i = 0; i < checkboxes.length; i++) {
+    var id = parseInt(checkboxes[i].dataset.id)
     if (isNaN(id)) { continue }
-    if (checkbox.checked !== element.checked) {
-      checkbox.checked = element.checked
-      if (checkbox.checked) {
+    if (checkboxes[i].checked !== element.checked) {
+      checkboxes[i].checked = element.checked
+      if (checkboxes[i].checked) {
         page.selectedFiles.push(id)
       } else {
         page.selectedFiles.splice(page.selectedFiles.indexOf(id), 1)
@@ -450,9 +450,9 @@ page.clearSelection = function () {
       var table = document.getElementById('table')
       var checkboxes = table.getElementsByClassName('file-checkbox')
 
-      for (var checkbox of checkboxes) {
-        if (checkbox.checked) {
-          checkbox.checked = false
+      for (var i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].checked) {
+          checkboxes[i].checked = false
         }
       }
 

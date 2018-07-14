@@ -149,14 +149,12 @@ page.prepareAlbums = function () {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-      var albums = response.data.albums
-
       // If the user doesn't have any albums we don't really need to display
       // an album selection
-      if (albums.length === 0) { return }
+      if (!response.data.albums.length) { return }
 
       // Loop through the albums and create an option for each album
-      for (var album of albums) {
+      for (var album of response.data.albums) {
         var option = document.createElement('option')
         option.value = album.id
         option.innerHTML = album.name
