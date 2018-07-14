@@ -138,7 +138,6 @@ albumsController.delete = async (req, res, next) => {
     return res.json({ success: false, description: 'No album specified.' })
   }
 
-  let ids = []
   let failed = []
   if (purge) {
     const files = await db.table('files')
@@ -147,11 +146,13 @@ albumsController.delete = async (req, res, next) => {
         userid: user.id
       })
 
-    ids = files.map(file => file.id)
-    failed = await utils.bulkDeleteFiles('id', ids, user)
+    if (files.length) {
+      const ids = files.map(file => file.id)
+      failed = await utils.bulkDeleteFiles('id', ids, user)
 
-    if (failed.length === ids.length) {
-      return res.json({ success: false, description: 'Could not delete any of the files associated with the album.' })
+      if (failed.length === ids.length) {
+        return res.json({ success: false, description: 'Could not delete any of the files associated with the album.' })
+      }
     }
   }
 
