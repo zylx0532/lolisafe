@@ -30,15 +30,5 @@
       "single"
     ],
     "no-var": "error"
-  },
-  "overrides": [
-    {
-      "files": [
-        "public/**/*.js"
-      ],
-      "env": {
-        "browser": true
-      }
-    }
-  ]
+  }
 }
