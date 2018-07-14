@@ -121,8 +121,8 @@ page.prepareUpload = function () {
   if (tabs) {
     tabs.style.display = 'flex'
     var items = tabs.getElementsByTagName('li')
-    for (var item of items) {
-      item.addEventListener('click', function () {
+    for (var i = 0; i < items.length; i++) {
+      items[i].addEventListener('click', function () {
         page.setActiveTab(this.dataset.id)
       })
     }
@@ -171,13 +171,13 @@ page.prepareAlbums = function () {
 
 page.setActiveTab = function (activeId) {
   var items = document.getElementById('tabs').getElementsByTagName('li')
-  for (var item of items) {
-    var tabId = item.dataset.id
+  for (var i = 0; i < items.length; i++) {
+    var tabId = items[i].dataset.id
     if (tabId === activeId) {
-      item.classList.add('is-active')
+      items[i].classList.add('is-active')
       document.getElementById(tabId).style.display = 'block'
     } else {
-      item.classList.remove('is-active')
+      items[i].classList.remove('is-active')
       document.getElementById(tabId).style.display = 'none'
     }
   }

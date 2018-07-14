@@ -1337,7 +1337,9 @@ page.sendNewPassword = function (pass, element) {
 page.setActiveMenu = function (activeItem) {
   var menu = document.getElementById('menu')
   var items = menu.getElementsByTagName('a')
-  for (var item of items) { item.classList.remove('is-active') }
+  for (var i = 0; i < items.length; i++) {
+    items[i].classList.remove('is-active')
+  }
 
   activeItem.classList.add('is-active')
 }
