@@ -2,12 +2,22 @@
 
 var page = {
   // user token
-  token: localStorage.token
+  token: localStorage.token,
+
+  // HTML elements
+  form: null,
+  user: null,
+  pass: null
 }
 
-page.do = function (dest) {
-  var user = document.getElementById('user').value
-  var pass = document.getElementById('pass').value
+page.do = function (dest, onEnter) {
+  var user = page.user.value
+  var pass = page.pass.value
+
+  // If the form is submitted with Enter button and the form is still empty
+  if (onEnter && !user.length && !pass.length) { return }
+
+  console.log('page.do()\'ing: ' + dest)
 
   if (!user) {
     return swal('Error', 'You need to specify a username', 'error')
@@ -54,14 +64,33 @@ page.verify = function () {
     })
 }
 
+page.formEnter = function (event) {
+  if (event.keyCode === 13 || event.which === 13) {
+    event.preventDefault()
+    event.stopPropagation()
+    page.do('login', true)
+  }
+}
+
 window.onload = function () {
   page.verify()
 
-  document.body.addEventListener('keydown', function (event) {
-    event = event || window.event
-    if (!event) { return }
-    var id = event.target.id
-    if (!['user', 'pass'].includes(id)) { return }
-    if (event.keyCode === 13 || event.which === 13) { page.do('login') }
+  page.user = document.getElementById('user')
+  page.pass = document.getElementById('pass')
+
+  page.form = document.getElementById('authForm')
+  page.form.addEventListener('keyup', page.formEnter)
+  page.form.addEventListener('keypress', page.formEnter)
+  page.form.onsubmit = function (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', function () {
+    page.do('login')
+  })
+
+  document.getElementById('registerBtn').addEventListener('click', function () {
+    page.do('register')
   })
 }
