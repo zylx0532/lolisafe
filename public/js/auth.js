@@ -5,7 +5,6 @@ var page = {
   token: localStorage.token,
 
   // HTML elements
-  form: null,
   user: null,
   pass: null
 }
@@ -78,10 +77,10 @@ window.onload = function () {
   page.user = document.getElementById('user')
   page.pass = document.getElementById('pass')
 
-  page.form = document.getElementById('authForm')
-  page.form.addEventListener('keyup', page.formEnter)
-  page.form.addEventListener('keypress', page.formEnter)
-  page.form.onsubmit = function (event) {
+  var form = document.getElementById('authForm')
+  form.addEventListener('keyup', page.formEnter)
+  form.addEventListener('keypress', page.formEnter)
+  form.onsubmit = function (event) {
     event.preventDefault()
     event.stopPropagation()
   }

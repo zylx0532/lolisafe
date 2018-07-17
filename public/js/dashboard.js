@@ -73,29 +73,39 @@ page.prepareDashboard = function () {
 
   document.getElementById('itemUploads').addEventListener('click', function () {
     page.setActiveMenu(this)
+    page.getUploads()
   })
 
   document.getElementById('itemDeleteByNames').addEventListener('click', function () {
     page.setActiveMenu(this)
+    page.deleteByNames()
   })
 
   document.getElementById('itemManageGallery').addEventListener('click', function () {
     page.setActiveMenu(this)
+    page.getAlbums()
   })
 
   document.getElementById('itemFileLength').addEventListener('click', function () {
     page.setActiveMenu(this)
+    page.changeFileLength()
   })
 
   document.getElementById('itemTokens').addEventListener('click', function () {
     page.setActiveMenu(this)
+    page.changeToken()
   })
 
   document.getElementById('itemPassword').addEventListener('click', function () {
     page.setActiveMenu(this)
+    page.changePassword()
   })
 
-  document.getElementById('itemLogout').innerHTML = `Logout ( ${page.username} )`
+  var logoutBtn = document.getElementById('itemLogout')
+  logoutBtn.addEventListener('click', function () {
+    page.logout()
+  })
+  logoutBtn.innerHTML = `Logout ( ${page.username} )`
 
   page.getAlbumsSidebar()
 }

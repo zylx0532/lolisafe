@@ -505,4 +505,8 @@ window.onload = function () {
   })
 
   page.lazyLoad = new LazyLoad()
+
+  document.getElementById('createAlbum').addEventListener('click', function () {
+    page.createAlbum()
+  })
 }
