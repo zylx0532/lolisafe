@@ -87,7 +87,6 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 ## Sites using lolisafe
 
 - [lolisafe.moe](https://lolisafe.moe): A small safe worth protecting.
-- [safe.moe](https://safe.moe): The world's most ~~un~~safe pomf clone
 - [safe.fiery.me](https://safe.fiery.me): Just another clone.
 - [kayo.moe](https://kayo.moe): File hosting for all~
 - [dmca.gripe](https://dmca.gripe): a dmca-resistant, permanent file hosting service.
@@ -96,6 +95,9 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [namir.in](https://namir.in): A private clone dedicated to best girl.
 - [safe.waliant.pw](https://safe.waliant.pw): A generic private clone for personal use.
 - [a.hyper.lol](https://a.hyper.lol): My personal clone with some ~~terrible~~ great changes.
+- [i.pyr0.pw](https://i.pyro0.pw): Private Lolisafe Setup With NGINX Cloudflare.
+- [isis.dating](https://isis.dating): Randomg Setup By A Random User With Random Intentions.
+- [discordjs.moe](https://discordjs.moe): A まじ卍 as fuck copy of lolisafe.moe
 - Feel free to add yours here.
 
 ## Author
