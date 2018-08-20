@@ -15,6 +15,20 @@ If you want to use an existing lolisafe database with this branch, make sure to 
 
 Configuration file of lolisafe, `config.js`, is also not 100% compatible with this branch. There are some options that had been renamed and/or restructured. Please make sure your config matches the sample in `config.sample.js` before starting.
 
+## Missing thumbnails
+
+Thumbnails will not be automatically generated for files that have been uploaded prior to enabling thumbnails generation in the config file. To generate thumbnails for old files, you can try running `yarn thumbs` (a shortcut to running `node scripts/thumbs.js`).
+
+```
+Usage:
+yarn thumbs <mode=1|2|3> [force=0|1]
+
+mode : 1 = images only, 2 = videos only, 3 = both images and videos
+force: 0 = no force (default), 1 = overwrite existing thumbnails
+```
+
+For example, if you only want to generate thumbnails for image files, you can do `yarn thumbs 1`.
+
 ## Running
 
 1. Ensure you have at least version 8.0.0 of node installed

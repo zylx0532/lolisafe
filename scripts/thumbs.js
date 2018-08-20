@@ -38,9 +38,9 @@ thumbs.do = async () => {
   thumbs.force = parseInt(args[1])
   if ((isNaN(thumbs.mode) || ![1, 2, 3].includes(thumbs.mode)) ||
   (!isNaN(thumbs.force) && ![0, 1].includes(thumbs.force))) {
-    console.log('Usage : node THIS_FILE <mode=1|2|3> [force=0|1]')
-    console.log('mode  : 1 = images only, 2 = videos only, 3 = both images and videos')
-    console.log('force : 0 = no force (default), 1 = overwrite existing thumbnails')
+    console.log('Usage:\nyarn thumbs <mode=1|2|3> [force=0|1]\n')
+    console.log('mode : 1 = images only, 2 = videos only, 3 = both images and videos')
+    console.log('force: 0 = no force (default), 1 = overwrite existing thumbnails')
     return
   }
 
