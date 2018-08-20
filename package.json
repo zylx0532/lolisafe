@@ -16,7 +16,8 @@
   "license": "MIT",
   "scripts": {
     "start": "node ./lolisafe.js",
-    "pm2": "pm2 start --name lolisafe ./lolisafe.js"
+    "pm2": "pm2 start --name lolisafe ./lolisafe.js",
+    "thumbs": "node ./scripts/thumbs.js"
   },
   "dependencies": {
     "bcrypt": "^2.0.0",

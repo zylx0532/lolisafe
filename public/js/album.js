@@ -1,7 +1,7 @@
 /* global LazyLoad */
 
-const page = {}
+var page = {}
 
-window.onload = () => {
+window.onload = function () {
   page.lazyLoad = new LazyLoad()
 }

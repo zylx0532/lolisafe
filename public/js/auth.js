@@ -1,13 +1,22 @@
 /* global swal, axios */
 
-const page = {
+var page = {
   // user token
-  token: localStorage.token
+  token: localStorage.token,
+
+  // HTML elements
+  user: null,
+  pass: null
 }
 
-page.do = async dest => {
-  const user = document.getElementById('user').value
-  const pass = document.getElementById('pass').value
+page.do = function (dest, onEnter) {
+  var user = page.user.value
+  var pass = page.pass.value
+
+  // If the form is submitted with Enter button and the form is still empty
+  if (onEnter && !user.length && !pass.length) { return }
+
+  console.log('page.do()\'ing: ' + dest)
 
   if (!user) {
     return swal('Error', 'You need to specify a username', 'error')
@@ -17,51 +26,70 @@ page.do = async dest => {
     return swal('Error', 'You need to specify a username', 'error')
   }
 
-  const response = await axios.post(`api/${dest}`, {
+  axios.post(`api/${dest}`, {
     username: user,
     password: pass
   })
-    .catch(error => {
+    .then(function (response) {
+      if (response.data.success === false) {
+        return swal('Error', response.data.description, 'error')
+      }
+
+      localStorage.token = response.data.token
+      window.location = 'dashboard'
+    })
+    .catch(function (error) {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
-  if (!response) { return }
-
-  if (response.data.success === false) {
-    return swal('Error', response.data.description, 'error')
-  }
-
-  localStorage.token = response.data.token
-  window.location = 'dashboard'
 }
 
-page.verify = async () => {
+page.verify = function () {
   if (!page.token) { return }
 
-  const response = await axios.post('api/tokens/verify', {
+  axios.post('api/tokens/verify', {
     token: page.token
   })
-    .catch(error => {
-      console.error(error)
-      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    .then(function (response) {
+      if (response.data.success === false) {
+        return swal('Error', response.data.description, 'error')
+      }
+
+      window.location = 'dashboard'
     })
-  if (!response) { return }
-
-  if (response.data.success === false) {
-    return swal('Error', response.data.description, 'error')
-  }
-
-  window.location = 'dashboard'
+    .catch(function (error) {
+      console.error(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
 }
 
-window.onload = () => {
+page.formEnter = function (event) {
+  if (event.keyCode === 13 || event.which === 13) {
+    event.preventDefault()
+    event.stopPropagation()
+    page.do('login', true)
+  }
+}
+
+window.onload = function () {
   page.verify()
 
-  document.body.addEventListener('keydown', event => {
-    event = event || window.event
-    if (!event) { return }
-    const id = event.target.id
-    if (!['user', 'pass'].includes(id)) { return }
-    if (event.keyCode === 13 || event.which === 13) { page.do('login') }
+  page.user = document.getElementById('user')
+  page.pass = document.getElementById('pass')
+
+  var form = document.getElementById('authForm')
+  form.addEventListener('keyup', page.formEnter)
+  form.addEventListener('keypress', page.formEnter)
+  form.onsubmit = function (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', function () {
+    page.do('login')
+  })
+
+  document.getElementById('registerBtn').addEventListener('click', function () {
+    page.do('register')
   })
 }
