@@ -1,5 +1,12 @@
 {% extends "_layout.njk" %}
 
+{% block endmeta %}
+{{ super() }}
+{% if globals.google_site_verification %}
+<meta name="google-site-verification" content="{{ globals.google_site_verification }}" />
+{% endif %}
+{% endblock %}
+
 {% block stylesheets %}
 {{ super() }}
 <link rel="stylesheet" type="text/css" href="libs/fontello/fontello.css?v={{ globals.v3 }}">

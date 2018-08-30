@@ -7,6 +7,7 @@
     <meta name="keywords" content="upload,{{ globals.name }},file,images,hosting">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
     <title>{{ title | default(globals.name + ' &#8211; ' + globals.motto) | safe }}</title>
 
     {% block stylesheets %}
@@ -48,11 +49,10 @@
     <meta name="application-name" content="{{ globals.name }}">
     <meta name="msapplication-config" content="{{ globals.root }}/icons/browserconfig.xml?v={{ globals.v2 }}">
     <meta name="theme-color" content="#232629">
+    {% block endmeta %}{% endblock %}
   </head>
   <body>
     {% block content %}{% endblock %}
-    {% block scripts %}
-    <!-- Scripts -->
-    {% endblock %}
+    {% block scripts %}{% endblock %}
   </body>
 </html>
