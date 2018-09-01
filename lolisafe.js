@@ -84,8 +84,6 @@ safe.use((error, req, res, next) => {
   res.status(500).sendFile('500.html', { root: './pages/error/' })
 })
 
-safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))
-
 process.on('uncaughtException', error => {
   console.error('Uncaught Exception:')
   console.error(error)
@@ -95,3 +93,29 @@ process.on('unhandledRejection', error => {
   console.error('Unhandled Rejection (Promise):')
   console.error(error)
 })
+
+async function start () {
+  if (config.uploads.scan) {
+    // Placing require() here so the package does not have to exist when the option is not enabled
+    const clam = require('clam-engine')
+    const created = await new Promise(resolve => {
+      process.stdout.write('Creating clam-engine...')
+      clam.createEngine(function (error, engine) {
+        if (error) {
+          process.stdout.write(' ERROR\n')
+          console.error(error)
+          return resolve(false)
+        }
+        safe.set('clam-engine', engine)
+        process.stdout.write(' OK\n')
+        console.log(`ClamAV ${engine.version} (${engine.signatures} sigs)`)
+        resolve(true)
+      })
+    })
+    if (!created) { return }
+  }
+
+  safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))
+}
+
+start()

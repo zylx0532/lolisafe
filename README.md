@@ -29,6 +29,16 @@ force: 0 = no force (default), 1 = overwrite existing thumbnails
 
 For example, if you only want to generate thumbnails for image files, you can do `yarn thumbs 1`.
 
+## Virus scanning
+
+This project is using [clamav](https://www.clamav.net/) to scan files for viruses through [node-clam-engine](https://github.com/srijs/node-clam-engine).
+
+You will need to install dependencies listed [here](https://github.com/srijs/node-clam-engine#installation).
+
+If you do not want to use it, you may remove `clam-engine` from the `package.json` file.
+
+This has only been tested with an Ubuntu machine.
+
 ## Running
 
 1. Ensure you have at least version 8.0.0 of node installed

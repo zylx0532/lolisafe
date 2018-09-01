@@ -1,10 +1,11 @@
 const config = require('./../config')
-const path = require('path')
-const multer = require('multer')
-const randomstring = require('randomstring')
-const db = require('knex')(config.database)
 const crypto = require('crypto')
+const db = require('knex')(config.database)
 const fs = require('fs')
+const multer = require('multer')
+const path = require('path')
+const pce = require('path-complete-extname')
+const randomstring = require('randomstring')
 const snekfetch = require('snekfetch')
 const utils = require('./utilsController')
 
@@ -39,7 +40,7 @@ const storage = multer.diskStorage({
   filename (req, file, cb) {
     // If chunked uploads is disabled or the uploaded file is not a chunk
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
-      const extension = path.extname(file.originalname)
+      const extension = pce(file.originalname).toLowerCase()
       const length = uploadsController.getFileNameLength(req)
       return uploadsController.getUniqueRandomName(length, extension)
         .then(name => cb(null, name))
@@ -60,7 +61,7 @@ const upload = multer({
     fileSize: maxSizeBytes
   },
   fileFilter (req, file, cb) {
-    const extname = path.extname(file.originalname).toLowerCase()
+    const extname = pce(file.originalname).toLowerCase()
     if (uploadsController.isExtensionFiltered(extname)) {
       // eslint-disable-next-line standard/no-callback-literal
       return cb(`${extname.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
@@ -178,6 +179,11 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
       }
     })
 
+    if (config.uploads.scan) {
+      const scan = await uploadsController.scanFiles(req, infoMap)
+      if (!scan) { return erred('Virus detected.') }
+    }
+
     const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
       .catch(erred)
     if (!result) { return }
@@ -210,7 +216,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
   const infoMap = []
   for (const url of urls) {
     const original = path.basename(url).split(/[?#]/)[0]
-    const extension = path.extname(original)
+    const extension = pce(original).toLowerCase()
     if (uploadsController.isExtensionFiltered(extension)) {
       return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
     }
@@ -257,6 +263,11 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
       iteration++
       if (iteration === urls.length) {
+        if (config.uploads.scan) {
+          const scan = await uploadsController.scanFiles(req, infoMap)
+          if (!scan) { return erred('Virus detected.') }
+        }
+
         const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
           .catch(erred)
         if (!result) { return }
@@ -320,7 +331,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       if (error) { return erred(error) }
       if (file.count < chunkNames.length) { return erred('Chunks count mismatch.') }
 
-      const extension = typeof file.original === 'string' ? path.extname(file.original) : ''
+      const extension = typeof file.original === 'string' ? pce(file.original).toLowerCase() : ''
       if (uploadsController.isExtensionFiltered(extension)) {
         return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
       }
@@ -375,6 +386,11 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
       iteration++
       if (iteration === files.length) {
+        if (config.uploads.scan) {
+          const scan = await uploadsController.scanFiles(req, infoMap)
+          if (!scan) { return erred('Virus detected.') }
+        }
+
         const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
           .catch(erred)
         if (!result) { return }
@@ -444,7 +460,7 @@ uploadsController.cleanUpChunks = (uuidDir, chunkNames) => {
 }
 
 uploadsController.formatInfoMap = (req, res, user, infoMap) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async resolve => {
     let iteration = 0
     const files = []
     const existingFiles = []
@@ -511,6 +527,40 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
   })
 }
 
+uploadsController.scanFiles = async (req, infoMap) => {
+  const dirty = await new Promise(async resolve => {
+    let iteration = 0
+    const engine = req.app.get('clam-engine')
+    const dirty = []
+
+    for (const info of infoMap) {
+      const log = message => {
+        console.log(`ClamAV: ${info.data.filename}: ${message}.`)
+      }
+
+      engine.scanFile(info.path, (error, virus) => {
+        if (error || virus) {
+          if (error) { log(error.toString()) }
+          if (virus) { log(`${virus} detected`) }
+          dirty.push(info)
+        } else {
+          // log('OK')
+        }
+
+        iteration++
+        if (iteration === infoMap.length) {
+          resolve(dirty)
+        }
+      })
+    }
+  })
+
+  if (!dirty.length) { return true }
+
+  // If there is at least one dirty file, delete all files
+  infoMap.forEach(info => utils.deleteFile(info.data.filename).catch(console.error))
+}
+
 uploadsController.processFilesForDisplay = async (req, res, files, existingFiles) => {
   const responseFiles = []
 
@@ -546,7 +596,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     if (file.albumid && !albumids.includes(file.albumid)) {
       albumids.push(file.albumid)
     }
-    if (utils.mayGenerateThumb(path.extname(file.name).toLowerCase())) {
+    if (utils.mayGenerateThumb(pce(file.name).toLowerCase())) {
       utils.generateThumbs(file.name)
     }
   }
@@ -639,7 +689,7 @@ uploadsController.list = async (req, res) => {
       }
     }
 
-    file.extname = path.extname(file.name).toLowerCase()
+    file.extname = pce(file.name).toLowerCase()
     if (utils.mayGenerateThumb(file.extname)) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
     }

@@ -93,6 +93,11 @@ module.exports = {
     urlMaxSize: '32MB',
 
     /*
+      Scan for virus using ClamAV.
+    */
+    scan: false,
+
+    /*
       Use DuckDuckGo's proxy when fetching any URL uploads.
       This may be considered a hack and not supported by DuckDuckGo, so USE AT YOUR OWN RISK.
       This have only been tested with pictures, GIFs, WEBMs and MP4s.

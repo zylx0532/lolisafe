@@ -4,6 +4,7 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
+const pce = require('path-complete-extname')
 const snekfetch = require('snekfetch')
 
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
@@ -65,7 +66,7 @@ utilsController.authorize = async (req, res) => {
 
 utilsController.generateThumbs = (name, force) => {
   return new Promise(resolve => {
-    const extname = path.extname(name).toLowerCase()
+    const extname = pce(name).toLowerCase()
     const thumbname = path.join(thumbsDir, name.slice(0, -extname.length) + '.png')
     fs.access(thumbname, error => {
       if (error && error.code !== 'ENOENT') {
@@ -118,7 +119,7 @@ utilsController.generateThumbs = (name, force) => {
 
 utilsController.deleteFile = file => {
   return new Promise((resolve, reject) => {
-    const extname = path.extname(file).toLowerCase()
+    const extname = pce(file).toLowerCase()
     return fs.unlink(path.join(uploadsDir, file), error => {
       if (error && error.code !== 'ENOENT') { return reject(error) }
 
@@ -212,7 +213,7 @@ utilsController.purgeCloudflareCache = async names => {
   const thumbs = []
   names = names.map(name => {
     const url = `${config.domain}/${name}`
-    const extname = path.extname(name).toLowerCase()
+    const extname = pce(name).toLowerCase()
     if (utilsController.mayGenerateThumb(extname)) {
       thumbs.push(`${config.domain}/thumbs/${name.slice(0, -extname.length)}.png`)
     }
