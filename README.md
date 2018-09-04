@@ -33,7 +33,7 @@ For example, if you only want to generate thumbnails for image files, you can do
 
 This project is using [clamav](https://www.clamav.net/) to scan files for viruses through [clamdjs](https://github.com/NingLin-P/clamdjs).
 
-To use, make sure you have ClamAV daemon running, then edit your `config.js` and specify your the daemon's IP and port.
+To use, make sure you have ClamAV daemon running, then edit your `config.js` and specify the daemon's IP and port.
 
 ## Running
 
