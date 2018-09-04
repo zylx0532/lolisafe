@@ -68,14 +68,25 @@ utilsController.generateThumbs = (name, force) => {
   return new Promise(resolve => {
     const extname = pce(name).toLowerCase()
     const thumbname = path.join(thumbsDir, name.slice(0, -extname.length) + '.png')
-    fs.access(thumbname, error => {
+    fs.lstat(thumbname, async (error, stats) => {
       if (error && error.code !== 'ENOENT') {
         console.error(error)
         return resolve(false)
       }
 
+      if (!error && stats.isSymbolicLink()) {
+        // Unlink symlink
+        const unlink = await new Promise((resolve, reject) => {
+          fs.unlink(thumbname, error => {
+            if (error) { return reject(error) }
+            return resolve(true)
+          })
+        }).catch(console.error)
+        if (!unlink) { return resolve(false) }
+      }
+
       // Only make thumbnail if it does not exist (ENOENT)
-      if (!error && !force) { return resolve(true) }
+      if (!error && !stats.isSymbolicLink() && !force) { return resolve(true) }
 
       // If image extension
       if (utilsController.imageExtensions.includes(extname)) {

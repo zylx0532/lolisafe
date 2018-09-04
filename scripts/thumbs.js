@@ -19,9 +19,9 @@ thumbs.getFiles = directory => {
       const files = []
       await Promise.all(names.map(name => {
         return new Promise((resolve, reject) => {
-          fs.lstat(path.join(directory, name), (error, stat) => {
+          fs.lstat(path.join(directory, name), (error, stats) => {
             if (error) { return reject(error) }
-            if (stat.isFile() && !name.startsWith('.')) { files.push(name) }
+            if (stats.isFile() && !name.startsWith('.')) { files.push(name) }
             resolve()
           })
         })
@@ -56,6 +56,9 @@ thumbs.do = async () => {
     return _thumb.slice(0, -extname.length)
   })
 
+  let success = 0
+  let error = 0
+  let skipped = 0
   await new Promise((resolve, reject) => {
     const generate = async i => {
       const _upload = _uploads[i]
@@ -66,16 +69,20 @@ thumbs.do = async () => {
 
       if (_thumbs.includes(basename) && !thumbs.force) {
         if (thumbs.verbose) { console.log(`${_upload}: thumb exists.`) }
+        skipped++
       } else if (!thumbs.mayGenerateThumb(extname)) {
         if (thumbs.verbose) { console.log(`${_upload}: extension skipped.`) }
+        skipped++
       } else {
         const generated = await utils.generateThumbs(_upload, thumbs.force)
-        console.log(`${_upload}: ${String(generated)}`)
+        console.log(`${_upload}: ${generated ? 'OK' : 'ERROR'}`)
+        generated ? success++ : error++
       }
-      generate(i + 1)
+      return generate(i + 1)
     }
-    generate(0)
+    return generate(0)
   })
+  console.log(`Success: ${success}\nError: ${error}\nSkipped: ${skipped}`)
 }
 
 thumbs.do()
