@@ -19,7 +19,7 @@ thumbs.getFiles = directory => {
       const files = []
       await Promise.all(names.map(name => {
         return new Promise((resolve, reject) => {
-          fs.stat(path.join(directory, name), (error, stat) => {
+          fs.lstat(path.join(directory, name), (error, stat) => {
             if (error) { return reject(error) }
             if (stat.isFile() && !name.startsWith('.')) { files.push(name) }
             resolve()
@@ -36,11 +36,13 @@ thumbs.do = async () => {
 
   thumbs.mode = parseInt(args[0])
   thumbs.force = parseInt(args[1])
+  thumbs.verbose = parseInt(args[2])
   if ((isNaN(thumbs.mode) || ![1, 2, 3].includes(thumbs.mode)) ||
   (!isNaN(thumbs.force) && ![0, 1].includes(thumbs.force))) {
-    console.log('Usage:\nyarn thumbs <mode=1|2|3> [force=0|1]\n')
-    console.log('mode : 1 = images only, 2 = videos only, 3 = both images and videos')
-    console.log('force: 0 = no force (default), 1 = overwrite existing thumbnails')
+    console.log('Usage  :\nyarn thumbs <mode=1|2|3> [force=0|1] [verbose=0|1]\n')
+    console.log('mode   : 1 = images only, 2 = videos only, 3 = both images and videos')
+    console.log('force  : 0 = no force (default), 1 = overwrite existing thumbnails')
+    console.log('verbose: 0 = only print missing thumbs (default), 1 = print all')
     return
   }
 
@@ -63,9 +65,9 @@ thumbs.do = async () => {
       const basename = _upload.slice(0, -extname.length)
 
       if (_thumbs.includes(basename) && !thumbs.force) {
-        console.log(`${_upload}: thumb exists.`)
+        if (thumbs.verbose) { console.log(`${_upload}: thumb exists.`) }
       } else if (!thumbs.mayGenerateThumb(extname)) {
-        console.log(`${_upload}: extension skipped.`)
+        if (thumbs.verbose) { console.log(`${_upload}: extension skipped.`) }
       } else {
         const generated = await utils.generateThumbs(_upload, thumbs.force)
         console.log(`${_upload}: ${String(generated)}`)
