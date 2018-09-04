@@ -31,13 +31,9 @@ For example, if you only want to generate thumbnails for image files, you can do
 
 ## Virus scanning
 
-This project is using [clamav](https://www.clamav.net/) to scan files for viruses through [node-clam-engine](https://github.com/srijs/node-clam-engine).
+This project is using [clamav](https://www.clamav.net/) to scan files for viruses through [clamdjs](https://github.com/NingLin-P/clamdjs).
 
-You will need to install dependencies listed [here](https://github.com/srijs/node-clam-engine#installation).
-
-If you do not want to use it, you may remove `clam-engine` from the `package.json` file.
-
-This has only been tested with an Ubuntu machine.
+To use, make sure you have ClamAV daemon running, then edit your `config.js` and specify your the daemon's IP and port.
 
 ## Running
 
