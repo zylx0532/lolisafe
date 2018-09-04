@@ -93,9 +93,13 @@ module.exports = {
     urlMaxSize: '32MB',
 
     /*
-      Scan for virus using ClamAV.
+      Scan files using ClamAV through clamd.
     */
-    scan: false,
+    scan: {
+      enabled: false,
+      ip: '127.0.0.1',
+      port: 3310
+    },
 
     /*
       Use DuckDuckGo's proxy when fetching any URL uploads.
