@@ -393,6 +393,7 @@ page.updateTemplate = function (file, response) {
 
 page.prepareShareX = function () {
   if (page.token) {
+    // TODO: "location.origin" is unsuitable if the safe is hosted in a subdir (e.i. http://example.com/safe)
     var sharexElement = document.getElementById('ShareX')
     var sharexFile =
       '{\r\n' +

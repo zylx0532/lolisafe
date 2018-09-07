@@ -110,6 +110,8 @@ page.prepareDashboard = function () {
   logoutBtn.innerHTML = 'Logout ( ' + page.username + ' )'
 
   page.getAlbumsSidebar()
+
+  page.prepareShareX()
 }
 
 page.logout = function () {
@@ -1393,6 +1395,30 @@ page.setActiveMenu = function (activeItem) {
   }
 
   activeItem.classList.add('is-active')
+}
+
+page.prepareShareX = function () {
+  if (page.token) {
+    // TODO: "location.origin" is unsuitable if the safe is hosted in a subdir (e.i. http://example.com/safe)
+    var sharexElement = document.getElementById('ShareX')
+    var sharexFile =
+      '{\r\n' +
+      '  "Name": "' + location.hostname + '",\r\n' +
+      '  "DestinationType": "ImageUploader, FileUploader",\r\n' +
+      '  "RequestType": "POST",\r\n' +
+      '  "RequestURL": "' + location.origin + '/api/upload",\r\n' +
+      '  "FileFormName": "files[]",\r\n' +
+      '  "Headers": {\r\n' +
+      '    "token": "' + page.token + '"\r\n' +
+      '  },\r\n' +
+      '  "ResponseType": "Text",\r\n' +
+      '  "URL": "$json:files[0].url$",\r\n' +
+      '  "ThumbnailURL": "$json:files[0].url$"\r\n' +
+      '}'
+    var sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
+    sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
+    sharexElement.setAttribute('download', location.hostname + '.sxcu')
+  }
 }
 
 window.onload = function () {
