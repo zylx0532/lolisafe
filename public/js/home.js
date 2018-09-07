@@ -25,7 +25,8 @@ var imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
 
 page.checkIfPublic = function () {
   axios.get('api/check')
-    .then(function (response) { page.private = response.data.private
+    .then(function (response) {
+      page.private = response.data.private
       page.enableUserAccounts = response.data.enableUserAccounts
       page.maxFileSize = response.data.maxFileSize
       page.chunkSize = response.data.chunkSize
@@ -38,7 +39,6 @@ page.checkIfPublic = function () {
       button.innerText = 'Error occurred. Reload the page?'
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
-
 }
 
 page.preparePage = function () {
@@ -302,12 +302,12 @@ page.uploadUrls = function (button) {
   if (button.classList.contains('is-loading')) { return }
   button.classList.add('is-loading')
 
-  function done(error) {
+  function done (error) {
     if (error) { swal('An error occurred!', error, 'error') }
     button.classList.remove('is-loading')
   }
 
-  function run() {
+  function run () {
     var albumid = page.album
     var previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
     var urls = document.getElementById('urls').value
@@ -333,12 +333,12 @@ page.uploadUrls = function (button) {
       }
     })
 
-    function post(i) {
+    function post (i) {
       if (i === files.length) { return done() }
 
       var file = files[i]
 
-      function posted(result) {
+      function posted (result) {
         file.previewElement.querySelector('.progress').style.display = 'none'
         if (result.success) {
           page.updateTemplate(file, result.files[0])
@@ -477,7 +477,6 @@ page.createAlbum = function () {
           return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
         })
     })
-
 }
 
 // Handle image paste event

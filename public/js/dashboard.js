@@ -141,43 +141,43 @@ page.domClick = function (event) {
   var action = element.dataset.action
 
   switch (action) {
-  case 'page-prev':
-    if (page.currentView.pageNum === 0) {
-      return swal('Can\'t do that!', 'This is already the first page!', 'warning')
-    }
-    return page.getUploads(page.currentView.album, page.currentView.pageNum - 1, element)
-  case 'page-next':
-    return page.getUploads(page.currentView.album, page.currentView.pageNum + 1, element)
-  case 'view-list':
-    return page.setFilesView('list', element)
-  case 'view-thumbs':
-    return page.setFilesView('thumbs', element)
-  case 'clear-selection':
-    return page.clearSelection()
-  case 'add-selected-files-to-album':
-    return page.addSelectedFilesToAlbum()
-  case 'bulk-delete':
-    return page.deleteSelectedFiles()
-  case 'select-file':
-    return page.selectFile(element, event)
-  case 'add-to-album':
-    return page.addSingleFileToAlbum(id)
-  case 'delete-file':
-    return page.deleteFile(id)
-  case 'select-all-files':
-    return page.selectAllFiles(element)
-  case 'display-thumbnail':
-    return page.displayThumbnail(id)
-  case 'delete-file-by-names':
-    return page.deleteFileByNames()
-  case 'submit-album':
-    return page.submitAlbum(element)
-  case 'edit-album':
-    return page.editAlbum(id)
-  case 'delete-album':
-    return page.deleteAlbum(id)
-  case 'get-new-token':
-    return page.getNewToken(element)
+    case 'page-prev':
+      if (page.currentView.pageNum === 0) {
+        return swal('Can\'t do that!', 'This is already the first page!', 'warning')
+      }
+      return page.getUploads(page.currentView.album, page.currentView.pageNum - 1, element)
+    case 'page-next':
+      return page.getUploads(page.currentView.album, page.currentView.pageNum + 1, element)
+    case 'view-list':
+      return page.setFilesView('list', element)
+    case 'view-thumbs':
+      return page.setFilesView('thumbs', element)
+    case 'clear-selection':
+      return page.clearSelection()
+    case 'add-selected-files-to-album':
+      return page.addSelectedFilesToAlbum()
+    case 'bulk-delete':
+      return page.deleteSelectedFiles()
+    case 'select-file':
+      return page.selectFile(element, event)
+    case 'add-to-album':
+      return page.addSingleFileToAlbum(id)
+    case 'delete-file':
+      return page.deleteFile(id)
+    case 'select-all-files':
+      return page.selectAllFiles(element)
+    case 'display-thumbnail':
+      return page.displayThumbnail(id)
+    case 'delete-file-by-names':
+      return page.deleteFileByNames()
+    case 'submit-album':
+      return page.submitAlbum(element)
+    case 'edit-album':
+      return page.editAlbum(id)
+    case 'delete-album':
+      return page.deleteAlbum(id)
+    case 'get-new-token':
+      return page.getNewToken(element)
   }
 }
 
@@ -1246,7 +1246,6 @@ page.setFileLength = function (fileLength, element) {
 page.changeToken = function () {
   axios.get('api/tokens')
     .then(function (response) {
-
       if (response.data.success === false) {
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
@@ -1275,7 +1274,6 @@ page.changeToken = function () {
         '    </a>\n' +
         '  </div>\n' +
         '</div>'
-
     })
     .catch(function (error) {
       console.log(error)
@@ -1385,7 +1383,6 @@ page.sendNewPassword = function (pass, element) {
       page.isLoading(element, false)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
-
 }
 
 page.setActiveMenu = function (activeItem) {
