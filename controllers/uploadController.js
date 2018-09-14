@@ -179,7 +179,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
       }
     })
 
-    if (config.uploads.scan) {
+    if (config.uploads.scan && config.uploads.scan.enabled) {
       const scan = await uploadsController.scanFiles(req, infoMap)
       if (!scan) { return erred('Virus detected.') }
     }
@@ -263,7 +263,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
       iteration++
       if (iteration === urls.length) {
-        if (config.uploads.scan) {
+        if (config.uploads.scan && config.uploads.scan.enabled) {
           const scan = await uploadsController.scanFiles(req, infoMap)
           if (!scan) { return erred('Virus detected.') }
         }
@@ -386,7 +386,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
 
       iteration++
       if (iteration === files.length) {
-        if (config.uploads.scan) {
+        if (config.uploads.scan && config.uploads.scan.enabled) {
           const scan = await uploadsController.scanFiles(req, infoMap)
           if (!scan) { return erred('Virus detected.') }
         }
