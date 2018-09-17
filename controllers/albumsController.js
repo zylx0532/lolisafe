@@ -3,7 +3,6 @@ const db = require('knex')(config.database)
 const EventEmitter = require('events')
 const fs = require('fs')
 const path = require('path')
-const pce = require('path-complete-extname')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
 const Zip = require('jszip')
@@ -299,7 +298,7 @@ albumsController.get = async (req, res, next) => {
   for (const file of files) {
     file.file = `${config.domain}/${file.name}`
 
-    const extname = pce(file.name).toLowerCase()
+    const extname = utils.extname(file.name)
     if (utils.mayGenerateThumb(extname)) {
       file.thumb = `${config.domain}/thumbs/${file.name.slice(0, -extname.length)}.png`
     }

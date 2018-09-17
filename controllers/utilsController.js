@@ -4,7 +4,6 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
-const pce = require('path-complete-extname')
 const snekfetch = require('snekfetch')
 
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
@@ -21,6 +20,35 @@ utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mk
 utilsController.mayGenerateThumb = extname => {
   return (config.uploads.generateThumbs.image && utilsController.imageExtensions.includes(extname)) ||
     (config.uploads.generateThumbs.video && utilsController.videoExtensions.includes(extname))
+}
+
+// expand if necessary (must be lower case); for now only preserves some known tarballs
+utilsController.preserves = ['.tar.gz', '.tar.z', '.tar.bz2', '.tar.lzma', '.tar.lzo', '.tar.xz']
+
+utilsController.extname = filename => {
+  let lower = filename.toLowerCase() // due to this, the returned extname will always be lower case
+  let multi = ''
+  let extname = ''
+
+  // check for multi-archive extensions (.001, .002, and so on)
+  if (/\.\d{3}$/.test(lower)) {
+    multi = lower.slice(lower.lastIndexOf('.') - lower.length)
+    lower = lower.slice(0, lower.lastIndexOf('.'))
+  }
+
+  // check against extensions that must be preserved
+  for (let i = 0; i < utilsController.preserves.length; i++) {
+    if (lower.endsWith(utilsController.preserves[i])) {
+      extname = utilsController.preserves[i]
+      break
+    }
+  }
+
+  if (!extname) {
+    extname = lower.slice(lower.lastIndexOf('.') - lower.length) // path.extname(lower)
+  }
+
+  return extname + multi
 }
 
 utilsController.getPrettyDate = date => {
@@ -66,7 +94,7 @@ utilsController.authorize = async (req, res) => {
 
 utilsController.generateThumbs = (name, force) => {
   return new Promise(resolve => {
-    const extname = pce(name).toLowerCase()
+    const extname = utilsController.extname(name)
     const thumbname = path.join(thumbsDir, name.slice(0, -extname.length) + '.png')
     fs.lstat(thumbname, async (error, stats) => {
       if (error && error.code !== 'ENOENT') {
@@ -130,7 +158,7 @@ utilsController.generateThumbs = (name, force) => {
 
 utilsController.deleteFile = file => {
   return new Promise((resolve, reject) => {
-    const extname = pce(file).toLowerCase()
+    const extname = utilsController.extname(file)
     return fs.unlink(path.join(uploadsDir, file), error => {
       if (error && error.code !== 'ENOENT') { return reject(error) }
 
@@ -224,7 +252,7 @@ utilsController.purgeCloudflareCache = async names => {
   const thumbs = []
   names = names.map(name => {
     const url = `${config.domain}/${name}`
-    const extname = pce(name).toLowerCase()
+    const extname = utilsController.extname(name)
     if (utilsController.mayGenerateThumb(extname)) {
       thumbs.push(`${config.domain}/thumbs/${name.slice(0, -extname.length)}.png`)
     }

@@ -4,7 +4,6 @@ const db = require('knex')(config.database)
 const fs = require('fs')
 const multer = require('multer')
 const path = require('path')
-const pce = require('path-complete-extname')
 const randomstring = require('randomstring')
 const snekfetch = require('snekfetch')
 const utils = require('./utilsController')
@@ -40,7 +39,7 @@ const storage = multer.diskStorage({
   filename (req, file, cb) {
     // If chunked uploads is disabled or the uploaded file is not a chunk
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
-      const extension = pce(file.originalname).toLowerCase()
+      const extension = utils.extname(file.originalname)
       const length = uploadsController.getFileNameLength(req)
       return uploadsController.getUniqueRandomName(length, extension)
         .then(name => cb(null, name))
@@ -61,7 +60,7 @@ const upload = multer({
     fileSize: maxSizeBytes
   },
   fileFilter (req, file, cb) {
-    const extname = pce(file.originalname).toLowerCase()
+    const extname = utils.extname(file.originalname)
     if (uploadsController.isExtensionFiltered(extname)) {
       // eslint-disable-next-line standard/no-callback-literal
       return cb(`${extname.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
@@ -216,7 +215,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
   const infoMap = []
   for (const url of urls) {
     const original = path.basename(url).split(/[?#]/)[0]
-    const extension = pce(original).toLowerCase()
+    const extension = utils.extname(original)
     if (uploadsController.isExtensionFiltered(extension)) {
       return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
     }
@@ -331,7 +330,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       if (error) { return erred(error) }
       if (file.count < chunkNames.length) { return erred('Chunks count mismatch.') }
 
-      const extension = typeof file.original === 'string' ? pce(file.original).toLowerCase() : ''
+      const extension = typeof file.original === 'string' ? utils.extname(file.original) : ''
       if (uploadsController.isExtensionFiltered(extension)) {
         return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
       }
@@ -593,7 +592,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     if (file.albumid && !albumids.includes(file.albumid)) {
       albumids.push(file.albumid)
     }
-    if (utils.mayGenerateThumb(pce(file.name).toLowerCase())) {
+    if (utils.mayGenerateThumb(utils.extname(file.name))) {
       utils.generateThumbs(file.name)
     }
   }
@@ -688,7 +687,7 @@ uploadsController.list = async (req, res) => {
       }
     }
 
-    file.extname = pce(file.name).toLowerCase()
+    file.extname = utils.extname(file.name)
     if (utils.mayGenerateThumb(file.extname)) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
     }
