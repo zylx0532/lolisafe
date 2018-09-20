@@ -97,12 +97,13 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [kayo.moe](https://kayo.moe): File hosting for all~
 - [dmca.gripe](https://dmca.gripe): a dmca-resistant, permanent file hosting service.
 - [succmy.wang](https://succmy.wang): A private clone with a funny name
-- [i-want-to.2dgirls.date](https://i-want-to.2dgirls.date): A clone that screams what you want
 - [namir.in](https://namir.in): A private clone dedicated to best girl.
 - [safe.waliant.pw](https://safe.waliant.pw): A generic private clone for personal use.
 - [a.hyper.lol](https://a.hyper.lol): My personal clone with some ~~terrible~~ great changes.
 - [discordjs.moe](https://discordjs.moe): A まじ卍 as fuck copy of lolisafe.moe
 - [i.liich.me](https://i.liich.me): Another private clone with a different look.
+- [discordimages.com](https://discordimages.com): A file hosting service that is available for public use.
+- [upload.uwu.ninja](https://upload.uwu.ninja): UwU'ish your uploads with us, now. plz. 
 - Feel free to add yours here.
 
 ## Author
