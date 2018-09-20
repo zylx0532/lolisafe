@@ -180,7 +180,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 
     if (config.uploads.scan && config.uploads.scan.enabled) {
       const scan = await uploadsController.scanFiles(req, infoMap)
-      if (!scan) { return erred('Virus detected.') }
+      if (scan) { return erred(scan) }
     }
 
     const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
@@ -264,7 +264,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
       if (iteration === urls.length) {
         if (config.uploads.scan && config.uploads.scan.enabled) {
           const scan = await uploadsController.scanFiles(req, infoMap)
-          if (!scan) { return erred('Virus detected.') }
+          if (scan) { return erred(scan) }
         }
 
         const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
@@ -387,7 +387,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       if (iteration === files.length) {
         if (config.uploads.scan && config.uploads.scan.enabled) {
           const scan = await uploadsController.scanFiles(req, infoMap)
-          if (!scan) { return erred('Virus detected.') }
+          if (scan) { return erred(scan) }
         }
 
         const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
@@ -526,35 +526,35 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
   })
 }
 
-uploadsController.scanFiles = async (req, infoMap) => {
-  const dirty = await new Promise(async resolve => {
+uploadsController.scanFiles = (req, infoMap) => {
+  return new Promise(async (resolve, reject) => {
     let iteration = 0
     const scanner = req.app.get('clam-scanner')
-    const dirty = []
 
     for (const info of infoMap) {
-      const log = message => {
-        console.log(`ClamAV: ${info.data.filename}: ${message}.`)
-      }
-
       scanner.scanFile(info.path).then(reply => {
         if (!reply.includes('OK') || reply.includes('FOUND')) {
-          log(reply.replace(/^stream: /, ''))
-          dirty.push(info)
+          // eslint-disable-next-line no-control-regex
+          const virus = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
+          console.log(`ClamAV: ${info.data.filename}: ${virus} FOUND.`)
+          return resolve(virus)
         }
 
         iteration++
         if (iteration === infoMap.length) {
-          resolve(dirty)
+          resolve(null)
         }
-      })
+      }).catch(reject)
     }
+  }).then(virus => {
+    if (!virus) { return false }
+    // If there is at least one dirty file, delete all files
+    infoMap.forEach(info => utils.deleteFile(info.data.filename).catch(console.error))
+    return `Virus detected: ${virus}.`
+  }).catch(error => {
+    console.error(`ClamAV: ${error.toString()}.`)
+    return `ClamAV: ${error.code}, please contact sysadmin.`
   })
-
-  if (!dirty.length) { return true }
-
-  // If there is at least one dirty file, delete all files
-  infoMap.forEach(info => utils.deleteFile(info.data.filename).catch(console.error))
 }
 
 uploadsController.processFilesForDisplay = async (req, res, files, existingFiles) => {
