@@ -12,6 +12,14 @@ const nunjucks = require('nunjucks')
 const RateLimit = require('express-rate-limit')
 const safe = express()
 
+// It appears to be best to catch these before doing anything else
+process.on('uncaughtException', error => {
+  console.error('Uncaught Exception:', error)
+})
+process.on('unhandledRejection', error => {
+  console.error('Unhandled Rejection (Promise):', error)
+})
+
 require('./database/db.js')(db)
 
 fs.existsSync('./pages/custom') || fs.mkdirSync('./pages/custom')
@@ -60,7 +68,8 @@ for (const page of config.pages) {
     }))
   } else if (page === 'home') {
     safe.get('/', (req, res, next) => res.render('home', {
-      urlMaxSize: config.uploads.urlMaxSize
+      urlMaxSize: config.uploads.urlMaxSize,
+      gitHash: safe.get('git-hash')
     }))
   } else if (page === 'faq') {
     const fileLength = config.uploads.fileLength
@@ -78,33 +87,37 @@ for (const page of config.pages) {
 }
 
 safe.use((req, res, next) => {
-  res.status(404).sendFile('404.html', { root: './pages/error/' })
+  res.status(404).sendFile(config.errorPages[404], { root: config.errorPages.rootDir })
 })
 safe.use((error, req, res, next) => {
   console.error(error)
-  res.status(500).sendFile('500.html', { root: './pages/error/' })
-})
-
-process.on('uncaughtException', error => {
-  console.error('Uncaught Exception:', error)
-})
-
-process.on('unhandledRejection', error => {
-  console.error('Unhandled Rejection (Promise):', error)
+  res.status(500).sendFile(config.errorPages[500], { root: config.errorPages.rootDir })
 })
 
 const start = async () => {
+  if (config.showGitHash) {
+    const gitHash = await new Promise((resolve, reject) => {
+      require('child_process').exec('git rev-parse HEAD', (error, stdout) => {
+        if (error) { return reject(error) }
+        resolve(stdout.replace(/\n$/, ''))
+      })
+    }).catch(console.error)
+    if (!gitHash) { return }
+    console.log(`Git commit: ${gitHash}`)
+    safe.set('git-hash', gitHash)
+  }
+
   if (config.uploads.scan && config.uploads.scan.enabled) {
     const created = await new Promise(async (resolve, reject) => {
       if (!config.uploads.scan.ip || !config.uploads.scan.port) {
-        return reject(new Error('Clamd IP or Port is missing'))
+        return reject(new Error('clamd IP or port is missing'))
       }
       const ping = await clamd.ping(config.uploads.scan.ip, config.uploads.scan.port).catch(reject)
       if (!ping) {
         return reject(new Error('Could not ping clamd'))
       }
       const version = await clamd.version(config.uploads.scan.ip, config.uploads.scan.port).catch(reject)
-      console.log(`${config.uploads.scan.ip}:${config.uploads.scan.port}  ${version}`)
+      console.log(`${config.uploads.scan.ip}:${config.uploads.scan.port} ${version}`)
       const scanner = clamd.createScanner(config.uploads.scan.ip, config.uploads.scan.port)
       safe.set('clam-scanner', scanner)
       return resolve(true)

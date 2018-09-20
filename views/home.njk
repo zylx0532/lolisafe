@@ -115,6 +115,10 @@
       </h3>
 
       {% include "_partial/links.njk" %}
+
+      {% if gitHash -%}
+      <p>Git commit: <a href="https://github.com/BobbyWibowo/lolisafe/commit/{{ gitHash }}" target="_blank" rel="noopener">{{ gitHash }}</a></p>
+      {%- endif %}
     </div>
   </div>
 </section>

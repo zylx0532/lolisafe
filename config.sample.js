@@ -72,6 +72,21 @@ module.exports = {
   ],
 
   /*
+    Show hash of the current git commit in homepage.
+  */
+  showGitHash: false,
+
+  /*
+    Path to error pages. Only 404 and 500 will be used.
+    Note: rootDir can either be relative or absolute path.
+  */
+  errorPages: {
+    rootDir: './pages/error',
+    404: '404.html',
+    500: '500.html'
+  },
+
+  /*
     Uploads config.
   */
   uploads: {

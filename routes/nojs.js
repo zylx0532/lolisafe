@@ -16,7 +16,10 @@ if (config.private) {
 }
 
 routes.get('/nojs', async (req, res, next) => {
-  return res.render('nojs', { renderOptions })
+  const options = { renderOptions }
+  options.gitHash = req.app.get('git-hash')
+
+  return res.render('nojs', options)
 })
 
 routes.post('/nojs', (req, res, next) => {
@@ -26,6 +29,7 @@ routes.post('/nojs', (req, res, next) => {
     const result = args[0]
 
     const options = { renderOptions }
+    options.gitHash = req.app.get('git-hash')
 
     options.errorMessage = result.success ? '' : (result.description || 'An unexpected error occurred.')
     options.files = result.files || [{}]
