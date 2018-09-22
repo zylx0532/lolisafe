@@ -54,6 +54,7 @@ module.exports = {
   extensionsFilter: [
     '.jar',
     '.exe',
+    '.exec',
     '.msi',
     '.com',
     '.bat',
