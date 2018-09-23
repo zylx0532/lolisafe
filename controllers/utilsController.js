@@ -1,10 +1,10 @@
 const config = require('./../config')
 const db = require('knex')(config.database)
+const fetch = require('node-fetch')
 const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
-const snekfetch = require('snekfetch')
 
 const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
@@ -259,19 +259,23 @@ utilsController.purgeCloudflareCache = async names => {
     return url
   })
 
-  const purge = await snekfetch
-    .post(`https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`)
-    .set({
-      'X-Auth-Email': config.cloudflare.email,
-      'X-Auth-Key': config.cloudflare.apiKey
-    })
-    .send({ files: names.concat(thumbs) })
-    .catch(error => error)
+  try {
+    const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`
+    const fetchPurge = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ files: names.concat(thumbs) }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-Email': config.cloudflare.email,
+        'X-Auth-Key': config.cloudflare.apiKey
+      }
+    }).then(res => res.json())
 
-  if (!purge.body) {
-    console.error(`CF: ${purge.toString()}`)
-  } else if (!purge.body.success && purge.body.errors) {
-    purge.body.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
+    if (fetchPurge.errors) {
+      fetchPurge.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
+    }
+  } catch (error) {
+    console.error(`CF: ${error.toString()}`)
   }
 }
 

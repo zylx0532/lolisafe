@@ -1,11 +1,11 @@
 const config = require('./../config')
 const crypto = require('crypto')
 const db = require('knex')(config.database)
+const fetch = require('node-fetch')
 const fs = require('fs')
 const multer = require('multer')
 const path = require('path')
 const randomstring = require('randomstring')
-const snekfetch = require('snekfetch')
 const utils = require('./utilsController')
 
 const uploadsController = {}
@@ -220,60 +220,63 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
       return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
     }
 
-    const head = await snekfetch.head(url)
-      .catch(error => error)
-    if (head.status !== 200) { return erred(head.toString()) }
-    if (!head) { return }
-
-    const size = parseInt(head.headers['content-length'])
-    if (isNaN(size)) {
-      return erred('URLs with missing Content-Length HTTP header are not supported.')
-    }
-    if (size > urlMaxSizeBytes) {
-      return erred('File too large.')
-    }
-
-    const download = await snekfetch.get(url)
-      .catch(error => error)
-    if (download.status !== 200) { return erred(download.toString()) }
-    if (!download) { return }
-
-    const length = uploadsController.getFileNameLength(req)
-    const name = await uploadsController.getUniqueRandomName(length, extension)
-      .catch(erred)
-    if (!name) { return }
-
-    const destination = path.join(uploadsDir, name)
-    fs.writeFile(destination, download.body, async error => {
-      if (error) { return erred(error) }
-
-      const data = {
-        filename: name,
-        originalname: original,
-        mimetype: download.headers['content-type'].split(';')[0] || '',
-        size,
-        albumid
+    try {
+      const fetchHead = await fetch(url, { method: 'HEAD' })
+      if (fetchHead.status !== 200) {
+        return erred(`${fetchHead.status} ${fetchHead.statusText}`)
       }
 
-      infoMap.push({
-        path: destination,
-        data
-      })
+      const headers = fetchHead.headers
+      const size = parseInt(headers.get('content-length'))
+      if (isNaN(size)) {
+        return erred('URLs with missing Content-Length HTTP header are not supported.')
+      }
+      if (size > urlMaxSizeBytes) {
+        return erred('File too large.')
+      }
 
-      iteration++
-      if (iteration === urls.length) {
-        if (config.uploads.scan && config.uploads.scan.enabled) {
-          const scan = await uploadsController.scanFiles(req, infoMap)
-          if (scan) { return erred(scan) }
+      const fetchFile = await fetch(url)
+      if (fetchFile.status !== 200) {
+        return erred(`${fetchHead.status} ${fetchHead.statusText}`)
+      }
+
+      const file = await fetchFile.buffer()
+
+      const length = uploadsController.getFileNameLength(req)
+      const name = await uploadsController.getUniqueRandomName(length, extension)
+
+      const destination = path.join(uploadsDir, name)
+      fs.writeFile(destination, file, async error => {
+        if (error) { return erred(error) }
+
+        const data = {
+          filename: name,
+          originalname: original,
+          mimetype: headers.get('content-type').split(';')[0] || '',
+          size,
+          albumid
         }
 
-        const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
-          .catch(erred)
-        if (!result) { return }
+        infoMap.push({
+          path: destination,
+          data
+        })
 
-        uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
-      }
-    })
+        iteration++
+        if (iteration === urls.length) {
+          if (config.uploads.scan && config.uploads.scan.enabled) {
+            const scan = await uploadsController.scanFiles(req, infoMap)
+            if (scan) { return erred(scan) }
+          }
+
+          const result = await uploadsController.formatInfoMap(req, res, user, infoMap)
+            .catch(erred)
+          if (!result) { return }
+
+          uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
+        }
+      })
+    } catch (error) { erred(error) }
   }
 }
 
