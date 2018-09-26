@@ -745,116 +745,105 @@ page.addSingleFileToAlbum = function (id) {
 
 page.addFilesToAlbum = function (ids, callback) {
   var count = ids.length
-  return swal({
-    title: 'Are you sure?',
-    text: 'You are about to move ' + count + ' file' + (count === 1 ? '' : 's') + ' to an album.',
+
+  var content = document.createElement('div')
+  content.id = 'addFilesToAlbum'
+  content.innerHTML =
+    '<p>You are about to add <span style="font-weight: 800">' + count + '</span> file' + (count === 1 ? '' : 's') + ' to an album.</p>' +
+    '<div class="field">\n' +
+    '  <label class="label">If a file is already in an album, it will be moved.</label>\n' +
+    '  <div class="control">\n' +
+    '    <div class="select is-fullwidth">\n' +
+    '      <select disabled>\n' +
+    '        <option value="-1">Remove from album</option>\n' +
+    '        <option value="" selected disabled>Fetching albums list\u2026</option>\n' +
+    '      </select>\n' +
+    '    </div>\n' +
+    '</div>'
+
+  swal({
+    title: 'Add to album',
+    icon: 'warning',
+    content: content,
     buttons: {
       cancel: true,
       confirm: {
-        text: 'Yes',
+        text: 'OK',
         closeModal: false
       }
     }
-  })
-    .then(function (proceed) {
-      if (!proceed) { return }
+  }).then(function (choose) {
+    if (!choose) { return }
 
-      axios.get('api/albums')
-        .then(function (list) {
-          if (!list) { return }
+    var container = document.getElementById('addFilesToAlbum')
+    var select = container.getElementsByTagName('select')[0]
+    var albumid = parseInt(select.value)
+    if (isNaN(albumid)) {
+      return swal('An error occurred!', 'You did not choose an album.', 'error')
+    }
 
-          if (list.data.success === false) {
-            if (list.data.description === 'No token provided') {
-              page.verifyToken(page.token)
-            } else {
-              swal('An error occurred!', list.data.description, 'error')
-            }
-            return
-          }
+    axios.post('api/albums/addfiles', {
+      ids: ids,
+      albumid: albumid
+    }).then(function (add) {
+      if (!add) { return }
 
-          if (!page.selectAlbumContainer) {
-            // We want to this to be re-usable
-            page.selectAlbumContainer = document.createElement('div')
-            page.selectAlbumContainer.id = 'selectAlbum'
-          }
+      if (add.data.success === false) {
+        if (add.data.description === 'No token provided') {
+          page.verifyToken(page.token)
+        } else {
+          swal('An error occurred!', add.data.description, 'error')
+        }
+        return
+      }
 
-          var options = list.data.albums
-            .map(function (album) {
-              return '<option value="' + album.id + '">' + album.name + '</option>'
-            })
-            .join('\n')
+      var added = ids.length
+      if (add.data.failed && add.data.failed.length) {
+        added -= add.data.failed.length
+      }
 
-          page.selectAlbumContainer.innerHTML =
-            '<div class="field">\n' +
-            '  <label class="label">If a file is already in an album, it will be moved.</label>\n' +
-            '  <div class="control">\n' +
-            '    <div class="select is-fullwidth">\n' +
-            '      <select>\n' +
-            '        <option value="-1">Remove from album</option>\n' +
-            '        <option value="" selected disabled>Choose an album</option>\n' +
-            '        ' + options + '\n' +
-            '      </select>\n' +
-            '    </div>\n' +
-            '</div>'
+      var suffix = 'file' + (ids.length === 1 ? '' : 's')
+      if (!added) {
+        return swal('An error occurred!', 'Could not add the ' + suffix + ' to the album.', 'error')
+      }
 
-          return swal({
-            content: page.selectAlbumContainer,
-            buttons: {
-              cancel: true,
-              confirm: {
-                text: 'OK',
-                closeModal: false
-              }
-            }
-          })
-            .then(function (choose) {
-              if (!choose) { return }
-
-              var albumid = parseInt(page.selectAlbumContainer.getElementsByTagName('select')[0].value)
-              if (isNaN(albumid)) {
-                return swal('An error occurred!', 'You did not choose an album.', 'error')
-              }
-
-              axios.post('api/albums/addfiles', {
-                ids: ids,
-                albumid: albumid
-              })
-                .then(function (add) {
-                  if (!add) { return }
-
-                  if (add.data.success === false) {
-                    if (add.data.description === 'No token provided') {
-                      page.verifyToken(page.token)
-                    } else {
-                      swal('An error occurred!', add.data.description, 'error')
-                    }
-                    return
-                  }
-
-                  var added = ids.length
-                  if (add.data.failed && add.data.failed.length) {
-                    added -= add.data.failed.length
-                  }
-
-                  var suffix = 'file' + (ids.length === 1 ? '' : 's')
-                  if (!added) {
-                    return swal('An error occurred!', 'Could not add the ' + suffix + ' to the album.', 'error')
-                  }
-
-                  swal('Woohoo!', 'Successfully ' + (albumid < 0 ? 'removed' : 'added') + ' ' + added + ' ' + suffix + ' ' + (albumid < 0 ? 'from' : 'to') + ' the album.', 'success')
-                  return callback(add.data.failed)
-                })
-                .catch(function (error) {
-                  console.log(error)
-                  return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-                })
-            })
-        })
-        .catch(function (error) {
-          console.log(error)
-          return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-        })
+      swal('Woohoo!', 'Successfully ' + (albumid < 0 ? 'removed' : 'added') + ' ' + added + ' ' + suffix + ' ' + (albumid < 0 ? 'from' : 'to') + ' the album.', 'success')
+      return callback(add.data.failed)
+    }).catch(function (error) {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
+
+  // Get albums list then update content of swal
+  axios.get('api/albums').then(function (list) {
+    if (list.data.success === false) {
+      if (list.data.description === 'No token provided') {
+        page.verifyToken(page.token)
+      } else {
+        swal('An error occurred!', list.data.description, 'error')
+      }
+      return
+    }
+
+    // If the prompt was replaced, the container would be missing
+    var container = document.getElementById('addFilesToAlbum')
+    if (!container) { return }
+    var select = container.getElementsByTagName('select')[0]
+    select.innerHTML += list.data.albums
+      .map(function (album) {
+        return '<option value="' + album.id + '">' + album.name + '</option>'
+      })
+      .join('\n')
+    select.getElementsByTagName('option')[1].innerHTML = 'Choose an album'
+    select.removeAttribute('disabled')
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.getAlbums = function () {
