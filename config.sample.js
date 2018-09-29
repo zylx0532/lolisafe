@@ -120,7 +120,8 @@ module.exports = {
     /*
       Use DuckDuckGo's proxy when fetching any URL uploads.
       This may be considered a hack and not supported by DuckDuckGo, so USE AT YOUR OWN RISK.
-      This have only been tested with pictures, GIFs, WEBMs and MP4s.
+      This should work with any type of URLs, but they have to be direct links,
+      since DuckDuckGo's proxy will not follow redirects.
     */
     urlDuckDuckGoProxy: false,
 

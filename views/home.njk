@@ -71,7 +71,15 @@
               <div class="control">
                 <textarea id="urls" class="textarea" rows="2"></textarea>
               </div>
-              <p class="help">Maximum file size for URL upload is {{ urlMaxSize }}.</p>
+              <p class="help">
+                {% if urlMaxSize !== maxSize -%}
+                Maximum file size for URL upload is <span style="font-weight: bold">{{ urlMaxSize }}</span>.
+                {%- endif %}
+                {%- if urlMaxSize and urlMaxSize !== maxSize and urlDuckDuckGoProxy %}<br>{% endif -%}
+                {%- if urlDuckDuckGoProxy %}
+                Since we're using DuckDuckGo's proxy, the URLs have to be direct links.
+              {% endif -%}
+              </p>
             </div>
             <div class="field">
               <div class="control is-expanded">

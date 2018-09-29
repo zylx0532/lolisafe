@@ -68,8 +68,10 @@ for (const page of config.pages) {
     }))
   } else if (page === 'home') {
     safe.get('/', (req, res, next) => res.render('home', {
+      maxSize: config.uploads.maxSize,
       urlMaxSize: config.uploads.urlMaxSize,
-      gitHash: safe.get('git-hash')
+      gitHash: safe.get('git-hash'),
+      urlDuckDuckGoProxy: config.uploads.urlDuckDuckGoProxy
     }))
   } else if (page === 'faq') {
     const fileLength = config.uploads.fileLength
