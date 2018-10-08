@@ -163,7 +163,14 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
   }
 
   upload(req, res, async error => {
-    if (error) { return erred(error) }
+    if (error) {
+      const expected = [
+        'LIMIT_FILE_SIZE',
+        'LIMIT_UNEXPECTED_FILE'
+      ]
+      if (expected.includes(error.code)) { return erred(error.toString()) }
+      return erred(error)
+    }
 
     if (!req.files || !req.files.length) { return erred('No files.') }
 
