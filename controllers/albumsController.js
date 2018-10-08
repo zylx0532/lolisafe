@@ -48,7 +48,6 @@ albumsController.list = async (req, res, next) => {
 
   const ids = []
   for (const album of albums) {
-    album.date = utils.getPrettyDate(new Date(album.timestamp * 1000))
     album.download = album.download !== 0
     album.public = album.public !== 0
 

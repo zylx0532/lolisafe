@@ -27,7 +27,10 @@ var page = {
   albums: {},
 
   clipboardJS: null,
-  lazyLoad: null
+  lazyLoad: null,
+
+  // byte units for getPrettyBytes()
+  byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 }
 
 page.preparePage = function () {
@@ -274,6 +277,10 @@ page.getUploads = function (album, pageNum, element) {
           selected = page.selectedFiles.includes(file.id)
           if (!selected && allFilesSelected) { allFilesSelected = false }
 
+          // Prettify
+          file.prettyBytes = page.getPrettyBytes(parseInt(file.size))
+          file.prettyDate = page.getPrettyDate(new Date(file.timestamp * 1000))
+
           displayAlbumOrUser = file.album
           if (page.username === 'root') {
             displayAlbumOrUser = ''
@@ -310,7 +317,7 @@ page.getUploads = function (album, pageNum, element) {
             '</div>\n' +
             '<div class="details">\n' +
             '  <p><span class="name" title="' + file.file + '">' + file.name + '</span></p>\n' +
-            '  <p>' + (displayAlbumOrUser ? ('<span>' + displayAlbumOrUser + '</span> – ') : '') + file.size + '</p>\n' +
+            '  <p>' + (displayAlbumOrUser ? ('<span>' + displayAlbumOrUser + '</span> – ') : '') + file.prettyBytes + '</p>\n' +
             '</div>'
 
           table.appendChild(div)
@@ -356,6 +363,10 @@ page.getUploads = function (album, pageNum, element) {
             thumb: file.thumb
           }
 
+          // Prettify
+          file.prettyBytes = page.getPrettyBytes(parseInt(file.size))
+          file.prettyDate = page.getPrettyDate(new Date(file.timestamp * 1000))
+
           displayAlbumOrUser = file.album
           if (page.username === 'root') {
             displayAlbumOrUser = ''
@@ -368,8 +379,8 @@ page.getUploads = function (album, pageNum, element) {
             '<th class="controls"><input type="checkbox" class="file-checkbox" title="Select this file" data-action="select-file"' + (selected ? ' checked' : '') + '></th>\n' +
             '<th><a href="' + file.file + '" target="_blank" rel="noopener" title="' + file.file + '">' + file.name + '</a></th>\n' +
             '<th>' + displayAlbumOrUser + '</th>\n' +
-            '<td>' + file.size + '</td>\n' +
-            '<td>' + file.date + '</td>\n' +
+            '<td>' + file.prettyBytes + '</td>\n' +
+            '<td>' + file.prettyDate + '</td>\n' +
             '<td class="controls" style="text-align: right" >\n' +
             '  <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"' + (file.thumb ? '' : ' disabled') + '>\n' +
             '    <span class="icon">\n' +
@@ -904,6 +915,9 @@ page.getAlbums = function () {
         var album = response.data.albums[i]
         var albumUrl = homeDomain + '/a/' + album.identifier
 
+        // Prettify
+        album.prettyDate = page.getPrettyDate(new Date(album.timestamp * 1000))
+
         page.albums[album.id] = {
           name: album.name,
           download: album.download,
@@ -916,7 +930,7 @@ page.getAlbums = function () {
           '  <th>' + album.id + '</th>\n' +
           '  <th>' + album.name + '</th>\n' +
           '  <th>' + album.files + '</th>\n' +
-          '  <td>' + album.date + '</td>\n' +
+          '  <td>' + album.prettyDate + '</td>\n' +
           '  <td><a' + (album.public ? (' href="' + albumUrl + '"') : '') + ' target="_blank" rel="noopener">' + albumUrl + '</a></td>\n' +
           '  <td style="text-align: right" data-id="' + album.id + '">\n' +
           '    <a class="button is-small is-primary" title="Edit album" data-action="edit-album">\n' +
@@ -1060,7 +1074,6 @@ page.deleteAlbum = function (id) {
   })
     .then(function (proceed) {
       if (!proceed) { return }
-      console.log(proceed, proceed === 'purge')
 
       axios.post('api/albums/delete', {
         id: id,
@@ -1388,7 +1401,7 @@ page.setActiveMenu = function (activeItem) {
 
 page.prepareShareX = function () {
   if (page.token) {
-    // TODO: "location.origin" is unsuitable if the safe is hosted in a subdir (e.i. http://example.com/safe)
+  // TODO: "location.origin" is unsuitable if the safe is hosted in a subdir (e.i. http://example.com/safe)
     var sharexElement = document.getElementById('ShareX')
     var sharexFile =
       '{\r\n' +
@@ -1408,6 +1421,36 @@ page.prepareShareX = function () {
     sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
     sharexElement.setAttribute('download', location.hostname + '.sxcu')
   }
+}
+
+page.getPrettyDate = date => {
+  return date.getFullYear() + '-' +
+    (date.getMonth() < 9 ? '0' : '') + // month's index starts from zero
+    (date.getMonth() + 1) + '-' +
+    (date.getDate() < 10 ? '0' : '') +
+    date.getDate() + ' ' +
+    (date.getHours() < 10 ? '0' : '') +
+    date.getHours() + ':' +
+    (date.getMinutes() < 10 ? '0' : '') +
+    date.getMinutes() + ':' +
+    (date.getSeconds() < 10 ? '0' : '') +
+    date.getSeconds()
+}
+
+page.getPrettyBytes = num => {
+  // MIT License
+  // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+  if (!Number.isFinite(num)) { return num }
+
+  const neg = num < 0
+  if (neg) { num = -num }
+  if (num < 1) { return (neg ? '-' : '') + num + ' B' }
+
+  const exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
+  const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
+  const unit = page.byteUnits[exponent]
+
+  return (neg ? '-' : '') + numStr + ' ' + unit
 }
 
 window.onload = function () {

@@ -6,8 +6,6 @@ const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
 
-const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-
 const utilsController = {}
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
@@ -49,34 +47,6 @@ utilsController.extname = filename => {
   }
 
   return extname + multi
-}
-
-utilsController.getPrettyDate = date => {
-  return date.getFullYear() + '-' +
-    (date.getMonth() + 1) + '-' +
-    date.getDate() + ' ' +
-    (date.getHours() < 10 ? '0' : '') +
-    date.getHours() + ':' +
-    (date.getMinutes() < 10 ? '0' : '') +
-    date.getMinutes() + ':' +
-    (date.getSeconds() < 10 ? '0' : '') +
-    date.getSeconds()
-}
-
-utilsController.getPrettyBytes = num => {
-  // MIT License
-  // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-  if (!Number.isFinite(num)) { return num }
-
-  const neg = num < 0
-  if (neg) { num = -num }
-  if (num < 1) { return (neg ? '-' : '') + num + ' B' }
-
-  const exponent = Math.min(Math.floor(Math.log10(num) / 3), units.length - 1)
-  const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
-  const unit = units[exponent]
-
-  return (neg ? '-' : '') + numStr + ' ' + unit
 }
 
 utilsController.authorize = async (req, res) => {

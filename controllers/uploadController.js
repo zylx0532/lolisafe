@@ -678,8 +678,6 @@ uploadsController.list = async (req, res) => {
 
   for (const file of files) {
     file.file = `${basedomain}/${file.name}`
-    file.date = utils.getPrettyDate(new Date(file.timestamp * 1000))
-    file.size = utils.getPrettyBytes(parseInt(file.size))
 
     file.album = ''
     if (file.albumid !== undefined) {
