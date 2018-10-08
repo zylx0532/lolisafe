@@ -292,7 +292,7 @@ page.prepareDropzone = function () {
     file.previewElement.querySelector('.error').innerHTML = error
   })
 
-  page.prepareShareX()
+  if (typeof page.prepareShareX === 'function') { page.prepareShareX() }
 }
 
 page.uploadUrls = function (button) {
@@ -388,30 +388,6 @@ page.updateTemplate = function (file, response) {
     img.dataset['src'] = response.url
     img.onerror = function () { this.style.display = 'none' } // hide webp in firefox and ie
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
-  }
-}
-
-page.prepareShareX = function () {
-  if (page.token) {
-    // TODO: "location.origin" is unsuitable if the safe is hosted in a subdir (e.i. http://example.com/safe)
-    var sharexElement = document.getElementById('ShareX')
-    var sharexFile =
-      '{\r\n' +
-      '  "Name": "' + location.hostname + '",\r\n' +
-      '  "DestinationType": "ImageUploader, FileUploader",\r\n' +
-      '  "RequestType": "POST",\r\n' +
-      '  "RequestURL": "' + location.origin + '/api/upload",\r\n' +
-      '  "FileFormName": "files[]",\r\n' +
-      '  "Headers": {\r\n' +
-      '    "token": "' + page.token + '"\r\n' +
-      '  },\r\n' +
-      '  "ResponseType": "Text",\r\n' +
-      '  "URL": "$json:files[0].url$",\r\n' +
-      '  "ThumbnailURL": "$json:files[0].url$"\r\n' +
-      '}'
-    var sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
-    sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
-    sharexElement.setAttribute('download', location.hostname + '.sxcu')
   }
 }
 
