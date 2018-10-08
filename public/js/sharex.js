@@ -10,7 +10,7 @@ page.prepareShareX = function () {
       '  "Name": "' + originClean + '",\r\n' +
       '  "DestinationType": "ImageUploader, FileUploader",\r\n' +
       '  "RequestType": "POST",\r\n' +
-      '  "RequestURL": "' + origin + '/api/upload",\r\n' +
+      '  "RequestURL": "' + location.protocol + '//' + origin + '/api/upload",\r\n' +
       '  "FileFormName": "files[]",\r\n' +
       '  "Headers": {\r\n' +
       '    "token": "' + page.token + '"\r\n' +
@@ -22,4 +22,5 @@ page.prepareShareX = function () {
   var sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
   sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
   sharexElement.setAttribute('download', originClean + '.sxcu')
+  console.log(sharexFile)
 }
