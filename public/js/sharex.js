@@ -22,5 +22,4 @@ page.prepareShareX = function () {
   var sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
   sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
   sharexElement.setAttribute('download', originClean + '.sxcu')
-  console.log(sharexFile)
 }
