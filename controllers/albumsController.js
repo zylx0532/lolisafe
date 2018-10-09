@@ -204,9 +204,12 @@ albumsController.edit = async (req, res, next) => {
     })
     .first()
 
-  if (album && (album.id !== id)) {
+  if (!album) {
+    return res.json({ success: false, description: 'Could not get album with the specified ID.' })
+  } else if (album.id !== id) {
     return res.json({ success: false, description: 'Name already in use.' })
   } else if (req._old && (album.id === id)) {
+    // Old rename API
     return res.json({ success: false, description: 'You did not specify a new name.' })
   }
 
@@ -266,7 +269,7 @@ albumsController.rename = async (req, res, next) => {
 }
 
 albumsController.get = async (req, res, next) => {
-  // TODO:
+  // TODO: ... what was i supposed to do here?
   const identifier = req.params.identifier
   if (identifier === undefined) {
     return res.status(401).json({ success: false, description: 'No identifier provided.' })

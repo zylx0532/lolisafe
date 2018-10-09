@@ -1,6 +1,6 @@
 /* global swal, axios */
 
-var page = {
+const page = {
   // user token
   token: localStorage.token,
 
@@ -10,33 +10,31 @@ var page = {
 }
 
 page.do = function (dest) {
-  var user = page.user.value
-  var pass = page.pass.value
+  const user = page.user.value
+  const pass = page.pass.value
 
   if (!user) {
-    return swal('Error', 'You need to specify a username', 'error')
+    return swal('An error occurred!', 'You need to specify a username', 'error')
   }
 
   if (!pass) {
-    return swal('Error', 'You need to specify a username', 'error')
+    return swal('An error occurred!', 'You need to specify a username', 'error')
   }
 
-  axios.post('api/' + dest, {
+  axios.post(`api/${dest}`, {
     username: user,
     password: pass
-  })
-    .then(function (response) {
-      if (response.data.success === false) {
-        return swal('Error', response.data.description, 'error')
-      }
+  }).then(function (response) {
+    if (response.data.success === false) {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
 
-      localStorage.token = response.data.token
-      window.location = 'dashboard'
-    })
-    .catch(function (error) {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    localStorage.token = response.data.token
+    window.location = 'dashboard'
+  }).catch(function (error) {
+    console.error(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.verify = function () {
@@ -44,18 +42,16 @@ page.verify = function () {
 
   axios.post('api/tokens/verify', {
     token: page.token
-  })
-    .then(function (response) {
-      if (response.data.success === false) {
-        return swal('Error', response.data.description, 'error')
-      }
+  }).then(function (response) {
+    if (response.data.success === false) {
+      return swal('An error occurred!', response.data.description, 'error')
+    }
 
-      window.location = 'dashboard'
-    })
-    .catch(function (error) {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    window.location = 'dashboard'
+  }).catch(function (error) {
+    console.error(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 window.onload = function () {

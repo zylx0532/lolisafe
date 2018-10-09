@@ -1,6 +1,6 @@
 /* global LazyLoad */
 
-var page = {}
+const page = {}
 
 window.onload = function () {
   page.lazyLoad = new LazyLoad()

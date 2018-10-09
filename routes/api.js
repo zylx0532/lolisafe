@@ -41,5 +41,8 @@ routes.post('/tokens/verify', (req, res, next) => tokenController.verify(req, re
 routes.post('/tokens/change', (req, res, next) => tokenController.change(req, res, next))
 routes.get('/filelength/config', (req, res, next) => authController.getFileLengthConfig(req, res, next))
 routes.post('/filelength/change', (req, res, next) => authController.changeFileLength(req, res, next))
+routes.get('/users', (req, res, next) => authController.listUsers(req, res, next))
+routes.get('/users/:page', (req, res, next) => authController.listUsers(req, res, next))
+routes.post('/users/edit', (req, res, next) => authController.editUser(req, res, next))
 
 module.exports = routes

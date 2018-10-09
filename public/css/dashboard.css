@@ -9,6 +9,11 @@
 
 .menu-list a {
   color: #3794d2;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .menu-list a:hover {
@@ -19,6 +24,15 @@
 .menu-list a.is-active {
   color: #eff0f1;
   background-color: #3794d2;
+}
+
+.menu-list a[disabled] {
+  color: #7a7a7a;
+  cursor: not-allowed;
+}
+
+.menu-list a[disabled]:hover {
+  background: none;
 }
 
 .pagination a {
@@ -71,7 +85,7 @@
   width: 100%;
 }
 
-.image-container .file-checkbox {
+.image-container .checkbox {
   position: absolute;
   top: .75rem;
   left: .75rem;
@@ -118,7 +132,7 @@
 
 /* Make extra info appear on hover only on non-touch devices */
 
-.no-touch .image-container .file-checkbox {
+.no-touch .image-container .checkbox {
   opacity: .25;
   -webkit-transition: opacity .25s;
   transition: opacity .25s;
@@ -131,7 +145,7 @@
   transition: opacity .25s;
 }
 
-.no-touch .image-container:hover .file-checkbox,
+.no-touch .image-container:hover .checkbox,
 .no-touch .image-container:hover .controls,
 .no-touch .image-container:hover .details {
   opacity: 1;
@@ -180,6 +194,6 @@
   height: 2.25em;
 }
 
-.table td a:not([href]) {
-  text-decoration: line-through;
+.is-linethrough {
+  text-decoration: line-through
 }

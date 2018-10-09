@@ -57,9 +57,18 @@ utilsController.authorize = async (req, res) => {
   }
 
   const user = await db.table('users').where('token', token).first()
-  if (user) { return user }
+  if (user) {
+    if (user.enabled === false || user.enabled === 0) {
+      res.json({ success: false, description: 'This account has been disabled.' })
+      return
+    }
+    return user
+  }
 
-  res.status(401).json({ success: false, description: 'Invalid token.' })
+  res.status(401).json({
+    success: false,
+    description: 'Invalid token.'
+  })
 }
 
 utilsController.generateThumbs = (name, force) => {

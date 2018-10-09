@@ -1,3 +1,5 @@
+const { permissions } = require('./../controllers/authController')
+
 const init = function (db) {
   // Create the tables we need to store galleries and files
   db.schema.hasTable('albums').then(exists => {
@@ -44,6 +46,7 @@ const init = function (db) {
         table.integer('enabled')
         table.integer('timestamp')
         table.integer('fileLength')
+        table.integer('permission')
       }).then(() => {
         db.table('users').where({ username: 'root' }).then((user) => {
           if (user.length > 0) { return }
@@ -55,7 +58,8 @@ const init = function (db) {
               username: 'root',
               password: hash,
               token: require('randomstring').generate(64),
-              timestamp: Math.floor(Date.now() / 1000)
+              timestamp: Math.floor(Date.now() / 1000),
+              permission: permissions.superadmin
             }).then(() => {})
           })
         })
