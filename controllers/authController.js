@@ -202,11 +202,15 @@ authController.editUser = async (req, res, next) => {
     return res.json({ success: false, description: 'Username must have 4-32 characters.' })
   }
 
+  let permission = req.body.group ? authController.permissions[req.body.group] : target.permission
+  if (typeof permission !== 'number' || permission < 0) { permission = target.permission }
+
   await db.table('users')
     .where('id', id)
     .update({
       username,
-      enabled: Boolean(req.body.enabled)
+      enabled: Boolean(req.body.enabled),
+      permission
     })
 
   if (!req.body.resetPassword) {

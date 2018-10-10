@@ -846,18 +846,18 @@ page.addFilesToAlbum = function (ids, callback) {
   const count = ids.length
 
   const content = document.createElement('div')
-  content.id = 'addFilesToAlbum'
   content.innerHTML = `
     <p>You are about to add <b>${count}</b> file${count === 1 ? '' : 's'} to an album.</p>
     <div class="field">
       <label class="label">If a file is already in an album, it will be moved.</label>
       <div class="control">
         <div class="select is-fullwidth">
-          <select disabled>
+          <select id="swalAlbum" disabled>
             <option value="-1">Remove from album</option>
             <option value="" selected disabled>Fetching albums list\u2026</option>
           </select>
         </div>
+      </div>
     </div>
   `
 
@@ -875,9 +875,7 @@ page.addFilesToAlbum = function (ids, callback) {
   }).then(function (choose) {
     if (!choose) { return }
 
-    const container = document.getElementById('addFilesToAlbum')
-    const select = container.getElementsByTagName('select')[0]
-    const albumid = parseInt(select.value)
+    const albumid = parseInt(document.getElementById('swalAlbum').value)
     if (isNaN(albumid)) {
       return swal('An error occurred!', 'You did not choose an album.', 'error')
     }
@@ -929,10 +927,9 @@ page.addFilesToAlbum = function (ids, callback) {
       return
     }
 
+    const select = document.getElementById('swalAlbum')
     // If the prompt was replaced, the container would be missing
-    const container = document.getElementById('addFilesToAlbum')
-    if (!container) { return }
-    const select = container.getElementsByTagName('select')[0]
+    if (!select) { return }
     select.innerHTML += list.data.albums
       .map(function (album) {
         return `<option value="${album.id}">${album.name}</option>`
@@ -1598,16 +1595,17 @@ page.getUsers = ({ pageNum } = {}, element) => {
       const selected = page.selected.users.includes(user.id)
       if (!selected && allSelected) { allSelected = false }
 
+      let displayGroup = null
+      for (const group of Object.keys(user.groups)) {
+        if (!user.groups[group]) { break }
+        displayGroup = group
+      }
+
       page.cache.users[user.id] = {
         username: user.username,
         groups: user.groups,
-        enabled: user.enabled
-      }
-
-      let group = 'User'
-      for (const g of Object.keys(user.groups)) {
-        if (!user.groups[g]) { break }
-        group = g
+        enabled: user.enabled,
+        displayGroup
       }
 
       const tr = document.createElement('tr')
@@ -1616,7 +1614,7 @@ page.getUsers = ({ pageNum } = {}, element) => {
         <th class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></th>
         <th${!user.enabled ? ' class="is-linethrough"' : ''}>${user.username}</th>
         <td>${user.fileLength || 'default'}</td>
-        <td>${group}</td>
+        <td>${displayGroup}</td>
         <td class="controls" style="text-align: right">
           <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
             <span class="icon">
@@ -1658,12 +1656,28 @@ page.editUser = function (id) {
   const user = page.cache.users[id]
   if (!user) { return }
 
+  const groupOptions = Object.keys(page.permissions).map((g, i, a) => {
+    const selected = g === user.displayGroup
+    const disabled = !(a[i + 1] && page.permissions[a[i + 1]])
+    return `<option value="${g}"${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}>${g}</option>`
+  }).join('\n')
+
   const div = document.createElement('div')
   div.innerHTML = `
     <div class="field">
       <label class="label">Username</label>
       <div class="controls">
         <input id="swalUsername" class="input" type="text" value="${user.username || ''}">
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">User group</label>
+      <div class="control">
+        <div class="select is-fullwidth">
+          <select id="swalGroup">
+            ${groupOptions}
+          </select>
+        </div>
       </div>
     </div>
     <div class="field">
@@ -1700,6 +1714,7 @@ page.editUser = function (id) {
     axios.post('api/users/edit', {
       id,
       username: document.getElementById('swalUsername').value,
+      group: document.getElementById('swalGroup').value,
       enabled: document.getElementById('swalEnabled').checked,
       resetPassword: document.getElementById('swalResetPassword').checked
     }).then(function (response) {
