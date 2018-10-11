@@ -41,7 +41,6 @@ routes.get('/a/:identifier', async (req, res, next) => {
 
   for (const file of files) {
     file.file = `${basedomain}/${file.name}`
-    file.size = utils.getPrettyBytes(parseInt(file.size))
 
     file.extname = path.extname(file.name).toLowerCase()
     if (utils.mayGenerateThumb(file.extname)) {

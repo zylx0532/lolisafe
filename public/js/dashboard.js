@@ -1418,13 +1418,13 @@ page.getPrettyBytes = num => {
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
   if (!Number.isFinite(num)) { return num }
 
-  const neg = num < 0
+  var neg = num < 0
   if (neg) { num = -num }
   if (num < 1) { return (neg ? '-' : '') + num + ' B' }
 
-  const exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
-  const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
-  const unit = page.byteUnits[exponent]
+  var exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
+  var numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
+  var unit = page.byteUnits[exponent]
 
   return (neg ? '-' : '') + numStr + ' ' + unit
 }
