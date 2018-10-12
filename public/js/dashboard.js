@@ -456,7 +456,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         const tr = document.createElement('tr')
         tr.dataset.id = upload.id
         tr.innerHTML = `
-          <th class="controls"><input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}></th>
+          <td class="controls"><input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}></td>
           <th><a href="${upload.file}" target="_blank" rel="noopener" title="${upload.file}">${upload.name}</a></th>
           <th>${displayAlbumOrUser}</th>
           <td>${upload.prettyBytes}</td>
@@ -1010,35 +1010,33 @@ page.getAlbums = function () {
 
       const tr = document.createElement('tr')
       tr.innerHTML = `
-        <tr>
-          <th>${album.id}</th>
-          <th>${album.name}</th>
-          <th>${album.files}</th>
-          <td>${album.prettyDate}</td>
-          <td><a ${album.public ? `href="${albumUrl}"` : 'class="is-linethrough"'} target="_blank" rel="noopener">${albumUrl}</a></td>
-          <td style="text-align: right" data-id="${album.id}">
-            <a class="button is-small is-primary" title="Edit album" data-action="edit-album">
-              <span class="icon is-small">
-                <i class="icon-pencil-1"></i>
-              </span>
-            </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
-              <span class="icon is-small">
-                <i class="icon-clipboard-1"></i>
-              </span>
-            </a>
-            <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
-              <span class="icon is-small">
-                <i class="icon-download"></i>
-              </span>
-            </a>
-            <a class="button is-small is-danger" title="Delete album" data-action="delete-album">
-              <span class="icon is-small">
-                <i class="icon-trash"></i>
-              </span>
-            </a>
-          </td>
-        </tr>
+        <th>${album.id}</th>
+        <th>${album.name}</th>
+        <th>${album.files}</th>
+        <td>${album.prettyDate}</td>
+        <td><a ${album.public ? `href="${albumUrl}"` : 'class="is-linethrough"'} target="_blank" rel="noopener">${albumUrl}</a></td>
+        <td style="text-align: right" data-id="${album.id}">
+          <a class="button is-small is-primary" title="Edit album" data-action="edit-album">
+            <span class="icon is-small">
+              <i class="icon-pencil-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
+            <span class="icon is-small">
+              <i class="icon-clipboard-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
+            <span class="icon is-small">
+              <i class="icon-download"></i>
+            </span>
+          </a>
+          <a class="button is-small is-danger" title="Delete album" data-action="delete-album">
+            <span class="icon is-small">
+              <i class="icon-trash"></i>
+            </span>
+          </a>
+        </td>
       `
 
       table.appendChild(tr)
@@ -1572,6 +1570,7 @@ page.getUsers = ({ pageNum } = {}, element) => {
               <th>ID</th>
               <th style="width: 25%">Username</th>
               <th>Uploads</th>
+              <th>Usage</th>
               <th>File length</th>
               <th>Group</th>
               <th></th>
@@ -1610,10 +1609,11 @@ page.getUsers = ({ pageNum } = {}, element) => {
       const tr = document.createElement('tr')
       tr.dataset.id = user.id
       tr.innerHTML = `
-        <th class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></th>
+        <td class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></td>
         <th>${user.id}</th>
-        <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</th>
+        <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</td>
         <th>${user.uploadsCount}</th>
+        <td>${page.getPrettyBytes(user.diskUsage)}</td>
         <td>${user.fileLength || 'default'}</td>
         <td>${displayGroup}</td>
         <td class="controls" style="text-align: right">
