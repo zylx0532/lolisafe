@@ -248,9 +248,28 @@ authController.listUsers = async (req, res, next) => {
     .offset(25 * offset)
     .select('id', 'username', 'enabled', 'fileLength', 'permission')
 
+  const userids = []
+
   for (const user of users) {
     user.groups = authController.mapPermissions(user)
     delete user.permission
+
+    userids.push(user.id)
+    user.uploadsCount = 0
+  }
+
+  if (!userids.length) { return res.json({ success: true, users }) }
+
+  const maps = {}
+  const uploads = await db.table('files').whereIn('userid', userids)
+  for (const upload of uploads) {
+    // This is the fastest method that I can think of
+    if (maps[upload.userid] === undefined) { maps[upload.userid] = 0 }
+    maps[upload.userid]++
+  }
+
+  for (const user of users) {
+    user.uploadsCount = maps[user.id] || 0
   }
 
   return res.json({ success: true, users })

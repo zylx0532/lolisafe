@@ -96,7 +96,6 @@ page.verifyToken = function (token, reloadOnError) {
     page.token = token
     page.username = response.data.username
     page.permissions = response.data.permissions
-    console.log(page.username, page.permissions)
     page.prepareDashboard()
   }).catch(function (error) {
     console.log(error)
@@ -277,7 +276,6 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
     return swal('An error occurred!', 'You can not do this!', 'error')
   }
 
-  console.log(url, all)
   axios.get(url, {
     headers: {
       all: all ? '1' : '0'
@@ -1510,7 +1508,6 @@ page.getUsers = ({ pageNum } = {}, element) => {
   }
 
   const url = `api/users/${pageNum}`
-  console.log(url)
   axios.get(url).then(function (response) {
     if (response.data.success === false) {
       if (response.data.description === 'No token provided') {
@@ -1525,8 +1522,6 @@ page.getUsers = ({ pageNum } = {}, element) => {
       if (element) { page.isLoading(element, false) }
       return swal('An error occurred!', 'There are no more users!', 'error')
     }
-
-    console.log(response.data.users)
 
     page.currentView = 'users'
     page.cache.users = {}
@@ -1574,7 +1569,9 @@ page.getUsers = ({ pageNum } = {}, element) => {
           <thead>
             <tr>
               <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all users" data-action="select-all"></th>
-              <th style="width: 50%">Username</th>
+              <th>ID</th>
+              <th style="width: 25%">Username</th>
+              <th>Uploads</th>
               <th>File length</th>
               <th>Group</th>
               <th></th>
@@ -1601,10 +1598,12 @@ page.getUsers = ({ pageNum } = {}, element) => {
         displayGroup = group
       }
 
+      // Server-side explicitly expects either of these two values to consider a user as disabled
+      const enabled = user.enabled !== false && user.enabled !== 0
       page.cache.users[user.id] = {
         username: user.username,
         groups: user.groups,
-        enabled: user.enabled,
+        enabled,
         displayGroup
       }
 
@@ -1612,7 +1611,9 @@ page.getUsers = ({ pageNum } = {}, element) => {
       tr.dataset.id = user.id
       tr.innerHTML = `
         <th class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></th>
-        <th${!user.enabled ? ' class="is-linethrough"' : ''}>${user.username}</th>
+        <th>${user.id}</th>
+        <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</th>
+        <th>${user.uploadsCount}</th>
         <td>${user.fileLength || 'default'}</td>
         <td>${displayGroup}</td>
         <td class="controls" style="text-align: right">

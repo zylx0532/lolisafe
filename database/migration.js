@@ -38,7 +38,10 @@ migration.start = async () => {
     .update({
       permission: permissions.superadmin
     })
-    .then(() => console.log(`Updated root's permission to ${permissions.superadmin} (superadmin).`))
+    .then(rows => {
+      if (!rows) { return console.log('Unable to update root\'s permission into superadmin.') }
+      console.log(`Updated root's permission to ${permissions.superadmin} (superadmin).`)
+    })
 
   console.log('Migration finished! Now start lolisafe normally')
   process.exit(0)
