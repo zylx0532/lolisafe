@@ -508,7 +508,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 }
 
 page.setUploadsView = function (view, element) {
-  localStorage[LS_KEYS.viewType.files] = view
+  localStorage[LS_KEYS.viewType.uploads] = view
   page.views.uploads.type = view
   page.getUploads(page.views.uploads, element)
 }
