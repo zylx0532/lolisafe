@@ -1243,7 +1243,7 @@ page.getAlbumsSidebar = function () {
 
 page.getAlbum = function (album) {
   page.setActiveMenu(album)
-  page.getUploads(album.id)
+  page.getUploads({ album: album.id })
 }
 
 page.changeFileLength = function () {
