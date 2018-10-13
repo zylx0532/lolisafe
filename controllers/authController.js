@@ -1,39 +1,11 @@
 const bcrypt = require('bcrypt')
 const config = require('./../config')
 const db = require('knex')(config.database)
+const perms = require('./permissionController')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
 
 const authController = {}
-
-authController.permissions = {
-  user: 0, // upload & delete own files, create & delete albums
-  moderator: 50, // delete other user's files
-  admin: 80, // manage users (disable accounts) & create moderators
-  superadmin: 100 // create admins
-  // groups will inherit permissions from groups which have lower value
-}
-
-authController.is = (user, group) => {
-  // root bypass
-  if (user.username === 'root') { return true }
-  const permission = user.permission || 0
-  return permission >= authController.permissions[group]
-}
-
-authController.higher = (user, target) => {
-  const userPermission = user.permission || 0
-  const targetPermission = target.permission || 0
-  return userPermission > targetPermission
-}
-
-authController.mapPermissions = user => {
-  const map = {}
-  Object.keys(authController.permissions).forEach(group => {
-    map[group] = authController.is(user, group)
-  })
-  return map
-}
 
 authController.verify = async (req, res, next) => {
   const username = req.body.username
@@ -92,7 +64,7 @@ authController.register = async (req, res, next) => {
       password: hash,
       token,
       enabled: 1,
-      permission: authController.permissions.user
+      permission: perms.permissions.user
     })
     return res.json({ success: true, token })
   })
@@ -191,7 +163,7 @@ authController.editUser = async (req, res, next) => {
 
   if (!target) {
     return res.json({ success: false, description: 'Could not get user with the specified ID.' })
-  } else if (!authController.higher(user, target)) {
+  } else if (!perms.higher(user, target)) {
     return res.json({ success: false, description: 'The user is in the same or higher group as you.' })
   } else if (target.username === 'root') {
     return res.json({ success: false, description: 'Root user may not be edited.' })
@@ -202,7 +174,7 @@ authController.editUser = async (req, res, next) => {
     return res.json({ success: false, description: 'Username must have 4-32 characters.' })
   }
 
-  let permission = req.body.group ? authController.permissions[req.body.group] : target.permission
+  let permission = req.body.group ? perms.permissions[req.body.group] : target.permission
   if (typeof permission !== 'number' || permission < 0) { permission = target.permission }
 
   await db.table('users')
@@ -236,7 +208,7 @@ authController.listUsers = async (req, res, next) => {
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
-  const isadmin = authController.is(user, 'admin')
+  const isadmin = perms.is(user, 'admin')
   if (!isadmin) { return res.status(403) }
 
   let offset = req.params.page

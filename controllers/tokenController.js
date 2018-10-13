@@ -1,6 +1,6 @@
-const auth = require('./authController')
 const config = require('./../config')
 const db = require('knex')(config.database)
+const perms = require('./permissionController')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
 
@@ -26,7 +26,7 @@ tokenController.verify = async (req, res, next) => {
   return res.json({
     success: true,
     username: user.username,
-    permissions: auth.mapPermissions(user)
+    permissions: perms.mapPermissions(user)
   })
 }
 

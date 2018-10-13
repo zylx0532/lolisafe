@@ -5,6 +5,7 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
+const perms = require('./permissionController')
 
 const utilsController = {}
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
@@ -167,10 +168,12 @@ utilsController.deleteFile = file => {
 utilsController.bulkDeleteFiles = async (field, values, user) => {
   if (!user || !['id', 'name'].includes(field)) { return }
 
+  console.log(require('util').inspect(perms))
+  const ismoderator = perms.is(user, 'moderator')
   const files = await db.table('files')
     .whereIn(field, values)
     .where(function () {
-      if (user.username !== 'root') {
+      if (!ismoderator) {
         this.where('userid', user.id)
       }
     })

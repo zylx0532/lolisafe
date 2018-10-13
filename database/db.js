@@ -1,4 +1,4 @@
-const { permissions } = require('./../controllers/authController')
+const perms = require('./../controllers/permissionController')
 
 const init = function (db) {
   // Create the tables we need to store galleries and files
@@ -59,7 +59,7 @@ const init = function (db) {
               password: hash,
               token: require('randomstring').generate(64),
               timestamp: Math.floor(Date.now() / 1000),
-              permission: permissions.superadmin
+              permission: perms.permissions.superadmin
             }).then(() => {})
           })
         })

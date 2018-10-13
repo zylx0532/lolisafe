@@ -1,4 +1,3 @@
-const auth = require('./authController')
 const config = require('./../config')
 const crypto = require('crypto')
 const db = require('knex')(config.database)
@@ -6,6 +5,7 @@ const fetch = require('node-fetch')
 const fs = require('fs')
 const multer = require('multer')
 const path = require('path')
+const perms = require('./permissionController')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
 
@@ -652,7 +652,7 @@ uploadsController.list = async (req, res) => {
 
   // Headers is string-only, this seem to be the safest and lightest
   const all = req.headers.all === '1'
-  const ismoderator = auth.is(user, 'moderator')
+  const ismoderator = perms.is(user, 'moderator')
   if (all && !ismoderator) { return res.json(403) }
 
   const files = await db.table('files')

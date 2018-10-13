@@ -1,6 +1,6 @@
 const config = require('./../config')
 const db = require('knex')(config.database)
-const { permissions } = require('./../controllers/authController')
+const perms = require('./../controllers/permissionController')
 
 const map = {
   albums: {
@@ -36,11 +36,11 @@ migration.start = async () => {
     .where('username', 'root')
     .first()
     .update({
-      permission: permissions.superadmin
+      permission: perms.permissions.superadmin
     })
     .then(rows => {
       if (!rows) { return console.log('Unable to update root\'s permission into superadmin.') }
-      console.log(`Updated root's permission to ${permissions.superadmin} (superadmin).`)
+      console.log(`Updated root's permission to ${perms.permissions.superadmin} (superadmin).`)
     })
 
   console.log('Migration finished! Now start lolisafe normally')
