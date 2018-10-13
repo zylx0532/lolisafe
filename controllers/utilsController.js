@@ -168,7 +168,6 @@ utilsController.deleteFile = file => {
 utilsController.bulkDeleteFiles = async (field, values, user) => {
   if (!user || !['id', 'name'].includes(field)) { return }
 
-  console.log(require('util').inspect(perms))
   const ismoderator = perms.is(user, 'moderator')
   const files = await db.table('files')
     .whereIn(field, values)
