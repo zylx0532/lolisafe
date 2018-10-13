@@ -225,7 +225,7 @@ authController.listUsers = async (req, res, next) => {
   const userids = []
 
   for (const user of users) {
-    user.groups = authController.mapPermissions(user)
+    user.groups = perms.mapPermissions(user)
     delete user.permission
 
     userids.push(user.id)
