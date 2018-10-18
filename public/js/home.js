@@ -376,7 +376,7 @@ page.updateTemplate = function (file, response) {
     img.setAttribute('alt', response.name || '')
     img.dataset['src'] = response.url
     img.onerror = function () { this.style.display = 'none' } // hide webp in firefox and ie
-    page.lazyLoad.update()
+    page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
   }
 }
 
