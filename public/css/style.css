@@ -23,6 +23,10 @@ a {
   color: #3794d2;
 }
 
+a.is-dotted {
+  border-bottom: 1px dotted #3794d2;
+}
+
 a:hover {
   color: #60a8dc;
 }
@@ -95,4 +99,25 @@ hr {
 .button.is-breeze:focus {
   border-color: transparent;
   color: #fff;
+}
+
+.render {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  font-size: 1rem;
+  color: #bdc3c7;
+  cursor: pointer;
+}
+
+.render.button {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  right: 1%;
+  opacity: .25;
+  transition: opacity .25s;
+}
+
+.render.button:hover {
+  opacity: 1;
 }

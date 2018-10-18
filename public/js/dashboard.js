@@ -65,6 +65,8 @@ const page = {
   clipboardJS: null,
   lazyLoad: null,
 
+  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png'],
+
   // byte units for getPrettyBytes()
   byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 }
@@ -360,6 +362,12 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         const selected = page.selected.uploads.includes(upload.id)
         if (!selected && allSelected) { allSelected = false }
 
+        page.cache.uploads[upload.id] = {
+          name: upload.name,
+          thumb: upload.thumb,
+          original: upload.file
+        }
+
         // Prettify
         upload.prettyBytes = page.getPrettyBytes(parseInt(upload.size))
         upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
@@ -379,6 +387,11 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         div.innerHTML += `
           <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}>
           <div class="controls">
+            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+              <span class="icon">
+                <i class="icon-picture-1"></i>
+              </span>
+            </a>
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
               <span class="icon">
                 <i class="icon-clipboard-1"></i>
@@ -443,7 +456,8 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 
         page.cache.uploads[upload.id] = {
           name: upload.name,
-          thumb: upload.thumb
+          thumb: upload.thumb,
+          original: upload.file
         }
 
         // Prettify
@@ -516,13 +530,57 @@ page.setUploadsView = function (view, element) {
 page.displayThumbnail = function (id) {
   const file = page.cache.uploads[id]
   if (!file.thumb) { return }
+
+  const div = document.createElement('div')
+  div.innerHTML = `
+    <div class="field has-text-centered">
+      <label class="label">${file.name}</label>
+      <div class="controls">
+        <img id="swalThumb" src="${file.thumb}">
+      </div>
+    </div>
+  `
+  if (file.original) {
+    div.innerHTML += `
+      <div class="field has-text-centered">
+        <div class="controls">
+          <a id="swalOriginal" type="button" class="button is-breeze" data-original="${file.original}">Load original</a>
+        </div>
+      </div>
+    `
+    div.querySelector('#swalOriginal').addEventListener('click', function () {
+      const button = this
+      const original = button.dataset.original
+      button.classList.add('is-loading')
+
+      const thumb = div.querySelector('#swalThumb')
+      const exec = /.[\w]+(\?|$)/.exec(original)
+      const isimage = exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())
+
+      if (isimage) {
+        thumb.src = file.original
+        thumb.onload = function () { button.style.display = 'none' }
+      } else {
+        thumb.style.display = 'none'
+        const video = document.createElement('video')
+        video.id = 'swalVideo'
+        video.controls = true
+        video.src = file.original
+        thumb.insertAdjacentElement('afterend', video)
+        button.style.display = 'none'
+      }
+
+      // Resize currently visible modal
+      document.body.querySelector('.swal-overlay--show-modal .swal-modal').style = 'width: auto; max-width: 90%;'
+    })
+  }
+
   return swal({
-    text: file.name,
-    content: {
-      element: 'img',
-      attributes: { src: file.thumb }
-    },
-    button: true
+    content: div,
+    buttons: false
+  }).then(function () {
+    const video = div.querySelector('#swalVideo')
+    if (video) { video.remove() }
   })
 }
 
@@ -845,9 +903,11 @@ page.addFilesToAlbum = function (ids, callback) {
 
   const content = document.createElement('div')
   content.innerHTML = `
-    <p>You are about to add <b>${count}</b> file${count === 1 ? '' : 's'} to an album.</p>
+    <div class="field has-text-centered">
+      <p>You are about to add <b>${count}</b> file${count === 1 ? '' : 's'} to an album.</p>
+      <p><b>If a file is already in an album, it will be moved.</b></p>
+    </div>
     <div class="field">
-      <label class="label">If a file is already in an album, it will be moved.</label>
       <div class="control">
         <div class="select is-fullwidth">
           <select id="swalAlbum" disabled>
@@ -860,7 +920,6 @@ page.addFilesToAlbum = function (ids, callback) {
   `
 
   swal({
-    title: 'Add to album',
     icon: 'warning',
     content,
     buttons: {

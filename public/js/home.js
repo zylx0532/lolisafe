@@ -18,10 +18,10 @@ const page = {
 
   dropzone: null,
   clipboardJS: null,
-  lazyLoad: null
-}
+  lazyLoad: null,
 
-const imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
+  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
+}
 
 page.checkIfPublic = function () {
   axios.get('api/check').then(function (response) {
@@ -191,10 +191,9 @@ page.prepareDropzone = function () {
       <span>Click here or drag and drop files</span>
     </div>
   `
+  tabDiv.querySelector('.dz-container').appendChild(div)
 
-  tabDiv.getElementsByClassName('dz-container')[0].appendChild(div)
-
-  const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
+  const previewsContainer = tabDiv.querySelector('#tab-files .field.uploads')
   page.dropzone = new Dropzone('#dropzone', {
     url: 'api/upload',
     paramName: 'files[]',
@@ -372,12 +371,12 @@ page.updateTemplate = function (file, response) {
   clipboard.parentElement.style.display = 'block'
 
   const exec = /.[\w]+(\?|$)/.exec(response.url)
-  if (exec && exec[0] && imageExtensions.includes(exec[0].toLowerCase())) {
+  if (exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())) {
     const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
     img.dataset['src'] = response.url
     img.onerror = function () { this.style.display = 'none' } // hide webp in firefox and ie
-    page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
+    page.lazyLoad.update()
   }
 }
 
@@ -476,7 +475,9 @@ window.onload = function () {
     return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
   })
 
-  page.lazyLoad = new LazyLoad()
+  page.lazyLoad = new LazyLoad({
+    elements_selector: '.field.uploads img'
+  })
 
   document.getElementById('createAlbum').addEventListener('click', function () {
     page.createAlbum()
