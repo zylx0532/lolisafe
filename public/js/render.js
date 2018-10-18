@@ -47,10 +47,10 @@ page.doRenderSwal = function () {
     }
   }).then(function (value) {
     if (!value) { return }
-    const newValue = div.querySelector('#swalRender').checked ? '1' : '0'
+    const newValue = div.querySelector('#swalRender').checked ? undefined : '0'
     if (newValue !== localStorage.render) {
-      localStorage.render = newValue
-      swal('Success!', `Render is now ${newValue === '1' ? 'enabled' : 'disabled'}.`, 'success')
+      newValue ? localStorage.render = newValue : localStorage.removeItem('render')
+      swal('Success!', `Render is now ${newValue ? 'disabled' : 'enabled'}.`, 'success')
       const element = document.querySelector('body > .render')
       element.remove()
       page.doRender()
@@ -60,7 +60,6 @@ page.doRenderSwal = function () {
 
 page.doRender = function () {
   if (!page.renderRoot || !page.renderArray || !page.renderArray.length) { return }
-  if (localStorage.render === undefined) { localStorage.render = '1' }
 
   let element
   if (localStorage.render === '0') {
