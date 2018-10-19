@@ -6,6 +6,11 @@
   text-align: initial;
 }
 
+.swal-modal.is-expanded {
+  width: auto;
+  max-width: 90%;
+}
+
 .swal-title,
 .swal-text {
   color: #eff0f1;

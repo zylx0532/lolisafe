@@ -570,8 +570,8 @@ page.displayThumbnail = function (id) {
         button.style.display = 'none'
       }
 
-      // Resize currently visible modal
-      document.body.querySelector('.swal-overlay--show-modal .swal-modal').style = 'width: auto; max-width: 90%;'
+      // Resize modal
+      document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
     })
   }
 
@@ -581,6 +581,9 @@ page.displayThumbnail = function (id) {
   }).then(function () {
     const video = div.querySelector('#swalVideo')
     if (video) { video.remove() }
+
+    // Restore modal size
+    document.body.querySelector('.swal-overlay .swal-modal.is-expanded').classList.remove('is-expanded')
   })
 }
 
