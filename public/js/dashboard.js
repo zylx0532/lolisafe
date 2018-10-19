@@ -559,7 +559,14 @@ page.displayThumbnail = function (id) {
 
       if (isimage) {
         thumb.src = file.original
-        thumb.onload = function () { button.style.display = 'none' }
+        thumb.onload = function () {
+          button.style.display = 'none'
+          document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
+        }
+        thumb.onerror = function () {
+          button.className = 'button is-danger'
+          button.innerHTML = 'Unable to load original'
+        }
       } else {
         thumb.style.display = 'none'
         const video = document.createElement('video')
@@ -567,11 +574,10 @@ page.displayThumbnail = function (id) {
         video.controls = true
         video.src = file.original
         thumb.insertAdjacentElement('afterend', video)
-        button.style.display = 'none'
-      }
 
-      // Resize modal
-      document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
+        button.style.display = 'none'
+        document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
+      }
     })
   }
 
