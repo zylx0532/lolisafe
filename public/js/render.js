@@ -58,6 +58,14 @@ page.doRenderSwal = function () {
   })
 }
 
+page.getRenderVersion = function () {
+  const renderScript = document.getElementById('renderScript')
+  if (!renderScript) { return '' }
+  const match = renderScript.src.match(/\?v=\w*$/)
+  if (!match) { return '' }
+  return match[0]
+}
+
 page.doRender = function () {
   if (!page.renderRoot || !page.renderArray || !page.renderArray.length) { return }
 
@@ -68,13 +76,12 @@ page.doRender = function () {
     element.title = 'ship waifu~'
     element.innerHTML = '<i class="icon-picture-1"></i>'
   } else {
-    if (!page.render) {
-      page.render = page.renderArray[Math.floor(Math.random() * page.renderArray.length)]
-    }
+    // Let us just allow people to get new render when toggling the option
+    page.render = page.renderArray[Math.floor(Math.random() * page.renderArray.length)]
     element = document.createElement('img')
     element.alt = element.title = 'ship waifu~'
     element.className = 'is-hidden-mobile'
-    element.src = `${page.renderRoot}${page.render}`
+    element.src = `${page.renderRoot}${page.render}${page.getRenderVersion()}`
   }
 
   element.classList.add('render')
