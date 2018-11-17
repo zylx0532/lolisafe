@@ -1,7 +1,7 @@
 {
   "root": true,
   "parserOptions": {
-    "ecmaVersion": 5
+    "ecmaVersion": 6
   },
   "env": {
     "browser": true
@@ -17,6 +17,17 @@
     "quotes": [
       "error",
       "single"
+    ],
+    "object-shorthand": [
+      "error",
+      "always"
+    ],
+    "prefer-const": [
+      "error",
+      {
+        "destructuring": "any",
+        "ignoreReadBeforeAssign": false
+      }
     ]
   }
 }

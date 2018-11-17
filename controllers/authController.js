@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt')
 const config = require('./../config')
 const db = require('knex')(config.database)
+const perms = require('./permissionController')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
 
@@ -14,7 +15,9 @@ authController.verify = async (req, res, next) => {
   if (password === undefined) { return res.json({ success: false, description: 'No password provided.' }) }
 
   const user = await db.table('users').where('username', username).first()
-  if (!user) { return res.json({ success: false, description: 'Username doesn\'t exist.' }) }
+  if (!user) {
+    return res.json({ success: false, description: 'Username doesn\'t exist.' })
+  }
   if (user.enabled === false || user.enabled === 0) {
     return res.json({ success: false, description: 'This account has been disabled.' })
   }
@@ -60,7 +63,8 @@ authController.register = async (req, res, next) => {
       username,
       password: hash,
       token,
-      enabled: 1
+      enabled: 1,
+      permission: perms.permissions.user
     })
     return res.json({ success: true, token })
   })
@@ -94,23 +98,43 @@ authController.changePassword = async (req, res, next) => {
 authController.getFileLengthConfig = async (req, res, next) => {
   const user = await utils.authorize(req, res)
   if (!user) { return }
-  return res.json({ success: true, fileLength: user.fileLength, config: config.uploads.fileLength })
+  return res.json({
+    success: true,
+    fileLength: user.fileLength,
+    config: config.uploads.fileLength
+  })
 }
 
 authController.changeFileLength = async (req, res, next) => {
   if (config.uploads.fileLength.userChangeable === false) {
-    return res.json({ success: false, description: 'Changing file name length is disabled at the moment.' })
+    return res.json({
+      success: false,
+      description: 'Changing file name length is disabled at the moment.'
+    })
   }
 
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
   const fileLength = parseInt(req.body.fileLength)
-  if (fileLength === undefined) { return res.json({ success: false, description: 'No file name length provided.' }) }
-  if (isNaN(fileLength)) { return res.json({ success: false, description: 'File name length is not a valid number.' }) }
+  if (fileLength === undefined) {
+    return res.json({
+      success: false,
+      description: 'No file name length provided.'
+    })
+  }
+  if (isNaN(fileLength)) {
+    return res.json({
+      success: false,
+      description: 'File name length is not a valid number.'
+    })
+  }
 
   if (fileLength < config.uploads.fileLength.min || fileLength > config.uploads.fileLength.max) {
-    return res.json({ success: false, description: `File name length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters.` })
+    return res.json({
+      success: false,
+      description: `File name length must be ${config.uploads.fileLength.min} to ${config.uploads.fileLength.max} characters.`
+    })
   }
 
   if (fileLength === user.fileLength) {
@@ -122,6 +146,110 @@ authController.changeFileLength = async (req, res, next) => {
     .update('fileLength', fileLength)
 
   return res.json({ success: true })
+}
+
+authController.editUser = async (req, res, next) => {
+  const user = await utils.authorize(req, res)
+  if (!user) { return }
+
+  const id = parseInt(req.body.id)
+  if (isNaN(id)) {
+    return res.json({ success: false, description: 'No user specified.' })
+  }
+
+  const target = await db.table('users')
+    .where('id', id)
+    .first()
+
+  if (!target) {
+    return res.json({ success: false, description: 'Could not get user with the specified ID.' })
+  } else if (!perms.higher(user, target)) {
+    return res.json({ success: false, description: 'The user is in the same or higher group as you.' })
+  } else if (target.username === 'root') {
+    return res.json({ success: false, description: 'Root user may not be edited.' })
+  }
+
+  const username = String(req.body.username)
+  if (username.length < 4 || username.length > 32) {
+    return res.json({ success: false, description: 'Username must have 4-32 characters.' })
+  }
+
+  let permission = req.body.group ? perms.permissions[req.body.group] : target.permission
+  if (typeof permission !== 'number' || permission < 0) { permission = target.permission }
+
+  await db.table('users')
+    .where('id', id)
+    .update({
+      username,
+      enabled: Boolean(req.body.enabled),
+      permission
+    })
+
+  if (!req.body.resetPassword) {
+    return res.json({ success: true, username })
+  }
+
+  const password = randomstring.generate(16)
+  bcrypt.hash(password, 10, async (error, hash) => {
+    if (error) {
+      console.error(error)
+      return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
+    }
+
+    await db.table('users')
+      .where('id', id)
+      .update('password', hash)
+
+    return res.json({ success: true, password })
+  })
+}
+
+authController.listUsers = async (req, res, next) => {
+  const user = await utils.authorize(req, res)
+  if (!user) { return }
+
+  const isadmin = perms.is(user, 'admin')
+  if (!isadmin) { return res.status(403) }
+
+  let offset = req.params.page
+  if (offset === undefined) { offset = 0 }
+
+  const users = await db.table('users')
+    // .orderBy('id', 'DESC')
+    .limit(25)
+    .offset(25 * offset)
+    .select('id', 'username', 'enabled', 'fileLength', 'permission')
+
+  if (!users.length) { return res.json({ success: true, users }) }
+
+  const userids = []
+
+  for (const user of users) {
+    user.groups = perms.mapPermissions(user)
+    delete user.permission
+
+    userids.push(user.id)
+    user.uploadsCount = 0
+    user.diskUsage = 0
+  }
+
+  const maps = {}
+  const uploads = await db.table('files').whereIn('userid', userids)
+
+  for (const upload of uploads) {
+    // This is the fastest method that I can think of
+    if (maps[upload.userid] === undefined) { maps[upload.userid] = { count: 0, size: 0 } }
+    maps[upload.userid].count++
+    maps[upload.userid].size += parseInt(upload.size)
+  }
+
+  for (const user of users) {
+    if (!maps[user.id]) { continue }
+    user.uploadsCount = maps[user.id].count
+    user.diskUsage = maps[user.id].size
+  }
+
+  return res.json({ success: true, users })
 }
 
 module.exports = authController

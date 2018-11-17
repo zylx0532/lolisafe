@@ -5,6 +5,7 @@ const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
 const gm = require('gm')
 const path = require('path')
+const perms = require('./permissionController')
 
 const utilsController = {}
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
@@ -57,9 +58,18 @@ utilsController.authorize = async (req, res) => {
   }
 
   const user = await db.table('users').where('token', token).first()
-  if (user) { return user }
+  if (user) {
+    if (user.enabled === false || user.enabled === 0) {
+      res.json({ success: false, description: 'This account has been disabled.' })
+      return
+    }
+    return user
+  }
 
-  res.status(401).json({ success: false, description: 'Invalid token.' })
+  res.status(401).json({
+    success: false,
+    description: 'Invalid token.'
+  })
 }
 
 utilsController.generateThumbs = (name, force) => {
@@ -158,10 +168,11 @@ utilsController.deleteFile = file => {
 utilsController.bulkDeleteFiles = async (field, values, user) => {
   if (!user || !['id', 'name'].includes(field)) { return }
 
+  const ismoderator = perms.is(user, 'moderator')
   const files = await db.table('files')
     .whereIn(field, values)
     .where(function () {
-      if (user.username !== 'root') {
+      if (!ismoderator) {
         this.where('userid', user.id)
       }
     })

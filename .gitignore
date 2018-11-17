@@ -12,3 +12,5 @@ migrate.js
 yarn.lock
 yarn-error.log
 package-lock.json
+public/render/**/original
+public/render/**/wip

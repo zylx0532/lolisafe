@@ -2,9 +2,22 @@
   background-color: #31363b;
 }
 
+.swal-modal .field {
+  text-align: initial;
+}
+
+.swal-modal.is-expanded {
+  width: auto;
+  max-width: 90%;
+}
+
 .swal-title,
 .swal-text {
   color: #eff0f1;
+}
+
+.swal-text {
+  text-align: center;
 }
 
 .swal-content .label,
@@ -16,6 +29,13 @@
 .swal-content .checkbox:hover,
 .swal-content .radio:hover {
   color: #bdc3c7;
+}
+
+.swal-content .is-code {
+  font-family: 'Courier New', Courier, monospace;
+  border: 1px dashed #eff0f1;
+  border-radius: 5px;
+  margin-top: 5px;
 }
 
 .swal-button {

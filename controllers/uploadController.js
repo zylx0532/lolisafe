@@ -5,6 +5,7 @@ const fetch = require('node-fetch')
 const fs = require('fs')
 const multer = require('multer')
 const path = require('path')
+const perms = require('./permissionController')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
 
@@ -649,6 +650,11 @@ uploadsController.list = async (req, res) => {
   let offset = req.params.page
   if (offset === undefined) { offset = 0 }
 
+  // Headers is string-only, this seem to be the safest and lightest
+  const all = req.headers.all === '1'
+  const ismoderator = perms.is(user, 'moderator')
+  if (all && !ismoderator) { return res.json(403) }
+
   const files = await db.table('files')
     .where(function () {
       if (req.params.id === undefined) {
@@ -658,7 +664,9 @@ uploadsController.list = async (req, res) => {
       }
     })
     .where(function () {
-      if (user.username !== 'root') { this.where('userid', user.id) }
+      if (!all || !ismoderator) {
+        this.where('userid', user.id)
+      }
     })
     .orderBy('id', 'DESC')
     .limit(25)
@@ -668,7 +676,7 @@ uploadsController.list = async (req, res) => {
   const albums = await db.table('albums')
     .where(function () {
       this.where('enabled', 1)
-      if (user.username !== 'root') {
+      if (!all || !ismoderator) {
         this.where('userid', user.id)
       }
     })
@@ -688,8 +696,8 @@ uploadsController.list = async (req, res) => {
       }
     }
 
-    // Only push usernames if we are root
-    if (user.username === 'root') {
+    // Only push usernames if we are a moderator
+    if (all && ismoderator) {
       if (file.userid !== undefined && file.userid !== null && file.userid !== '') {
         userids.push(file.userid)
       }
@@ -702,13 +710,12 @@ uploadsController.list = async (req, res) => {
   }
 
   // If we are a normal user, send response
-  if (user.username !== 'root') { return res.json({ success: true, files }) }
+  if (!ismoderator) { return res.json({ success: true, files }) }
 
-  // If we are root but there are no uploads attached to a user, send response
+  // If we are a moderator but there are no uploads attached to a user, send response
   if (userids.length === 0) { return res.json({ success: true, files }) }
 
-  const users = await db.table('users')
-    .whereIn('id', userids)
+  const users = await db.table('users').whereIn('id', userids)
   for (const dbUser of users) {
     for (const file of files) {
       if (file.userid === dbUser.id) {

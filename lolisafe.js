@@ -32,9 +32,12 @@ fs.existsSync(`./${config.uploads.folder}/zips`) || fs.mkdirSync(`./${config.upl
 safe.use(helmet())
 safe.set('trust proxy', 1)
 
+// https://mozilla.github.io/nunjucks/api.html#configure
 nunjucks.configure('views', {
   autoescape: true,
-  express: safe
+  express: safe,
+  // watch: true, // will this be fine in production?
+  noCache: process.env.DEV === '1'
 })
 safe.set('view engine', 'njk')
 safe.enable('view cache')
@@ -127,7 +130,13 @@ const start = async () => {
     if (!created) { return process.exit(1) }
   }
 
-  safe.listen(config.port, () => console.log(`lolisafe started on port ${config.port}`))
+  safe.listen(config.port, () => {
+    console.log(`lolisafe started on port ${config.port}`)
+    if (process.env.DEV === '1') {
+      // DEV=1 yarn start
+      console.log('lolisafe is in development mode, nunjucks caching disabled')
+    }
+  })
 }
 
 start()

@@ -23,6 +23,8 @@
 <script type="text/javascript" src="libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script type="text/javascript" src="js/home.js?v={{ globals.v1 }}"></script>
 <script type="text/javascript" src="js/sharex.js?v={{ globals.v1 }}"></script>
+<!-- We assign an ID for this so that the script can find out its own version string -->
+<script id="renderScript" type="text/javascript" src="js/render.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -126,7 +128,7 @@
       {% include "_partial/links.njk" %}
 
       {% if gitHash -%}
-      <p>Git commit: <a href="https://github.com/BobbyWibowo/lolisafe/commit/{{ gitHash }}" target="_blank" rel="noopener">{{ gitHash }}</a></p>
+      <p class="git-commit">Git commit: <a class="is-dotted" href="https://github.com/BobbyWibowo/lolisafe/commit/{{ gitHash }}" target="_blank" rel="noopener">{{ gitHash }}</a></p>
       {%- endif %}
     </div>
   </div>

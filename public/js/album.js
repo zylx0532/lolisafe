@@ -1,6 +1,6 @@
 /* global LazyLoad */
 
-var page = {
+const page = {
   lazyLoad: null,
 
   // byte units for getPrettyBytes()
@@ -12,20 +12,20 @@ page.getPrettyBytes = num => {
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
   if (!Number.isFinite(num)) { return num }
 
-  var neg = num < 0
+  const neg = num < 0
   if (neg) { num = -num }
   if (num < 1) { return (neg ? '-' : '') + num + ' B' }
 
-  var exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
-  var numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
-  var unit = page.byteUnits[exponent]
+  const exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
+  const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
+  const unit = page.byteUnits[exponent]
 
   return (neg ? '-' : '') + numStr + ' ' + unit
 }
 
 window.onload = function () {
-  var elements = document.getElementsByClassName('file-size')
-  for (var i = 0; i < elements.length; i++) {
+  const elements = document.getElementsByClassName('file-size')
+  for (let i = 0; i < elements.length; i++) {
     elements[i].innerHTML = page.getPrettyBytes(parseInt(elements[i].innerHTML))
   }
 

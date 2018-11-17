@@ -1,33 +1,71 @@
 /* global swal, axios, ClipboardJS, LazyLoad */
 
-var page = {
+// keys for localStorage
+const LS_KEYS = {
+  token: 'token',
+  viewType: {
+    uploads: 'UPLOADS_VIEW_TYPE'
+  },
+  selected: {
+    uploads: 'SELECTED_UPLOADS',
+    users: 'SELECTED_USERS'
+  }
+}
+
+const page = {
   // #page
   dom: null,
 
   // user token
-  token: localStorage.token,
-  username: null, // from api/tokens/verify
+  token: localStorage[LS_KEYS.token],
 
-  // view config (either list or thumbs)
-  filesView: localStorage.filesView,
+  // from api/tokens/verify
+  username: null,
+  permissions: null,
 
-  // current view (which album and which page)
-  currentView: { album: null, pageNum: null },
+  currentView: null,
+  views: {
+    // config of uploads view
+    uploads: {
+      type: localStorage[LS_KEYS.viewType.uploads],
+      album: null, // album's id
+      pageNum: null, // page num
+      all: null // listing all uploads or just the user's
+    },
+    // config of users view
+    users: {
+      pageNum: null
+    }
+  },
 
-  // id of selected files (shared across pages and will be synced with localStorage)
-  selectedFiles: [],
-  checkboxes: [],
-  lastSelected: null,
+  // id of selected items (shared across pages and will be synced with localStorage)
+  selected: {
+    uploads: [],
+    users: []
+  },
+  checkboxes: {
+    uploads: [],
+    users: []
+  },
+  lastSelected: {
+    upload: null,
+    user: null
+  },
 
   // select album dom for dialogs/modals
   selectAlbumContainer: null,
 
-  // cache of files and albums data for dialogs/modals
-  files: {},
-  albums: {},
+  // cache for dialogs/modals
+  cache: {
+    uploads: {},
+    albums: {},
+    users: {}
+  },
 
   clipboardJS: null,
   lazyLoad: null,
+
+  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png'],
 
   // byte units for getPrettyBytes()
   byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
@@ -42,31 +80,29 @@ page.preparePage = function () {
 }
 
 page.verifyToken = function (token, reloadOnError) {
-  axios.post('api/tokens/verify', { token: token })
-    .then(function (response) {
-      if (response.data.success === false) {
-        return swal({
-          title: 'An error occurred!',
-          text: response.data.description,
-          icon: 'error'
-        })
-          .then(function () {
-            if (!reloadOnError) { return }
-            localStorage.removeItem('token')
-            location.location = 'auth'
-          })
-      }
+  axios.post('api/tokens/verify', { token }).then(function (response) {
+    if (response.data.success === false) {
+      return swal({
+        title: 'An error occurred!',
+        text: response.data.description,
+        icon: 'error'
+      }).then(function () {
+        if (!reloadOnError) { return }
+        localStorage.removeItem(LS_KEYS.token)
+        location.location = 'auth'
+      })
+    }
 
-      axios.defaults.headers.common.token = token
-      localStorage.token = token
-      page.token = token
-      page.username = response.data.username
-      page.prepareDashboard()
-    })
-    .catch(function (error) {
-      console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    axios.defaults.headers.common.token = token
+    localStorage[LS_KEYS.token] = token
+    page.token = token
+    page.username = response.data.username
+    page.permissions = response.data.permissions
+    page.prepareDashboard()
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.prepareDashboard = function () {
@@ -76,9 +112,27 @@ page.prepareDashboard = function () {
   document.getElementById('auth').style.display = 'none'
   document.getElementById('dashboard').style.display = 'block'
 
+  if (page.permissions.moderator) {
+    const itemManageUploads = document.getElementById('itemManageUploads')
+    itemManageUploads.removeAttribute('disabled')
+    itemManageUploads.addEventListener('click', function () {
+      page.setActiveMenu(this)
+      page.getUploads({ all: true })
+    })
+  }
+
+  if (page.permissions.admin) {
+    const itemManageUsers = document.getElementById('itemManageUsers')
+    itemManageUsers.removeAttribute('disabled')
+    itemManageUsers.addEventListener('click', function () {
+      page.setActiveMenu(this)
+      page.getUsers()
+    })
+  }
+
   document.getElementById('itemUploads').addEventListener('click', function () {
     page.setActiveMenu(this)
-    page.getUploads()
+    page.getUploads({ all: false })
   })
 
   document.getElementById('itemDeleteByNames').addEventListener('click', function () {
@@ -106,11 +160,11 @@ page.prepareDashboard = function () {
     page.changePassword()
   })
 
-  var logoutBtn = document.getElementById('itemLogout')
+  const logoutBtn = document.getElementById('itemLogout')
   logoutBtn.addEventListener('click', function () {
     page.logout()
   })
-  logoutBtn.innerHTML = 'Logout ( ' + page.username + ' )'
+  logoutBtn.innerHTML = `Logout ( ${page.username} )`
 
   page.getAlbumsSidebar()
 
@@ -118,20 +172,20 @@ page.prepareDashboard = function () {
 }
 
 page.logout = function () {
-  localStorage.removeItem('token')
+  localStorage.removeItem(LS_KEYS.token)
   location.reload('.')
 }
 
 page.getItemID = function (element) {
   // This expects the item's parent to have the item's ID
-  var parent = element.parentNode
+  let parent = element.parentNode
   // If the element is part of a set of controls, use the container's parent instead
   if (element.parentNode.classList.contains('controls')) { parent = parent.parentNode }
   return parseInt(parent.dataset.id)
 }
 
 page.domClick = function (event) {
-  var element = event.target
+  let element = event.target
   if (!element) { return }
 
   // If the clicked element is an icon, delegate event to its A parent; hacky
@@ -142,35 +196,54 @@ page.domClick = function (event) {
   if (!element.dataset || !element.dataset.action) { return }
 
   event.stopPropagation() // maybe necessary
-  var id = page.getItemID(element)
-  var action = element.dataset.action
+  const id = page.getItemID(element)
+  const action = element.dataset.action
+
+  // Handle pagination actions
+  if (['page-prev', 'page-next'].includes(action)) {
+    const views = {}
+    let func = null
+
+    if (page.currentView === 'uploads') {
+      views.album = page.views.uploads.album
+      views.all = page.views.uploads.all
+      func = page.getUploads
+    } else if (page.currentView === 'users') {
+      func = page.getUsers
+    }
+
+    switch (action) {
+      case 'page-prev':
+        views.pageNum = page.views[page.currentView].pageNum - 1
+        if (views.pageNum < 0) {
+          return swal('An error occurred!', 'This is already the first page.', 'error')
+        }
+        return func(views, element)
+      case 'page-next':
+        views.pageNum = page.views[page.currentView].pageNum + 1
+        return func(views, element)
+    }
+  }
 
   switch (action) {
-    case 'page-prev':
-      if (page.currentView.pageNum === 0) {
-        return swal('Can\'t do that!', 'This is already the first page!', 'warning')
-      }
-      return page.getUploads(page.currentView.album, page.currentView.pageNum - 1, element)
-    case 'page-next':
-      return page.getUploads(page.currentView.album, page.currentView.pageNum + 1, element)
     case 'view-list':
-      return page.setFilesView('list', element)
+      return page.setUploadsView('list', element)
     case 'view-thumbs':
-      return page.setFilesView('thumbs', element)
+      return page.setUploadsView('thumbs', element)
     case 'clear-selection':
       return page.clearSelection()
     case 'add-selected-files-to-album':
       return page.addSelectedFilesToAlbum()
     case 'bulk-delete':
       return page.deleteSelectedFiles()
-    case 'select-file':
-      return page.selectFile(element, event)
+    case 'select':
+      return page.select(element, event)
     case 'add-to-album':
       return page.addSingleFileToAlbum(id)
     case 'delete-file':
       return page.deleteFile(id)
-    case 'select-all-files':
-      return page.selectAllFiles(element)
+    case 'select-all':
+      return page.selectAll(element)
     case 'display-thumbnail':
       return page.displayThumbnail(id)
     case 'delete-file-by-names':
@@ -183,6 +256,8 @@ page.domClick = function (event) {
       return page.deleteAlbum(id)
     case 'get-new-token':
       return page.getNewToken(element)
+    case 'edit-user':
+      return page.editUser(id)
   }
 }
 
@@ -192,363 +267,449 @@ page.isLoading = function (element, state) {
   element.classList.remove('is-loading')
 }
 
-page.getUploads = function (album, pageNum, element) {
+page.getUploads = function ({ album, pageNum, all } = {}, element) {
   if (element) { page.isLoading(element, true) }
   if (pageNum === undefined) { pageNum = 0 }
 
-  var url = 'api/uploads/' + pageNum
-  if (album !== undefined) { url = 'api/album/' + album + '/' + pageNum }
+  let url = `api/uploads/${pageNum}`
+  if (album !== undefined) { url = `api/album/${album}/${pageNum}` }
 
-  axios.get(url)
-    .then(function (response) {
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-      }
+  if (all && !page.permissions.moderator) {
+    return swal('An error occurred!', 'You can not do this!', 'error')
+  }
 
-      if (pageNum && (response.data.files.length === 0)) {
-        // Only remove loading class here, since beyond this the entire page will be replaced anyways
-        if (element) { page.isLoading(element, false) }
-        return swal('Can\'t do that!', 'There are no more files!', 'warning')
-      }
-
-      page.files = {}
-
-      var pagination =
-        '<nav class="pagination is-centered">\n' +
-        '  <a class="button pagination-previous" data-action="page-prev">Previous</a>\n' +
-        '  <a class="button pagination-next" data-action="page-next">Next page</a>\n' +
-        '</nav>'
-
-      var controls =
-        '<div class="columns">\n' +
-        '  <div class="column is-hidden-mobile"></div>\n' +
-        '  <div class="column" style="text-align: center">\n' +
-        '    <a class="button is-small is-danger" title="List view" data-action="view-list">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-th-list"></i>\n' +
-        '      </span>\n' +
-        '    </a>\n' +
-        '    <a class="button is-small is-danger" title="Thumbs view" data-action="view-thumbs">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-th-large"></i>\n' +
-        '      </span>\n' +
-        '    </a>\n' +
-        '  </div>\n' +
-        '  <div class="column" style="text-align: right">\n' +
-        '    <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-cancel"></i>\n' +
-        '      </span>\n' +
-        '    </a>\n' +
-        '    <a class="button is-small is-warning" title="Add selected files to album" data-action="add-selected-files-to-album">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-plus"></i>\n' +
-        '      </span>\n' +
-        '    </a>\n' +
-        '    <a class="button is-small is-danger" title="Bulk delete" data-action="bulk-delete">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-trash"></i>\n' +
-        '      </span>\n' +
-        '      <span>Bulk delete</span>\n' +
-        '    </a>\n' +
-        '  </div>\n' +
-        '</div>'
-
-      var allFilesSelected = true
-      var table, i, file, selected, displayAlbumOrUser
-
-      if (page.filesView === 'thumbs') {
-        page.dom.innerHTML =
-          pagination + '\n' +
-          '<hr>\n' +
-          controls + '\n' +
-          '<div id="table" class="columns is-multiline is-mobile is-centered">\n' +
-          '</div>\n' +
-          pagination
-
-        table = document.getElementById('table')
-
-        for (i = 0; i < response.data.files.length; i++) {
-          file = response.data.files[i]
-          selected = page.selectedFiles.includes(file.id)
-          if (!selected && allFilesSelected) { allFilesSelected = false }
-
-          // Prettify
-          file.prettyBytes = page.getPrettyBytes(parseInt(file.size))
-          file.prettyDate = page.getPrettyDate(new Date(file.timestamp * 1000))
-
-          displayAlbumOrUser = file.album
-          if (page.username === 'root') {
-            displayAlbumOrUser = ''
-            if (file.username !== undefined) { displayAlbumOrUser = file.username }
-          }
-
-          var div = document.createElement('div')
-          div.className = 'image-container column is-narrow'
-          div.dataset.id = file.id
-          if (file.thumb !== undefined) {
-            div.innerHTML = '<a class="image" href="' + file.file + '" target="_blank" rel="noopener"><img alt="' + file.name + '" data-src="' + file.thumb + '"/></a>'
-          } else {
-            div.innerHTML = '<a class="image" href="' + file.file + '" target="_blank" rel="noopener"><h1 class="title">' + (file.extname || 'N/A') + '</h1></a>'
-          }
-
-          div.innerHTML +=
-            '<input type="checkbox" class="file-checkbox" title="Select this file" data-action="select-file"' + (selected ? ' checked' : '') + '>\n' +
-            '<div class="controls">\n' +
-            '  <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="' + file.file + '">\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-clipboard-1"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '  <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-plus"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '  <a class="button is-small is-danger" title="Delete file" data-action="delete-file">\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-trash"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '</div>\n' +
-            '<div class="details">\n' +
-            '  <p><span class="name" title="' + file.file + '">' + file.name + '</span></p>\n' +
-            '  <p>' + (displayAlbumOrUser ? ('<span>' + displayAlbumOrUser + '</span> – ') : '') + file.prettyBytes + '</p>\n' +
-            '</div>'
-
-          table.appendChild(div)
-          page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
-          page.lazyLoad.update()
-        }
+  axios.get(url, {
+    headers: {
+      all: all ? '1' : '0'
+    }
+  }).then(function (response) {
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
       } else {
-        var albumOrUser = 'Album'
-        if (page.username === 'root') { albumOrUser = 'User' }
+        return swal('An error occurred!', response.data.description, 'error')
+      }
+    }
 
-        page.dom.innerHTML =
-          pagination + '\n' +
-          '<hr>\n' +
-          controls + '\n' +
-          '<div class="table-container">\n' +
-          '  <table class="table is-narrow is-fullwidth is-hoverable">\n' +
-          '    <thead>\n' +
-          '      <tr>\n' +
-          '          <th><input id="selectAll" type="checkbox" title="Select all files" data-action="select-all-files"></th>\n' +
-          '          <th style="width: 25%">File</th>\n' +
-          '          <th>' + albumOrUser + '</th>\n' +
-          '          <th>Size</th>\n' +
-          '          <th>Date</th>\n' +
-          '          <th></th>\n' +
-          '      </tr>\n' +
-          '    </thead>\n' +
-          '    <tbody id="table">\n' +
-          '    </tbody>\n' +
-          '  </table>\n' +
-          '</div>\n' +
-          '<hr>\n' +
-          pagination
+    if (pageNum && (response.data.files.length === 0)) {
+      // Only remove loading class here, since beyond this the entire page will be replaced anyways
+      if (element) { page.isLoading(element, false) }
+      return swal('An error occurred!', 'There are no more uploads.', 'error')
+    }
 
-        table = document.getElementById('table')
+    page.currentView = 'uploads'
+    page.cache.uploads = {}
 
-        for (i = 0; i < response.data.files.length; i++) {
-          file = response.data.files[i]
-          selected = page.selectedFiles.includes(file.id)
-          if (!selected && allFilesSelected) { allFilesSelected = false }
+    const pagination = `
+      <nav class="pagination is-centered">
+        <a class="button pagination-previous" data-action="page-prev">Previous</a>
+        <a class="button pagination-next" data-action="page-next">Next page</a>
+      </nav>
+    `
 
-          page.files[file.id] = {
-            name: file.name,
-            thumb: file.thumb
-          }
+    const controls = `
+      <div class="columns">
+        <div class="column is-hidden-mobile"></div>
+        <div class="column" style="text-align: center">
+          <a class="button is-small is-danger" title="List view" data-action="view-list">
+            <span class="icon">
+              <i class="icon-th-list"></i>
+            </span>
+          </a>
+          <a class="button is-small is-danger" title="Thumbs view" data-action="view-thumbs">
+            <span class="icon">
+              <i class="icon-th-large"></i>
+            </span>
+          </a>
+        </div>
+        <div class="column" style="text-align: right">
+          <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
+            <span class="icon">
+              <i class="icon-cancel"></i>
+            </span>
+          </a>
+          ${all ? '' : `
+          <a class="button is-small is-warning" title="Add selected uploads to album" data-action="add-selected-files-to-album">
+            <span class="icon">
+              <i class="icon-plus"></i>
+            </span>
+          </a>`}
+          <a class="button is-small is-danger" title="Bulk delete" data-action="bulk-delete">
+            <span class="icon">
+              <i class="icon-trash"></i>
+            </span>
+            <span>Bulk delete</span>
+          </a>
+        </div>
+      </div>
+    `
 
-          // Prettify
-          file.prettyBytes = page.getPrettyBytes(parseInt(file.size))
-          file.prettyDate = page.getPrettyDate(new Date(file.timestamp * 1000))
+    let allSelected = true
+    if (page.views.uploads.type === 'thumbs') {
+      page.dom.innerHTML = `
+        ${pagination}
+        <hr>
+        ${controls}
+        <div id="table" class="columns is-multiline is-mobile is-centered">
+        </div>
+        ${pagination}
+      `
 
-          displayAlbumOrUser = file.album
-          if (page.username === 'root') {
-            displayAlbumOrUser = ''
-            if (file.username !== undefined) { displayAlbumOrUser = file.username }
-          }
+      const table = document.getElementById('table')
 
-          var tr = document.createElement('tr')
-          tr.dataset.id = file.id
-          tr.innerHTML =
-            '<th class="controls"><input type="checkbox" class="file-checkbox" title="Select this file" data-action="select-file"' + (selected ? ' checked' : '') + '></th>\n' +
-            '<th><a href="' + file.file + '" target="_blank" rel="noopener" title="' + file.file + '">' + file.name + '</a></th>\n' +
-            '<th>' + displayAlbumOrUser + '</th>\n' +
-            '<td>' + file.prettyBytes + '</td>\n' +
-            '<td>' + file.prettyDate + '</td>\n' +
-            '<td class="controls" style="text-align: right" >\n' +
-            '  <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"' + (file.thumb ? '' : ' disabled') + '>\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-picture-1"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '  <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="' + file.file + '">\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-clipboard-1"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '  <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-plus"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '  <a class="button is-small is-danger" title="Delete file" data-action="delete-file">\n' +
-            '    <span class="icon">\n' +
-            '      <i class="icon-trash"></i>\n' +
-            '    </span>\n' +
-            '  </a>\n' +
-            '</td>'
+      for (let i = 0; i < response.data.files.length; i++) {
+        const upload = response.data.files[i]
+        const selected = page.selected.uploads.includes(upload.id)
+        if (!selected && allSelected) { allSelected = false }
 
-          table.appendChild(tr)
-          page.checkboxes = Array.from(table.getElementsByClassName('file-checkbox'))
+        page.cache.uploads[upload.id] = {
+          name: upload.name,
+          thumb: upload.thumb,
+          original: upload.file
         }
+
+        // Prettify
+        upload.prettyBytes = page.getPrettyBytes(parseInt(upload.size))
+        upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
+
+        let displayAlbumOrUser = upload.album
+        if (all) { displayAlbumOrUser = upload.username || '' }
+
+        const div = document.createElement('div')
+        div.className = 'image-container column is-narrow'
+        div.dataset.id = upload.id
+        if (upload.thumb !== undefined) {
+          div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><img alt="${upload.name}" data-src="${upload.thumb}"/></a>`
+        } else {
+          div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><h1 class="title">${upload.extname || 'N/A'}</h1></a>`
+        }
+
+        div.innerHTML += `
+          <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}>
+          <div class="controls">
+            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+              <span class="icon">
+                <i class="icon-picture-1"></i>
+              </span>
+            </a>
+            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
+              <span class="icon">
+                <i class="icon-clipboard-1"></i>
+              </span>
+            </a>
+            <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
+              <span class="icon">
+                <i class="icon-plus"></i>
+              </span>
+            </a>
+            <a class="button is-small is-danger" title="Delete file" data-action="delete-file">
+              <span class="icon">
+                <i class="icon-trash"></i>
+              </span>
+            </a>
+          </div>
+          <div class="details">
+            <p><span class="name" title="${upload.file}">${upload.name}</span></p>
+            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${upload.prettyBytes}</p>
+          </div>
+        `
+
+        table.appendChild(div)
+        // page.checkboxes.uploads = Array.from(table.getElementsByClassName('checkbox'))
+        page.checkboxes.uploads = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+        page.lazyLoad.update()
       }
+    } else {
+      let albumOrUser = 'Album'
+      if (all) { albumOrUser = 'User' }
 
-      if (allFilesSelected && response.data.files.length) {
-        var selectAll = document.getElementById('selectAll')
-        if (selectAll) { selectAll.checked = true }
+      page.dom.innerHTML = `
+        ${pagination}
+        <hr>
+        ${controls}
+        <div class="table-container">
+          <table class="table is-narrow is-fullwidth is-hoverable">
+            <thead>
+              <tr>
+                <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all uploads" data-action="select-all"></th>
+                <th style="width: 25%">File</th>
+                <th>${albumOrUser}</th>
+                <th>Size</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="table">
+            </tbody>
+          </table>
+        </div>
+        <hr>
+        ${pagination}
+      `
+
+      const table = document.getElementById('table')
+
+      for (let i = 0; i < response.data.files.length; i++) {
+        const upload = response.data.files[i]
+        const selected = page.selected.uploads.includes(upload.id)
+        if (!selected && allSelected) { allSelected = false }
+
+        page.cache.uploads[upload.id] = {
+          name: upload.name,
+          thumb: upload.thumb,
+          original: upload.file
+        }
+
+        // Prettify
+        upload.prettyBytes = page.getPrettyBytes(parseInt(upload.size))
+        upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
+
+        let displayAlbumOrUser = upload.album
+        if (all) { displayAlbumOrUser = upload.username || '' }
+
+        const tr = document.createElement('tr')
+        tr.dataset.id = upload.id
+        tr.innerHTML = `
+          <td class="controls"><input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}></td>
+          <th><a href="${upload.file}" target="_blank" rel="noopener" title="${upload.file}">${upload.name}</a></th>
+          <th>${displayAlbumOrUser}</th>
+          <td>${upload.prettyBytes}</td>
+          <td>${upload.prettyDate}</td>
+          <td class="controls" style="text-align: right">
+            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+              <span class="icon">
+                <i class="icon-picture-1"></i>
+              </span>
+            </a>
+            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
+              <span class="icon">
+                <i class="icon-clipboard-1"></i>
+              </span>
+            </a>
+            ${all ? '' : `
+            <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
+              <span class="icon">
+                <i class="icon-plus"></i>
+              </span>
+            </a>`}
+            <a class="button is-small is-danger" title="Delete file" data-action="delete-file">
+              <span class="icon">
+                <i class="icon-trash"></i>
+              </span>
+            </a>
+          </td>
+        `
+
+        table.appendChild(tr)
+        // page.checkboxes.uploads = Array.from(table.getElementsByClassName('checkbox'))
+        page.checkboxes.uploads = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
       }
+    }
 
-      page.currentView.album = album
-      page.currentView.pageNum = response.data.files.length ? pageNum : 0
-    })
-    .catch(function (error) {
-      console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
-}
+    if (allSelected && response.data.files.length) {
+      const selectAll = document.getElementById('selectAll')
+      if (selectAll) { selectAll.checked = true }
+    }
 
-page.setFilesView = function (view, element) {
-  localStorage.filesView = view
-  page.filesView = view
-  page.getUploads(page.currentView.album, page.currentView.pageNum, element)
-}
-
-page.displayThumbnail = function (id) {
-  var file = page.files[id]
-  if (!file.thumb) { return }
-  return swal({
-    text: file.name,
-    content: {
-      element: 'img',
-      attributes: { src: file.thumb }
-    },
-    button: true
+    page.views.uploads.album = album
+    page.views.uploads.pageNum = response.data.files.length ? pageNum : 0
+    page.views.uploads.all = all
+  }).catch(function (error) {
+    if (element) { page.isLoading(element, false) }
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.selectAllFiles = function (element) {
-  var table = document.getElementById('table')
-  var checkboxes = table.getElementsByClassName('file-checkbox')
+page.setUploadsView = function (view, element) {
+  localStorage[LS_KEYS.viewType.uploads] = view
+  page.views.uploads.type = view
+  page.getUploads(page.views.uploads, element)
+}
 
-  for (var i = 0; i < checkboxes.length; i++) {
-    var id = page.getItemID(checkboxes[i])
+page.displayThumbnail = function (id) {
+  const file = page.cache.uploads[id]
+  if (!file.thumb) { return }
+
+  const div = document.createElement('div')
+  div.innerHTML = `
+    <div class="field has-text-centered">
+      <label class="label">${file.name}</label>
+      <div class="controls">
+        <img id="swalThumb" src="${file.thumb}">
+      </div>
+    </div>
+  `
+  if (file.original) {
+    div.innerHTML += `
+      <div class="field has-text-centered">
+        <div class="controls">
+          <a id="swalOriginal" type="button" class="button is-breeze" data-original="${file.original}">Load original</a>
+        </div>
+      </div>
+    `
+    div.querySelector('#swalOriginal').addEventListener('click', function () {
+      const button = this
+      const original = button.dataset.original
+      button.classList.add('is-loading')
+
+      const thumb = div.querySelector('#swalThumb')
+      const exec = /.[\w]+(\?|$)/.exec(original)
+      const isimage = exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())
+
+      if (isimage) {
+        thumb.src = file.original
+        thumb.onload = function () {
+          button.style.display = 'none'
+          document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
+        }
+        thumb.onerror = function () {
+          button.className = 'button is-danger'
+          button.innerHTML = 'Unable to load original'
+        }
+      } else {
+        thumb.style.display = 'none'
+        const video = document.createElement('video')
+        video.id = 'swalVideo'
+        video.controls = true
+        video.src = file.original
+        thumb.insertAdjacentElement('afterend', video)
+
+        button.style.display = 'none'
+        document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
+      }
+    })
+  }
+
+  return swal({
+    content: div,
+    buttons: false
+  }).then(function () {
+    const video = div.querySelector('#swalVideo')
+    if (video) { video.remove() }
+
+    // Restore modal size
+    document.body.querySelector('.swal-overlay .swal-modal.is-expanded').classList.remove('is-expanded')
+  })
+}
+
+page.selectAll = function (element) {
+  const currentView = page.currentView
+  const checkboxes = page.checkboxes[currentView]
+  const selected = page.selected[currentView]
+
+  for (let i = 0; i < checkboxes.length; i++) {
+    const id = page.getItemID(checkboxes[i])
     if (isNaN(id)) { continue }
     if (checkboxes[i].checked !== element.checked) {
       checkboxes[i].checked = element.checked
       if (checkboxes[i].checked) {
-        page.selectedFiles.push(id)
+        selected.push(id)
       } else {
-        page.selectedFiles.splice(page.selectedFiles.indexOf(id), 1)
+        selected.splice(selected.indexOf(id), 1)
       }
     }
   }
 
-  if (page.selectedFiles.length) {
-    localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
+  if (selected.length) {
+    localStorage[LS_KEYS.selected[currentView]] = JSON.stringify(selected)
   } else {
-    localStorage.removeItem('selectedFiles')
+    localStorage.removeItem(LS_KEYS.selected[currentView])
   }
 
-  element.title = element.checked ? 'Unselect all files' : 'Select all files'
+  page.selected[currentView] = selected
+  element.title = element.checked ? 'Unselect all uploads' : 'Select all uploads'
 }
 
 page.selectInBetween = function (element, lastElement) {
   if (!element || !lastElement) { return }
   if (element === lastElement) { return }
-  if (!page.checkboxes || !page.checkboxes.length) { return }
 
-  var thisIndex = page.checkboxes.indexOf(element)
-  var lastIndex = page.checkboxes.indexOf(lastElement)
+  const currentView = page.currentView
+  const checkboxes = page.checkboxes[currentView]
+  if (!checkboxes || !checkboxes.length) { return }
 
-  var distance = thisIndex - lastIndex
+  const thisIndex = checkboxes.indexOf(element)
+  const lastIndex = checkboxes.indexOf(lastElement)
+
+  const distance = thisIndex - lastIndex
   if (distance >= -1 && distance <= 1) { return }
 
-  for (var i = 0; i < page.checkboxes.length; i++) {
+  for (let i = 0; i < checkboxes.length; i++) {
     if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
       (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
-      page.checkboxes[i].checked = true
-      page.selectedFiles.push(page.getItemID(page.checkboxes[i]))
+      checkboxes[i].checked = true
+      page.selected[currentView].push(page.getItemID(checkboxes[i]))
     }
   }
 
-  localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
+  localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected[currentView])
+  page.checkboxes[currentView] = checkboxes
 }
 
-page.selectFile = function (element, event) {
-  if (event.shiftKey && page.lastSelected) {
-    page.selectInBetween(element, page.lastSelected)
+page.select = function (element, event) {
+  const currentView = page.currentView
+  const lastSelected = page.lastSelected[currentView]
+  if (event.shiftKey && lastSelected) {
+    page.selectInBetween(element, lastSelected)
   } else {
-    page.lastSelected = element
+    page.lastSelected[currentView] = element
   }
 
-  var id = page.getItemID(element)
+  const id = page.getItemID(element)
   if (isNaN(id)) { return }
 
-  if (!page.selectedFiles.includes(id) && element.checked) {
-    page.selectedFiles.push(id)
-  } else if (page.selectedFiles.includes(id) && !element.checked) {
-    page.selectedFiles.splice(page.selectedFiles.indexOf(id), 1)
+  const selected = page.selected[currentView]
+  if (!selected.includes(id) && element.checked) {
+    selected.push(id)
+  } else if (selected.includes(id) && !element.checked) {
+    selected.splice(selected.indexOf(id), 1)
   }
 
-  if (page.selectedFiles.length) {
-    localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
+  if (selected.length) {
+    localStorage[LS_KEYS.selected[currentView]] = JSON.stringify(selected)
   } else {
-    localStorage.removeItem('selectedFiles')
+    localStorage.removeItem(LS_KEYS.selected[currentView])
   }
+
+  page.selected[currentView] = selected
 }
 
 page.clearSelection = function () {
-  var count = page.selectedFiles.length
+  const currentView = page.currentView
+  const selected = page.selected[currentView]
+  const count = selected.length
   if (!count) {
-    return swal('An error occurred!', 'You have not selected any files.', 'error')
+    return swal('An error occurred!', `You have not selected any ${currentView}.`, 'error')
   }
 
-  var suffix = 'file' + (count === 1 ? '' : 's')
+  const suffix = count === 1 ? currentView.substring(0, currentView.length - 1) : currentView
   return swal({
     title: 'Are you sure?',
-    text: 'You are going to unselect ' + count + ' ' + suffix + '.',
+    text: `You are going to unselect ${count} ${suffix}.`,
     buttons: true
-  })
-    .then(function (proceed) {
-      if (!proceed) { return }
+  }).then(function (proceed) {
+    if (!proceed) { return }
 
-      var table = document.getElementById('table')
-      var checkboxes = table.getElementsByClassName('file-checkbox')
-
-      for (var i = 0; i < checkboxes.length; i++) {
-        if (checkboxes[i].checked) {
-          checkboxes[i].checked = false
-        }
+    const checkboxes = page.checkboxes[currentView]
+    for (let i = 0; i < checkboxes.length; i++) {
+      if (checkboxes[i].checked) {
+        checkboxes[i].checked = false
       }
+    }
 
-      page.selectedFiles = []
-      localStorage.removeItem('selectedFiles')
+    localStorage.removeItem(LS_KEYS.selected[currentView])
+    page.selected[currentView] = []
 
-      var selectAll = document.getElementById('selectAll')
-      if (selectAll) { selectAll.checked = false }
+    const selectAll = document.getElementById('selectAll')
+    if (selectAll) { selectAll.checked = false }
 
-      return swal('Cleared selection!', 'Unselected ' + count + ' ' + suffix + '.', 'success')
-    })
+    return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
+  })
 }
 
 page.deleteFile = function (id) {
-  // TODO: Share function with bulk delete, just like 'add selected files to album' and 'add single file to album'
+  // TODO: Share function with bulk delete, just like 'add selected uploads to album' and 'add single file to album'
   swal({
     title: 'Are you sure?',
     text: 'You won\'t be able to recover the file!',
@@ -561,221 +722,215 @@ page.deleteFile = function (id) {
         closeModal: false
       }
     }
-  })
-    .then(function (proceed) {
-      if (!proceed) { return }
+  }).then(function (proceed) {
+    if (!proceed) { return }
 
-      axios.post('api/upload/delete', { id: id })
-        .then(function (response) {
-          if (!response) { return }
+    axios.post('api/upload/delete', { id }).then(function (response) {
+      if (!response) { return }
 
-          if (response.data.success === false) {
-            if (response.data.description === 'No token provided') {
-              return page.verifyToken(page.token)
-            } else {
-              return swal('An error occurred!', response.data.description, 'error')
-            }
-          }
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', response.data.description, 'error')
+        }
+      }
 
-          swal('Deleted!', 'The file has been deleted.', 'success')
-          page.getUploads(page.currentView.album, page.currentView.pageNum)
-        })
-        .catch(function (error) {
-          console.log(error)
-          return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-        })
+      swal('Deleted!', 'The file has been deleted.', 'success')
+      page.getUploads(page.views.uploads)
+    }).catch(function (error) {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  })
 }
 
 page.deleteSelectedFiles = function () {
-  var count = page.selectedFiles.length
+  const count = page.selected.uploads.length
   if (!count) {
-    return swal('An error occurred!', 'You have not selected any files.', 'error')
+    return swal('An error occurred!', 'You have not selected any uploads.', 'error')
   }
 
-  var suffix = 'file' + (count === 1 ? '' : 's')
+  const suffix = `file${count === 1 ? '' : 's'}`
   swal({
     title: 'Are you sure?',
-    text: 'You won\'t be able to recover ' + count + ' ' + suffix + '!',
+    text: `You won't be able to recover ${count} ${suffix}!`,
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: 'Yes, nuke the ' + suffix + '!',
+        text: `Yes, nuke the ${suffix}!`,
         closeModal: false
       }
     }
-  })
-    .then(function (proceed) {
-      if (!proceed) { return }
+  }).then(function (proceed) {
+    if (!proceed) { return }
 
-      axios.post('api/upload/bulkdelete', {
-        field: 'id',
-        values: page.selectedFiles
-      })
-        .then(function (bulkdelete) {
-          if (!bulkdelete) { return }
+    axios.post('api/upload/bulkdelete', {
+      field: 'id',
+      values: page.selected.uploads
+    }).then(function (bulkdelete) {
+      if (!bulkdelete) { return }
 
-          if (bulkdelete.data.success === false) {
-            if (bulkdelete.data.description === 'No token provided') {
-              return page.verifyToken(page.token)
-            } else {
-              return swal('An error occurred!', bulkdelete.data.description, 'error')
-            }
-          }
+      if (bulkdelete.data.success === false) {
+        if (bulkdelete.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', bulkdelete.data.description, 'error')
+        }
+      }
 
-          var deleted = count
-          if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
-            deleted -= bulkdelete.data.failed.length
-            page.selectedFiles = page.selectedFiles.filter(function (id) {
-              return bulkdelete.data.failed.includes(id)
-            })
-          } else {
-            page.selectedFiles = []
-          }
-
-          localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
-
-          swal('Deleted!', deleted + ' file' + (deleted === 1 ? ' has' : 's have') + ' been deleted.', 'success')
-          return page.getUploads(page.currentView.album, page.currentView.pageNum)
+      let deleted = count
+      if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
+        deleted -= bulkdelete.data.failed.length
+        page.selected.uploads = page.selected.uploads.filter(function (id) {
+          return bulkdelete.data.failed.includes(id)
         })
-        .catch(function (error) {
-          console.log(error)
-          swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-        })
+      } else {
+        page.selected.uploads = []
+      }
+
+      localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
+
+      swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
+      return page.getUploads(page.views.uploads)
+    }).catch(function (error) {
+      console.log(error)
+      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  })
 }
 
 page.deleteByNames = function () {
-  page.dom.innerHTML =
-    '<h2 class="subtitle">Delete by names</h2>\n' +
-    '<div class="field">\n' +
-    '  <label class="label">File names:</label>\n' +
-    '  <div class="control">\n' +
-    '    <textarea id="names" class="textarea"></textarea>\n' +
-    '  </div>\n' +
-    '  <p class="help">Separate each entry with a new line.</p>\n' +
-    '</div>\n' +
-    '<div class="field">\n' +
-    '  <div class="control">\n' +
-    '    <a class="button is-danger is-fullwidth" data-action="delete-file-by-names">\n' +
-    '      <span class="icon">\n' +
-    '        <i class="icon-trash"></i>\n' +
-    '      </span>\n' +
-    '      <span>Bulk delete</span>\n' +
-    '    </a>\n' +
-    '  </div>\n' +
-    '</div>'
+  page.dom.innerHTML = `
+    <h2 class="subtitle">Delete by names</h2>
+    <div class="field">
+      <label class="label">File names:</label>
+      <div class="control">
+        <textarea id="names" class="textarea"></textarea>
+      </div>
+      <p class="help">Separate each entry with a new line.</p>
+    </div>
+    <div class="field">
+      <div class="control">
+        <a class="button is-danger is-fullwidth" data-action="delete-file-by-names">
+          <span class="icon">
+            <i class="icon-trash"></i>
+          </span>
+          <span>Bulk delete</span>
+        </a>
+      </div>
+    </div>
+  `
 }
 
 page.deleteFileByNames = function () {
-  var names = document.getElementById('names').value
+  const names = document.getElementById('names').value
     .split(/\r?\n/)
     .filter(function (n) {
       return n.trim().length
     })
-  var count = names.length
+  const count = names.length
   if (!count) {
     return swal('An error occurred!', 'You have not entered any file names.', 'error')
   }
 
-  var suffix = 'file' + (count === 1 ? '' : 's')
+  const suffix = `file${count === 1 ? '' : 's'}`
   swal({
     title: 'Are you sure?',
-    text: 'You won\'t be able to recover ' + count + ' ' + suffix + '!',
+    text: `You won't be able to recover ${count} ${suffix}!`,
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: 'Yes, nuke the ' + suffix + '!',
+        text: `Yes, nuke the ${suffix}!`,
         closeModal: false
       }
     }
-  })
-    .then(function (proceed) {
-      if (!proceed) { return }
+  }).then(function (proceed) {
+    if (!proceed) { return }
 
-      axios.post('api/upload/bulkdelete', {
-        field: 'name',
-        values: names
-      })
-        .then(function (bulkdelete) {
-          if (!bulkdelete) { return }
+    axios.post('api/upload/bulkdelete', {
+      field: 'name',
+      values: names
+    }).then(function (bulkdelete) {
+      if (!bulkdelete) { return }
 
-          if (bulkdelete.data.success === false) {
-            if (bulkdelete.data.description === 'No token provided') {
-              return page.verifyToken(page.token)
-            } else {
-              return swal('An error occurred!', bulkdelete.data.description, 'error')
-            }
-          }
+      if (bulkdelete.data.success === false) {
+        if (bulkdelete.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', bulkdelete.data.description, 'error')
+        }
+      }
 
-          var deleted = count
-          if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
-            deleted -= bulkdelete.data.failed.length
-          }
+      let deleted = count
+      if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
+        deleted -= bulkdelete.data.failed.length
+      }
 
-          document.getElementById('names').value = bulkdelete.data.failed.join('\n')
-          swal('Deleted!', deleted + ' file' + (deleted === 1 ? ' has' : 's have') + ' been deleted.', 'success')
-        })
-        .catch(function (error) {
-          console.log(error)
-          swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-        })
+      document.getElementById('names').value = bulkdelete.data.failed.join('\n')
+      swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
+    }).catch(function (error) {
+      console.log(error)
+      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  })
 }
 
 page.addSelectedFilesToAlbum = function () {
-  var count = page.selectedFiles.length
+  const count = page.selected.uploads.length
   if (!count) {
-    return swal('An error occurred!', 'You have not selected any files.', 'error')
+    return swal('An error occurred!', 'You have not selected any uploads.', 'error')
   }
 
-  page.addFilesToAlbum(page.selectedFiles, function (failed) {
+  page.addFilesToAlbum(page.selected.uploads, function (failed) {
     if (!failed) { return }
     if (failed.length) {
-      page.selectedFiles = page.selectedFiles.filter(function (id) {
+      page.selected.uploads = page.selected.uploads.filter(function (id) {
         return failed.includes(id)
       })
     } else {
-      page.selectedFiles = []
+      page.selected.uploads = []
     }
-    localStorage.selectedFiles = JSON.stringify(page.selectedFiles)
-    page.getUploads(page.currentView.album, page.currentView.pageNum)
+    localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
+    page.getUploads(page.views.uploads)
   })
 }
 
 page.addSingleFileToAlbum = function (id) {
   page.addFilesToAlbum([id], function (failed) {
     if (!failed) { return }
-    page.getUploads(page.currentView.album, page.currentView.pageNum)
+    page.getUploads(page.views.uploads)
   })
 }
 
 page.addFilesToAlbum = function (ids, callback) {
-  var count = ids.length
+  const count = ids.length
 
-  var content = document.createElement('div')
-  content.id = 'addFilesToAlbum'
-  content.innerHTML =
-    '<p>You are about to add <span style="font-weight: 800">' + count + '</span> file' + (count === 1 ? '' : 's') + ' to an album.</p>' +
-    '<div class="field">\n' +
-    '  <label class="label">If a file is already in an album, it will be moved.</label>\n' +
-    '  <div class="control">\n' +
-    '    <div class="select is-fullwidth">\n' +
-    '      <select disabled>\n' +
-    '        <option value="-1">Remove from album</option>\n' +
-    '        <option value="" selected disabled>Fetching albums list\u2026</option>\n' +
-    '      </select>\n' +
-    '    </div>\n' +
-    '</div>'
+  const content = document.createElement('div')
+  content.innerHTML = `
+    <div class="field has-text-centered">
+      <p>You are about to add <b>${count}</b> file${count === 1 ? '' : 's'} to an album.</p>
+      <p><b>If a file is already in an album, it will be moved.</b></p>
+    </div>
+    <div class="field">
+      <div class="control">
+        <div class="select is-fullwidth">
+          <select id="swalAlbum" disabled>
+            <option value="-1">Remove from album</option>
+            <option value="" selected disabled>Fetching albums list\u2026</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `
 
   swal({
-    title: 'Add to album',
     icon: 'warning',
-    content: content,
+    content,
     buttons: {
       cancel: true,
       confirm: {
@@ -786,16 +941,14 @@ page.addFilesToAlbum = function (ids, callback) {
   }).then(function (choose) {
     if (!choose) { return }
 
-    var container = document.getElementById('addFilesToAlbum')
-    var select = container.getElementsByTagName('select')[0]
-    var albumid = parseInt(select.value)
+    const albumid = parseInt(document.getElementById('swalAlbum').value)
     if (isNaN(albumid)) {
       return swal('An error occurred!', 'You did not choose an album.', 'error')
     }
 
     axios.post('api/albums/addfiles', {
-      ids: ids,
-      albumid: albumid
+      ids,
+      albumid
     }).then(function (add) {
       if (!add) { return }
 
@@ -808,17 +961,17 @@ page.addFilesToAlbum = function (ids, callback) {
         return
       }
 
-      var added = ids.length
+      let added = ids.length
       if (add.data.failed && add.data.failed.length) {
         added -= add.data.failed.length
       }
 
-      var suffix = 'file' + (ids.length === 1 ? '' : 's')
+      const suffix = `file${ids.length === 1 ? '' : 's'}`
       if (!added) {
-        return swal('An error occurred!', 'Could not add the ' + suffix + ' to the album.', 'error')
+        return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
       }
 
-      swal('Woohoo!', 'Successfully ' + (albumid < 0 ? 'removed' : 'added') + ' ' + added + ' ' + suffix + ' ' + (albumid < 0 ? 'from' : 'to') + ' the album.', 'success')
+      swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
       return callback(add.data.failed)
     }).catch(function (error) {
       console.log(error)
@@ -840,13 +993,12 @@ page.addFilesToAlbum = function (ids, callback) {
       return
     }
 
+    const select = document.getElementById('swalAlbum')
     // If the prompt was replaced, the container would be missing
-    var container = document.getElementById('addFilesToAlbum')
-    if (!container) { return }
-    var select = container.getElementsByTagName('select')[0]
+    if (!select) { return }
     select.innerHTML += list.data.albums
       .map(function (album) {
-        return '<option value="' + album.id + '">' + album.name + '</option>'
+        return `<option value="${album.id}">${album.name}</option>`
       })
       .join('\n')
     select.getElementsByTagName('option')[1].innerHTML = 'Choose an album'
@@ -858,149 +1010,148 @@ page.addFilesToAlbum = function (ids, callback) {
 }
 
 page.getAlbums = function () {
-  axios.get('api/albums')
-    .then(function (response) {
-      if (!response) { return }
+  axios.get('api/albums').then(function (response) {
+    if (!response) { return }
 
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
+      }
+    }
+
+    page.cache.albums = {}
+
+    page.dom.innerHTML = `
+      <h2 class="subtitle">Create new album</h2>
+      <div class="field">
+        <div class="control">
+          <input id="albumName" class="input" type="text" placeholder="Name">
+        </div>
+      </div>
+      <div class="field">
+        <div class="control">
+          <a id="submitAlbum" class="button is-breeze is-fullwidth" data-action="submit-album">
+            <span class="icon">
+              <i class="icon-paper-plane-empty"></i>
+            </span>
+            <span>Create</span>
+          </a>
+        </div>
+      </div>
+      <hr>
+      <h2 class="subtitle">List of albums</h2>
+      <div class="table-container">
+        <table class="table is-fullwidth is-hoverable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Files</th>
+              <th>Created at</th>
+              <th>Public link</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="table">
+          </tbody>
+        </table>
+      </div>
+    `
+
+    const homeDomain = response.data.homeDomain
+    const table = document.getElementById('table')
+
+    for (let i = 0; i < response.data.albums.length; i++) {
+      const album = response.data.albums[i]
+      const albumUrl = `${homeDomain}/a/${album.identifier}`
+
+      // Prettify
+      album.prettyDate = page.getPrettyDate(new Date(album.timestamp * 1000))
+
+      page.cache.albums[album.id] = {
+        name: album.name,
+        download: album.download,
+        public: album.public
       }
 
-      page.albums = {}
+      const tr = document.createElement('tr')
+      tr.innerHTML = `
+        <th>${album.id}</th>
+        <th>${album.name}</th>
+        <th>${album.files}</th>
+        <td>${album.prettyDate}</td>
+        <td><a ${album.public ? `href="${albumUrl}"` : 'class="is-linethrough"'} target="_blank" rel="noopener">${albumUrl}</a></td>
+        <td style="text-align: right" data-id="${album.id}">
+          <a class="button is-small is-primary" title="Edit album" data-action="edit-album">
+            <span class="icon is-small">
+              <i class="icon-pencil-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
+            <span class="icon is-small">
+              <i class="icon-clipboard-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
+            <span class="icon is-small">
+              <i class="icon-download"></i>
+            </span>
+          </a>
+          <a class="button is-small is-danger" title="Delete album" data-action="delete-album">
+            <span class="icon is-small">
+              <i class="icon-trash"></i>
+            </span>
+          </a>
+        </td>
+      `
 
-      page.dom.innerHTML =
-        '<h2 class="subtitle">Create new album</h2>\n' +
-        '<div class="field">\n' +
-        '  <div class="control">\n' +
-        '    <input id="albumName" class="input" type="text" placeholder="Name">\n' +
-        '  </div>\n' +
-        '</div>\n' +
-        '<div class="field">\n' +
-        '  <div class="control">\n' +
-        '    <a id="submitAlbum" class="button is-breeze is-fullwidth" data-action="submit-album">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-paper-plane-empty"></i>\n' +
-        '      </span>\n' +
-        '      <span>Create</span>\n' +
-        '    </a>\n' +
-        '  </div>\n' +
-        '</div>\n' +
-        '<hr>\n' +
-        '<h2 class="subtitle">List of albums</h2>\n' +
-        '<div class="table-container">\n' +
-        '  <table class="table is-fullwidth is-hoverable">\n' +
-        '    <thead>\n' +
-        '      <tr>\n' +
-        '          <th>ID</th>\n' +
-        '          <th>Name</th>\n' +
-        '          <th>Files</th>\n' +
-        '          <th>Created at</th>\n' +
-        '          <th>Public link</th>\n' +
-        '          <th></th>\n' +
-        '      </tr>\n' +
-        '    </thead>\n' +
-        '    <tbody id="table">\n' +
-        '    </tbody>\n' +
-        '  </table>\n' +
-        '</div>'
-
-      var homeDomain = response.data.homeDomain
-      var table = document.getElementById('table')
-
-      for (var i = 0; i < response.data.albums.length; i++) {
-        var album = response.data.albums[i]
-        var albumUrl = homeDomain + '/a/' + album.identifier
-
-        // Prettify
-        album.prettyDate = page.getPrettyDate(new Date(album.timestamp * 1000))
-
-        page.albums[album.id] = {
-          name: album.name,
-          download: album.download,
-          public: album.public
-        }
-
-        var tr = document.createElement('tr')
-        tr.innerHTML =
-          '<tr>\n' +
-          '  <th>' + album.id + '</th>\n' +
-          '  <th>' + album.name + '</th>\n' +
-          '  <th>' + album.files + '</th>\n' +
-          '  <td>' + album.prettyDate + '</td>\n' +
-          '  <td><a' + (album.public ? (' href="' + albumUrl + '"') : '') + ' target="_blank" rel="noopener">' + albumUrl + '</a></td>\n' +
-          '  <td style="text-align: right" data-id="' + album.id + '">\n' +
-          '    <a class="button is-small is-primary" title="Edit album" data-action="edit-album">\n' +
-          '      <span class="icon is-small">\n' +
-          '        <i class="icon-pencil-1"></i>\n' +
-          '      </span>\n' +
-          '    </a>\n' +
-          '    <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ' + (album.public ? ('data-clipboard-text="' + albumUrl + '"') : 'disabled') + '>\n' +
-          '      <span class="icon is-small">\n' +
-          '        <i class="icon-clipboard-1"></i>\n' +
-          '      </span>\n' +
-          '    </a>\n' +
-          '    <a class="button is-small is-warning" title="Download album" ' + (album.download ? ('href="api/album/zip/' + album.identifier + '?v=' + album.editedAt + '"') : 'disabled') + '>\n' +
-          '      <span class="icon is-small">\n' +
-          '        <i class="icon-download"></i>\n' +
-          '      </span>\n' +
-          '    </a>\n' +
-          '    <a class="button is-small is-danger" title="Delete album" data-action="delete-album">\n' +
-          '      <span class="icon is-small">\n' +
-          '        <i class="icon-trash"></i>\n' +
-          '      </span>\n' +
-          '    </a>\n' +
-          '  </td>\n' +
-          '</tr>'
-
-        table.appendChild(tr)
-      }
-    })
-    .catch(function (error) {
-      console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+      table.appendChild(tr)
+    }
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.editAlbum = function (id) {
-  var album = page.albums[id]
+  const album = page.cache.albums[id]
   if (!album) { return }
 
-  var div = document.createElement('div')
-  div.innerHTML =
-    '<div class="field">\n' +
-    '  <label class="label">Album name</label>\n' +
-    '  <div class="controls">\n' +
-    '    <input id="_name" class="input" type="text" value="' + (album.name || '') + '">\n' +
-    '  </div>\n' +
-    '</div>\n' +
-    '<div class="field">\n' +
-    '  <div class="control">\n' +
-    '    <label class="checkbox">\n' +
-    '      <input id="_download" type="checkbox" ' + (album.download ? 'checked' : '') + '>\n' +
-    '      Enable download\n' +
-    '    </label>\n' +
-    '  </div>\n' +
-    '</div>\n' +
-    '<div class="field">\n' +
-    '  <div class="control">\n' +
-    '    <label class="checkbox">\n' +
-    '      <input id="_public" type="checkbox" ' + (album.public ? 'checked' : '') + '>\n' +
-    '      Enable public link\n' +
-    '    </label>\n' +
-    '  </div>\n' +
-    '</div>\n' +
-    '<div class="field">\n' +
-    '  <div class="control">\n' +
-    '    <label class="checkbox">\n' +
-    '      <input id="_requestLink" type="checkbox">\n' +
-    '      Request new public link\n' +
-    '    </label>\n' +
-    '  </div>\n' +
-    '</div>'
+  const div = document.createElement('div')
+  div.innerHTML = `
+    <div class="field">
+      <label class="label">Album name</label>
+      <div class="controls">
+        <input id="swalName" class="input" type="text" value="${album.name || ''}">
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="swalDownload" type="checkbox" ${album.download ? 'checked' : ''}>
+          Enable download
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="swalPublic" type="checkbox" ${album.public ? 'checked' : ''}>
+          Enable public link
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="swalRequestLink" type="checkbox">
+          Request new public link
+        </label>
+      </div>
+    </div>
+  `
 
   swal({
     title: 'Edit album',
@@ -1012,50 +1163,47 @@ page.editAlbum = function (id) {
         closeModal: false
       }
     }
-  })
-    .then(function (value) {
-      if (!value) { return }
+  }).then(function (value) {
+    if (!value) { return }
 
-      axios.post('api/albums/edit', {
-        id: id,
-        name: document.getElementById('_name').value,
-        download: document.getElementById('_download').checked,
-        public: document.getElementById('_public').checked,
-        requestLink: document.getElementById('_requestLink').checked
-      })
-        .then(function (response) {
-          if (!response) { return }
+    axios.post('api/albums/edit', {
+      id,
+      name: document.getElementById('swalName').value,
+      download: document.getElementById('swalDownload').checked,
+      public: document.getElementById('swalPublic').checked,
+      requestLink: document.getElementById('swalRequestLink').checked
+    }).then(function (response) {
+      if (!response) { return }
 
-          if (response.data.success === false) {
-            if (response.data.description === 'No token provided') {
-              return page.verifyToken(page.token)
-            } else {
-              return swal('An error occurred!', response.data.description, 'error')
-            }
-          }
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', response.data.description, 'error')
+        }
+      }
 
-          if (response.data.identifier) {
-            swal('Success!', 'Your album\'s new identifier is: ' + response.data.identifier + '.', 'success')
-          } else if (response.data.name !== album.name) {
-            swal('Success!', 'Your album was renamed to: ' + response.data.name + '.', 'success')
-          } else {
-            swal('Success!', 'Your album was edited!', 'success')
-          }
+      if (response.data.identifier) {
+        swal('Success!', `Your album's new identifier is: ${response.data.identifier}.`, 'success')
+      } else if (response.data.name !== album.name) {
+        swal('Success!', `Your album was renamed to: ${response.data.name}.`, 'success')
+      } else {
+        swal('Success!', 'Your album was edited!', 'success')
+      }
 
-          page.getAlbumsSidebar()
-          page.getAlbums()
-        })
-        .catch(function (error) {
-          console.log(error)
-          return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-        })
+      page.getAlbumsSidebar()
+      page.getAlbums()
+    }).catch(function (error) {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  })
 }
 
 page.deleteAlbum = function (id) {
   swal({
     title: 'Are you sure?',
-    text: 'This won\'t delete your files, only the album!',
+    text: 'This won\'t delete your uploads, only the album!',
     icon: 'warning',
     dangerMode: true,
     buttons: {
@@ -1065,38 +1213,35 @@ page.deleteAlbum = function (id) {
         closeModal: false
       },
       purge: {
-        text: 'Umm, delete the files too please?',
+        text: 'Umm, delete the uploads too please?',
         value: 'purge',
         className: 'swal-button--danger',
         closeModal: false
       }
     }
-  })
-    .then(function (proceed) {
-      if (!proceed) { return }
+  }).then(function (proceed) {
+    if (!proceed) { return }
 
-      axios.post('api/albums/delete', {
-        id: id,
-        purge: proceed === 'purge'
-      })
-        .then(function (response) {
-          if (response.data.success === false) {
-            if (response.data.description === 'No token provided') {
-              return page.verifyToken(page.token)
-            } else {
-              return swal('An error occurred!', response.data.description, 'error')
-            }
-          }
+    axios.post('api/albums/delete', {
+      id,
+      purge: proceed === 'purge'
+    }).then(function (response) {
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', response.data.description, 'error')
+        }
+      }
 
-          swal('Deleted!', 'Your album has been deleted.', 'success')
-          page.getAlbumsSidebar()
-          page.getAlbums()
-        })
-        .catch(function (error) {
-          console.log(error)
-          return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-        })
+      swal('Deleted!', 'Your album has been deleted.', 'success')
+      page.getAlbumsSidebar()
+      page.getAlbums()
+    }).catch(function (error) {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
+  })
 }
 
 page.submitAlbum = function (element) {
@@ -1104,246 +1249,240 @@ page.submitAlbum = function (element) {
 
   axios.post('api/albums', {
     name: document.getElementById('albumName').value
-  })
-    .then(function (response) {
-      if (!response) { return }
+  }).then(function (response) {
+    if (!response) { return }
 
-      page.isLoading(element, false)
+    page.isLoading(element, false)
 
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      swal('Woohoo!', 'Album was created successfully', 'success')
-      page.getAlbumsSidebar()
-      page.getAlbums()
-    })
-    .catch(function (error) {
-      console.log(error)
-      page.isLoading(element, false)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    swal('Woohoo!', 'Album was created successfully', 'success')
+    page.getAlbumsSidebar()
+    page.getAlbums()
+  }).catch(function (error) {
+    console.log(error)
+    page.isLoading(element, false)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.getAlbumsSidebar = function () {
-  axios.get('api/albums/sidebar')
-    .then(function (response) {
-      if (!response) { return }
+  axios.get('api/albums/sidebar').then(function (response) {
+    if (!response) { return }
 
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      var albumsContainer = document.getElementById('albumsContainer')
-      albumsContainer.innerHTML = ''
+    const albumsContainer = document.getElementById('albumsContainer')
+    albumsContainer.innerHTML = ''
 
-      if (response.data.albums === undefined) { return }
+    if (response.data.albums === undefined) { return }
 
-      for (var i = 0; i < response.data.albums.length; i++) {
-        var album = response.data.albums[i]
-        var li = document.createElement('li')
-        var a = document.createElement('a')
-        a.id = album.id
-        a.innerHTML = album.name
+    for (let i = 0; i < response.data.albums.length; i++) {
+      const album = response.data.albums[i]
+      const li = document.createElement('li')
+      const a = document.createElement('a')
+      a.id = album.id
+      a.innerHTML = album.name
 
-        a.addEventListener('click', function () {
-          page.getAlbum(this)
-        })
+      a.addEventListener('click', function () {
+        page.getAlbum(this)
+      })
 
-        li.appendChild(a)
-        albumsContainer.appendChild(li)
-      }
-    })
-    .catch(function (error) {
-      console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+      li.appendChild(a)
+      albumsContainer.appendChild(li)
+    }
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.getAlbum = function (album) {
   page.setActiveMenu(album)
-  page.getUploads(album.id)
+  page.getUploads({ album: album.id })
 }
 
 page.changeFileLength = function () {
-  axios.get('api/filelength/config')
-    .then(function (response) {
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+  axios.get('api/filelength/config').then(function (response) {
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      page.dom.innerHTML =
-        '<h2 class="subtitle">File name length</h2>\n' +
-        '<div class="field">\n' +
-        '  <div class="field">\n' +
-        '    <label class="label">Your current file name length:</label>\n' +
-        '    <div class="control">\n' +
-        '      <input id="fileLength" class="input" type="text" placeholder="Your file length" value="' + (response.data.fileLength ? Math.min(Math.max(response.data.fileLength, response.data.config.min), response.data.config.max) : response.data.config.default) + '">\n' +
-        '    </div>\n' +
-        '    <p class="help">Default file name length is <b>' + response.data.config.default + '</b> characters. ' + (response.data.config.userChangeable ? ('Range allowed for user is <b>' + response.data.config.min + '</b> to <b>' + response.data.config.max + '</b> characters.') : 'Changing file name length is disabled at the moment.') + '</p>\n' +
-        '  </div>\n' +
-        '  <div class="field">\n' +
-        '    <div class="control">\n' +
-        '      <a id="setFileLength" class="button is-breeze is-fullwidth">\n' +
-        '        <span class="icon">\n' +
-        '          <i class="icon-paper-plane-empty"></i>\n' +
-        '        </span>\n' +
-        '        <span>Set file name length</span>\n' +
-        '      </a>\n' +
-        '    </div>\n' +
-        '  <div>\n' +
-        '</div>'
+    // Shorter vars
+    const { max, min } = response.data.config
+    const [ chg, def ] = [ response.data.config.userChangeable, response.data.config.default ]
+    const len = response.data.fileLength
 
-      document.getElementById('setFileLength').addEventListener('click', function () {
-        page.setFileLength(document.getElementById('fileLength').value, this)
-      })
+    page.dom.innerHTML = `
+      <h2 class="subtitle">File name length</h2>
+      <div class="field">
+        <div class="field">
+          <label class="label">Your current file name length:</label>
+          <div class="control">
+            <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${len ? Math.min(Math.max(len, min), max) : def}">
+          </div>
+          <p class="help">Default file name length is <b>${def}</b> characters. ${(chg ? `Range allowed for user is <b>${min}</b> to <b>${max}</b> characters.` : 'Changing file name length is disabled at the moment.')}</p>
+        </div>
+        <div class="field">
+          <div class="control">
+            <a id="setFileLength" class="button is-breeze is-fullwidth">
+              <span class="icon">
+                <i class="icon-paper-plane-empty"></i>
+              </span>
+              <span>Set file name length</span>
+            </a>
+          </div>
+        <div>
+      </div>
+    `
+
+    document.getElementById('setFileLength').addEventListener('click', function () {
+      page.setFileLength(document.getElementById('fileLength').value, this)
     })
-    .catch(function (error) {
-      console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.setFileLength = function (fileLength, element) {
   page.isLoading(element, true)
 
-  axios.post('api/filelength/change', { fileLength: fileLength })
-    .then(function (response) {
-      page.isLoading(element, false)
+  axios.post('api/filelength/change', { fileLength }).then(function (response) {
+    page.isLoading(element, false)
 
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      swal({
-        title: 'Woohoo!',
-        text: 'Your file length was successfully changed.',
-        icon: 'success'
-      })
-        .then(function () {
-          page.changeFileLength()
-        })
+    swal({
+      title: 'Woohoo!',
+      text: 'Your file length was successfully changed.',
+      icon: 'success'
+    }).then(function () {
+      page.changeFileLength()
     })
-    .catch(function (error) {
-      console.log(error)
-      page.isLoading(element, false)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+  }).catch(function (error) {
+    console.log(error)
+    page.isLoading(element, false)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.changeToken = function () {
-  axios.get('api/tokens')
-    .then(function (response) {
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+  axios.get('api/tokens').then(function (response) {
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      page.dom.innerHTML =
-        '<h2 class="subtitle">Manage your token</h2>\n' +
-        '<div class="field">\n' +
-        '  <label class="label">Your current token:</label>\n' +
-        '  <div class="field">\n' +
-        '    <div class="control">\n' +
-        '      <input id="token" readonly class="input" type="text" placeholder="Your token" value="' + response.data.token + '">\n' +
-        '    </div>\n' +
-        '  </div>\n' +
-        '</div>\n' +
-        '<div class="field">\n' +
-        '  <div class="control">\n' +
-        '    <a id="getNewToken" class="button is-breeze is-fullwidth" data-action="get-new-token">\n' +
-        '      <span class="icon">\n' +
-        '        <i class="icon-arrows-cw"></i>\n' +
-        '      </span>\n' +
-        '      <span>Request new token</span>\n' +
-        '    </a>\n' +
-        '  </div>\n' +
-        '</div>'
-    })
-    .catch(function (error) {
-      console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    page.dom.innerHTML = `
+      <h2 class="subtitle">Manage your token</h2>
+      <div class="field">
+        <label class="label">Your current token:</label>
+        <div class="field">
+          <div class="control">
+            <input id="token" readonly class="input" type="text" placeholder="Your token" value="${response.data.token}">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="control">
+          <a id="getNewToken" class="button is-breeze is-fullwidth" data-action="get-new-token">
+            <span class="icon">
+              <i class="icon-arrows-cw"></i>
+            </span>
+            <span>Request new token</span>
+          </a>
+        </div>
+      </div>
+    `
+  }).catch(function (error) {
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.getNewToken = function (element) {
   page.isLoading(element, true)
 
-  axios.post('api/tokens/change')
-    .then(function (response) {
-      page.isLoading(element, false)
+  axios.post('api/tokens/change').then(function (response) {
+    page.isLoading(element, false)
 
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      swal({
-        title: 'Woohoo!',
-        text: 'Your token was successfully changed.',
-        icon: 'success'
-      })
-        .then(function () {
-          axios.defaults.headers.common.token = response.data.token
-          localStorage.token = response.data.token
-          page.token = response.data.token
-          page.changeToken()
-        })
+    swal({
+      title: 'Woohoo!',
+      text: 'Your token was successfully changed.',
+      icon: 'success'
+    }).then(function () {
+      axios.defaults.headers.common.token = response.data.token
+      localStorage[LS_KEYS.token] = response.data.token
+      page.token = response.data.token
+      page.changeToken()
     })
-    .catch(function (error) {
-      console.log(error)
-      page.isLoading(element, false)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+  }).catch(function (error) {
+    console.log(error)
+    page.isLoading(element, false)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.changePassword = function () {
-  page.dom.innerHTML =
-    '<h2 class="subtitle">Change your password</h2>\n' +
-    '<div class="field">\n' +
-    '  <label class="label">New password:</label>\n' +
-    '  <div class="control">\n' +
-    '    <input id="password" class="input" type="password">\n' +
-    '  </div>\n' +
-    '</div>\n' +
-    '<div class="field">\n' +
-    '  <label class="label">Re-type new password:</label>\n' +
-    '  <div class="control">\n' +
-    '    <input id="passwordConfirm" class="input" type="password">\n' +
-    '  </div>\n' +
-    '</div>\n' +
-    '<div class="field">\n' +
-    '  <div class="control">\n' +
-    '    <a id="sendChangePassword" class="button is-breeze is-fullwidth">\n' +
-    '      <span class="icon">\n' +
-    '        <i class="icon-paper-plane-empty"></i>\n' +
-    '      </span>\n' +
-    '      <span>Set new password</span>\n' +
-    '    </a>\n' +
-    '  </div>\n' +
-    '</div>'
+  page.dom.innerHTML = `
+    <h2 class="subtitle">Change your password</h2>
+    <div class="field">
+      <label class="label">New password:</label>
+      <div class="control">
+        <input id="password" class="input" type="password">
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Re-type new password:</label>
+      <div class="control">
+        <input id="passwordConfirm" class="input" type="password">
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <a id="sendChangePassword" class="button is-breeze is-fullwidth">
+          <span class="icon">
+            <i class="icon-paper-plane-empty"></i>
+          </span>
+          <span>Set new password</span>
+        </a>
+      </div>
+    </div>
+  `
 
   document.getElementById('sendChangePassword').addEventListener('click', function () {
     if (document.getElementById('password').value === document.getElementById('passwordConfirm').value) {
@@ -1361,38 +1500,35 @@ page.changePassword = function () {
 page.sendNewPassword = function (pass, element) {
   page.isLoading(element, true)
 
-  axios.post('api/password/change', { password: pass })
-    .then(function (response) {
-      page.isLoading(element, false)
+  axios.post('api/password/change', { password: pass }).then(function (response) {
+    page.isLoading(element, false)
 
-      if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
       }
+    }
 
-      swal({
-        title: 'Woohoo!',
-        text: 'Your password was successfully changed.',
-        icon: 'success'
-      })
-        .then(function () {
-          page.changePassword()
-        })
+    swal({
+      title: 'Woohoo!',
+      text: 'Your password was successfully changed.',
+      icon: 'success'
+    }).then(function () {
+      page.changePassword()
     })
-    .catch(function (error) {
-      console.log(error)
-      page.isLoading(element, false)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+  }).catch(function (error) {
+    console.log(error)
+    page.isLoading(element, false)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
 }
 
 page.setActiveMenu = function (activeItem) {
-  var menu = document.getElementById('menu')
-  var items = menu.getElementsByTagName('a')
-  for (var i = 0; i < items.length; i++) {
+  const menu = document.getElementById('menu')
+  const items = menu.getElementsByTagName('a')
+  for (let i = 0; i < items.length; i++) {
     items[i].classList.remove('is-active')
   }
 
@@ -1418,16 +1554,311 @@ page.getPrettyBytes = num => {
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
   if (!Number.isFinite(num)) { return num }
 
-  var neg = num < 0
+  const neg = num < 0
   if (neg) { num = -num }
-  if (num < 1) { return (neg ? '-' : '') + num + ' B' }
+  if (num < 1) { return `${neg ? '-' : ''}${num}B` }
 
-  var exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
-  var numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
-  var unit = page.byteUnits[exponent]
+  const exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
+  const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
+  const unit = page.byteUnits[exponent]
 
-  return (neg ? '-' : '') + numStr + ' ' + unit
+  return `${neg ? '-' : ''}${numStr} ${unit}`
 }
+
+page.getUsers = ({ pageNum } = {}, element) => {
+  if (element) { page.isLoading(element, true) }
+  if (pageNum === undefined) { pageNum = 0 }
+
+  if (!page.permissions.admin) {
+    return swal('An error occurred!', 'You can not do this!', 'error')
+  }
+
+  const url = `api/users/${pageNum}`
+  axios.get(url).then(function (response) {
+    if (response.data.success === false) {
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
+      }
+    }
+
+    if (pageNum && (response.data.users.length === 0)) {
+      // Only remove loading class here, since beyond this the entire page will be replaced anyways
+      if (element) { page.isLoading(element, false) }
+      return swal('An error occurred!', 'There are no more users!', 'error')
+    }
+
+    page.currentView = 'users'
+    page.cache.users = {}
+
+    const pagination = `
+      <nav class="pagination is-centered">
+        <a class="button pagination-previous" data-action="page-prev">Previous</a>
+        <a class="button pagination-next" data-action="page-next">Next page</a>
+      </nav>
+    `
+
+    const controls = `
+      <div class="columns">
+        <div class="column is-hidden-mobile"></div>
+        <div class="column" style="text-align: right">
+          <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
+            <span class="icon">
+              <i class="icon-cancel"></i>
+            </span>
+          </a>
+          <a class="button is-small is-warning" title="Bulk disable (WIP)" data-action="bulk-disable-users" disabled>
+            <span class="icon">
+              <i class="icon-hammer"></i>
+            </span>
+            <span>Bulk disable</span>
+          </a>
+          <a class="button is-small is-danger" title="Bulk delete (WIP)" data-action="bulk-delete-users" disabled>
+            <span class="icon">
+              <i class="icon-trash"></i>
+            </span>
+            <span>Bulk delete</span>
+          </a>
+        </div>
+      </div>
+    `
+
+    let allSelected = true
+
+    page.dom.innerHTML = `
+      ${pagination}
+      <hr>
+      ${controls}
+      <div class="table-container">
+        <table class="table is-narrow is-fullwidth is-hoverable">
+          <thead>
+            <tr>
+              <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all users" data-action="select-all"></th>
+              <th>ID</th>
+              <th style="width: 25%">Username</th>
+              <th>Uploads</th>
+              <th>Usage</th>
+              <th>File length</th>
+              <th>Group</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="table">
+          </tbody>
+        </table>
+      </div>
+      <hr>
+      ${pagination}
+    `
+
+    const table = document.getElementById('table')
+
+    for (let i = 0; i < response.data.users.length; i++) {
+      const user = response.data.users[i]
+      const selected = page.selected.users.includes(user.id)
+      if (!selected && allSelected) { allSelected = false }
+
+      let displayGroup = null
+      for (const group of Object.keys(user.groups)) {
+        if (!user.groups[group]) { break }
+        displayGroup = group
+      }
+
+      // Server-side explicitly expects either of these two values to consider a user as disabled
+      const enabled = user.enabled !== false && user.enabled !== 0
+      page.cache.users[user.id] = {
+        username: user.username,
+        groups: user.groups,
+        enabled,
+        displayGroup
+      }
+
+      const tr = document.createElement('tr')
+      tr.dataset.id = user.id
+      tr.innerHTML = `
+        <td class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></td>
+        <th>${user.id}</th>
+        <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</td>
+        <th>${user.uploadsCount}</th>
+        <td>${page.getPrettyBytes(user.diskUsage)}</td>
+        <td>${user.fileLength || 'default'}</td>
+        <td>${displayGroup}</td>
+        <td class="controls" style="text-align: right">
+          <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
+            <span class="icon">
+              <i class="icon-pencil-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-warning" title="Disable user (WIP)" data-action="disable-user" disabled>
+            <span class="icon">
+              <i class="icon-hammer"></i>
+            </span>
+          </a>
+          <a class="button is-small is-danger" title="Delete user (WIP)" data-action="delete-user" disabled>
+            <span class="icon">
+              <i class="icon-trash"></i>
+            </span>
+          </a>
+        </td>
+      `
+
+      table.appendChild(tr)
+      // page.checkboxes.users = Array.from(table.getElementsByClassName('checkbox'))
+      page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+    }
+
+    if (allSelected && response.data.users.length) {
+      const selectAll = document.getElementById('selectAll')
+      if (selectAll) { selectAll.checked = true }
+    }
+
+    page.views.users.pageNum = response.data.users.length ? pageNum : 0
+  }).catch(function (error) {
+    if (element) { page.isLoading(element, false) }
+    console.log(error)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+  })
+}
+
+page.editUser = function (id) {
+  const user = page.cache.users[id]
+  if (!user) { return }
+
+  const groupOptions = Object.keys(page.permissions).map((g, i, a) => {
+    const selected = g === user.displayGroup
+    const disabled = !(a[i + 1] && page.permissions[a[i + 1]])
+    return `<option value="${g}"${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}>${g}</option>`
+  }).join('\n')
+
+  const div = document.createElement('div')
+  div.innerHTML = `
+    <div class="field">
+      <label class="label">Username</label>
+      <div class="controls">
+        <input id="swalUsername" class="input" type="text" value="${user.username || ''}">
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">User group</label>
+      <div class="control">
+        <div class="select is-fullwidth">
+          <select id="swalGroup">
+            ${groupOptions}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="swalEnabled" type="checkbox" ${user.enabled ? 'checked' : ''}>
+          Enabled
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <label class="checkbox">
+          <input id="swalResetPassword" type="checkbox">
+          Reset password
+        </label>
+      </div>
+    </div>
+  `
+
+  swal({
+    title: 'Edit user',
+    icon: 'info',
+    content: div,
+    buttons: {
+      cancel: true,
+      confirm: {
+        closeModal: false
+      }
+    }
+  }).then(function (value) {
+    if (!value) { return }
+
+    axios.post('api/users/edit', {
+      id,
+      username: document.getElementById('swalUsername').value,
+      group: document.getElementById('swalGroup').value,
+      enabled: document.getElementById('swalEnabled').checked,
+      resetPassword: document.getElementById('swalResetPassword').checked
+    }).then(function (response) {
+      if (!response) { return }
+
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', response.data.description, 'error')
+        }
+      }
+
+      if (response.data.password) {
+        const div = document.createElement('div')
+        div.innerHTML = `
+          <p>${user.username}'s new password is:</p>
+          <p class="is-code">${response.data.password}</p>
+        `
+        swal({
+          title: 'Success!',
+          icon: 'success',
+          content: div
+        })
+      } else if (response.data.name !== user.name) {
+        swal('Success!', `${user.username} was renamed into: ${response.data.name}.`, 'success')
+      } else {
+        swal('Success!', 'The user was edited!', 'success')
+      }
+
+      page.getUsers(page.views.users)
+    }).catch(function (error) {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  })
+}
+
+/*
+page.disableUser = function (id) {
+  swal({
+    title: 'Are you sure?',
+    text: `You will be disabling a user with the username <b>${page.cache.users.id.username}!</b>`,
+    icon: 'warning',
+    dangerMode: true,
+    buttons: {
+      cancel: true,
+      confirm: {
+        text: 'Yes, disable them!',
+        closeModal: false
+      }
+    }
+  }).then(function (proceed) {
+    if (!proceed) { return }
+
+    axios.post('api/users/disable', { id }).then(function (response) {
+      if (!response) { return }
+
+      if (response.data.success === false) {
+        if (response.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          return swal('An error occurred!', response.data.description, 'error')
+        }
+      }
+
+      swal('Success!', 'The user has been disabled.', 'success')
+      page.getUsers(page.views.users)
+    }).catch(function (error) {
+      console.log(error)
+      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  })
+}
+*/
 
 window.onload = function () {
   // Add 'no-touch' class to non-touch devices
@@ -1435,9 +1866,10 @@ window.onload = function () {
     document.documentElement.classList.add('no-touch')
   }
 
-  var selectedFiles = localStorage.selectedFiles
-  if (selectedFiles) {
-    page.selectedFiles = JSON.parse(selectedFiles)
+  const selectedKeys = ['uploads', 'users']
+  for (const selectedKey of selectedKeys) {
+    const ls = localStorage[LS_KEYS.selected[selectedKey]]
+    if (ls) { page.selected[selectedKey] = JSON.parse(ls) }
   }
 
   page.preparePage()
