@@ -84,7 +84,7 @@ A sample of the returning json from the endpoint can be seen below:
 }
 ```
 
-To make it easier and better than any other service, you can download [our Chrome extension](https://chrome.google.com/webstore/detail/lolisafe-uploader/enkkmplljfjppcdaancckgilmgoiofnj) that will let you configure your hostname and tokens, so that you can simply `right click` ->  `loli-safe` -> `send to safe` to any image/audio/video file on the web.
+To make it easier and better than any other service, you can download [our Chrome extension](https://chrome.google.com/webstore/detail/lolisafe-uploader/enkkmplljfjppcdaancckgilmgoiofnj). That will let you configure your hostname and tokens, so that you can simply `right click` ->  `loli-safe` -> `send to safe` on any image/audio/video file on the web.
 
 Because of how nodejs apps work, if you want it attached to a domain name you will need to make a reverse proxy for it.
 
@@ -96,14 +96,14 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [safe.fiery.me](https://safe.fiery.me): Just another clone.
 - [kayo.moe](https://kayo.moe): File hosting for all~
 - [dmca.gripe](https://dmca.gripe): a dmca-resistant, permanent file hosting service.
-- [succmy.wang](https://succmy.wang): A private clone with a funny name
+- [safe.succmy.wang](https://safe.succmy.wang): A private clone with a ~~funny~~ bad name
 - [namir.in](https://namir.in): A private clone dedicated to best girl.
 - [safe.waliant.pw](https://safe.waliant.pw): A generic private clone for personal use.
 - [a.hyper.lol](https://a.hyper.lol): My personal clone with some ~~terrible~~ great changes.
 - [discordjs.moe](https://discordjs.moe): A まじ卍 as fuck copy of lolisafe.moe
 - [i.liich.me](https://i.liich.me): Another private clone with a different look.
 - [discordimages.com](https://discordimages.com): A file hosting service that is available for public use.
-- [uwu.ninja](https://uwu.ninja): UwU'ish your uploads with us, now. plz. 
+- [uwu.ninja](https://uwu.ninja): UwU'ish your uploads with us, now. plz.
 - Feel free to add yours here.
 
 ## Author
