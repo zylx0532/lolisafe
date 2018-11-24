@@ -1,10 +1,10 @@
 .DS_Store
 .nvmrc
-.vscode/
+.vscode
 !.gitkeep
-node_modules/
-uploads/
-logs/
+node_modules
+uploads
+logs
 database/db
 config.js
 start.json
