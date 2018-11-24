@@ -18,7 +18,8 @@
     "start": "node ./lolisafe.js",
     "pm2": "pm2 start --name lolisafe ./lolisafe.js",
     "thumbs": "node ./scripts/thumbs.js",
-    "randver": "node -e \"console.log(require('randomstring').generate(10))\""
+    "randver": "node -e \"console.log(require('randomstring').generate(10))\"",
+    "pull": "git stash; git pull; git stash pop"
   },
   "dependencies": {
     "bcrypt": "^2.0.0",
