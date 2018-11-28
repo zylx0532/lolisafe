@@ -64,7 +64,7 @@ const upload = multer({
     const extname = utils.extname(file.originalname)
     if (uploadsController.isExtensionFiltered(extname)) {
       // eslint-disable-next-line standard/no-callback-literal
-      return cb(`${extname.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
+      return cb(`${extname ? `${extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted.`)
     }
 
     // Re-map Dropzone keys so people can manually use the API without prepending 'dz'
@@ -81,7 +81,7 @@ const upload = multer({
         return cb('Chunk error occurred. Total file size is larger than the maximum file size.')
       } else if (!chunkedUploads) {
         // eslint-disable-next-line standard/no-callback-literal
-        return cb('Chunked uploads is disabled at the moment.')
+        return cb('Chunked uploads are disabled at the moment.')
       }
     }
 
@@ -90,8 +90,9 @@ const upload = multer({
 }).array('files[]')
 
 uploadsController.isExtensionFiltered = extname => {
+  if (!extname && config.filterNoExtension) { return true }
   // If there are extensions that have to be filtered
-  if (config.extensionsFilter && config.extensionsFilter.length) {
+  if (extname && config.extensionsFilter && config.extensionsFilter.length) {
     const match = config.extensionsFilter.some(extension => extname === extension.toLowerCase())
     if ((config.filterBlacklist && match) || (!config.filterBlacklist && !match)) {
       return true
@@ -113,13 +114,21 @@ uploadsController.getFileNameLength = req => {
 uploadsController.getUniqueRandomName = (length, extension) => {
   return new Promise((resolve, reject) => {
     const access = i => {
-      const name = randomstring.generate(length) + extension
-      fs.access(path.join(uploadsDir, name), error => {
-        if (error) { return resolve(name) }
-        console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
-        if (i < maxTries) { return access(i) }
-        // eslint-disable-next-line prefer-promise-reject-errors
-        return reject('Sorry, we could not allocate a unique random name. Try again?')
+      const identifier = randomstring.generate(length)
+      // Read all files names from uploads directory, then filter matching names (as in the identifier)
+      fs.readdir(uploadsDir, (error, names) => {
+        if (error) { return reject(error) }
+        if (names.length) {
+          for (const name of names.filter(name => name.startsWith(identifier))) {
+            if (name.split('.')[0] === identifier) {
+              console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
+              if (i < maxTries) { return access(i) }
+              // eslint-disable-next-line prefer-promise-reject-errors
+              return reject('Sorry, we could not allocate a unique random name. Try again?')
+            }
+          }
+        }
+        return resolve(identifier + extension)
       })
     }
     access(0)
@@ -157,7 +166,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
     if (isError) { console.error(error) }
-    res.json({
+    res.status(400).json({
       success: false,
       description: isError ? error.toString() : error
     })
@@ -203,7 +212,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
     if (isError) { console.error(error) }
-    res.json({
+    res.status(400).json({
       success: false,
       description: isError ? error.toString() : error
     })
@@ -319,26 +328,27 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
     if (isError) { console.error(error) }
-    res.json({
+    res.status(400).json({
       success: false,
       description: isError ? error.toString() : error
     })
   }
 
   const files = req.body.files
-  if (!files || !(files instanceof Array)) { return erred('Missing "files" property (Array).') }
-  if (!files.length) { return erred('"files" property can not be empty.') }
+  if (!files || !(files instanceof Array) || !files.length) { return erred('Invalid "files" property (Array).') }
 
   let iteration = 0
   const infoMap = []
   for (const file of files) {
-    if (!file.uuid || typeof file.uuid !== 'string') { return erred('Missing or empty "uuid" property (string).') }
-    if (typeof file.count !== 'number') { return erred('Missing "count" property (number).') }
-    if (file.count < 1) { return erred('"count" property can not be less than 1.') }
+    if (!file.uuid || typeof file.uuid !== 'string') { return erred('Invalid "uuid" property (string).') }
+    if (typeof file.count !== 'number' || file.count < 1) { return erred('Invalid "count" property (number).') }
 
     const uuidDir = path.join(chunksDir, file.uuid)
     fs.readdir(uuidDir, async (error, chunkNames) => {
-      if (error) { return erred(error) }
+      if (error) {
+        if (error.code === 'ENOENT') { return erred('UUID is not being used.') }
+        return erred(error)
+      }
       if (file.count < chunkNames.length) { return erred('Chunks count mismatch.') }
 
       const extension = typeof file.original === 'string' ? utils.extname(file.original) : ''

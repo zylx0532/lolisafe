@@ -25,6 +25,10 @@ utilsController.mayGenerateThumb = extname => {
 utilsController.preserves = ['.tar.gz', '.tar.z', '.tar.bz2', '.tar.lzma', '.tar.lzo', '.tar.xz']
 
 utilsController.extname = filename => {
+  // Always return blank string if the filename does not seem to have a valid extension
+  // Files such as .DS_Store (anything that starts with a dot, without any extension after) will still be accepted
+  if (!/\../.test(filename)) { return '' }
+
   let lower = filename.toLowerCase() // due to this, the returned extname will always be lower case
   let multi = ''
   let extname = ''

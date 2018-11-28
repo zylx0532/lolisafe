@@ -282,7 +282,7 @@ page.prepareDropzone = function () {
   page.dropzone.on('error', function (file, error) {
     file.previewElement.querySelector('.progress').style.display = 'none'
     file.previewElement.querySelector('.name').innerHTML = file.name
-    file.previewElement.querySelector('.error').innerHTML = error
+    file.previewElement.querySelector('.error').innerHTML = error.description || error
   })
 
   if (typeof page.prepareShareX === 'function') { page.prepareShareX() }

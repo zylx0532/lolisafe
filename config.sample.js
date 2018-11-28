@@ -73,6 +73,11 @@ module.exports = {
   ],
 
   /*
+    If set to true, files with no extensions will always be rejected.
+  */
+  filterNoExtension: false,
+
+  /*
     Show hash of the current git commit in homepage.
   */
   showGitHash: false,
