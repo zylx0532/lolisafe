@@ -169,9 +169,8 @@ module.exports = {
     maxTries: 1,
 
     /*
-      Thumbnails are only for the admin panel and they require you to install
-      a separate binary called graphicsmagick (http://www.graphicsmagick.org) for images
-      and ffmpeg (https://ffmpeg.org/) for video files.
+      Thumbnails are only for the dashboard.
+      You need to install a separate binary called ffmpeg (https://ffmpeg.org/) for video thumbnails.
     */
     generateThumbs: {
       image: true,

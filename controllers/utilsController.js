@@ -3,9 +3,9 @@ const db = require('knex')(config.database)
 const fetch = require('node-fetch')
 const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
-const gm = require('gm')
 const path = require('path')
 const perms = require('./permissionController')
+const sharp = require('sharp')
 
 const utilsController = {}
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
@@ -102,13 +102,21 @@ utilsController.generateThumbs = (name, force) => {
 
       // If image extension
       if (utilsController.imageExtensions.includes(extname)) {
-        const size = { width: 200, height: 200 }
-        return gm(path.join(__dirname, '..', config.uploads.folder, name))
-          .resize(size.width, size.height + '>')
-          .gravity('Center')
-          .extent(size.width, size.height)
-          .background('transparent')
-          .write(thumbname, error => {
+        const resizeOptions = {
+          width: 200,
+          height: 200,
+          fit: 'contain',
+          background: {
+            r: 0,
+            g: 0,
+            b: 0,
+            alpha: 0
+          }
+        }
+        return sharp(path.join(__dirname, '..', config.uploads.folder, name))
+          .resize(resizeOptions)
+          .toFile(thumbname)
+          .catch(error => {
             if (!error) { return resolve(true) }
             console.error(`${name}: ${error.message.trim()}`)
             fs.symlink(thumbUnavailable, thumbname, error => {
