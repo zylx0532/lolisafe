@@ -42,7 +42,7 @@ const storage = multer.diskStorage({
     if (!chunkedUploads || (req.body.uuid === undefined && req.body.chunkindex === undefined)) {
       const extension = utils.extname(file.originalname)
       const length = uploadsController.getFileNameLength(req)
-      return uploadsController.getUniqueRandomName(length, extension)
+      return uploadsController.getUniqueRandomName(length, extension, req.app.get('uploads-set'))
         .then(name => cb(null, name))
         .catch(error => cb(error))
     }
@@ -111,25 +111,38 @@ uploadsController.getFileNameLength = req => {
   return config.uploads.fileLength.default || 32
 }
 
-uploadsController.getUniqueRandomName = (length, extension) => {
+uploadsController.getUniqueRandomName = (length, extension, set) => {
   return new Promise((resolve, reject) => {
     const access = i => {
       const identifier = randomstring.generate(length)
-      // Read all files names from uploads directory, then filter matching names (as in the identifier)
-      fs.readdir(uploadsDir, (error, names) => {
-        if (error) { return reject(error) }
-        if (names.length) {
-          for (const name of names.filter(name => name.startsWith(identifier))) {
-            if (name.split('.')[0] === identifier) {
-              console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
-              if (i < maxTries) { return access(i) }
-              // eslint-disable-next-line prefer-promise-reject-errors
-              return reject('Sorry, we could not allocate a unique random name. Try again?')
+      if (set) {
+        // Filter matching names from uploads tree (as in the identifier)
+        if (set.has(identifier)) {
+          console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
+          if (i < maxTries) { return access(i) }
+          // eslint-disable-next-line prefer-promise-reject-errors
+          return reject('Sorry, we could not allocate a unique random name. Try again?')
+        }
+        set.add(identifier)
+        // console.log(`Added ${identifier} to identifiers cache`)
+        return resolve(identifier + extension)
+      } else {
+        // Read all files names from uploads directory, then filter matching names (as in the identifier)
+        fs.readdir(uploadsDir, (error, names) => {
+          if (error) { return reject(error) }
+          if (names.length) {
+            for (const name of names.filter(name => name.startsWith(identifier))) {
+              if (name.split('.')[0] === identifier) {
+                console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
+                if (i < maxTries) { return access(i) }
+                // eslint-disable-next-line prefer-promise-reject-errors
+                return reject('Sorry, we could not allocate a unique random name. Try again?')
+              }
             }
           }
-        }
-        return resolve(identifier + extension)
-      })
+          return resolve(identifier + extension)
+        })
+      }
     }
     access(0)
   })
@@ -196,7 +209,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
     })
 
     if (config.uploads.scan && config.uploads.scan.enabled) {
-      const scan = await uploadsController.scanFiles(req, infoMap)
+      const scan = await uploadsController.scanFiles(req.app.get('clam-scanner'), infoMap)
       if (scan) { return erred(scan) }
     }
 
@@ -260,7 +273,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
       const file = await fetchFile.buffer()
 
       const length = uploadsController.getFileNameLength(req)
-      const name = await uploadsController.getUniqueRandomName(length, extension)
+      const name = await uploadsController.getUniqueRandomName(length, extension, req.app.get('uploads-set'))
 
       const destination = path.join(uploadsDir, name)
       fs.writeFile(destination, file, async error => {
@@ -282,7 +295,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
         iteration++
         if (iteration === urls.length) {
           if (config.uploads.scan && config.uploads.scan.enabled) {
-            const scan = await uploadsController.scanFiles(req, infoMap)
+            const scan = await uploadsController.scanFiles(req.app.get('clam-scanner'), infoMap)
             if (scan) { return erred(scan) }
           }
 
@@ -357,7 +370,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       }
 
       const length = uploadsController.getFileNameLength(req)
-      const name = await uploadsController.getUniqueRandomName(length, extension)
+      const name = await uploadsController.getUniqueRandomName(length, extension, req.app.get('uploads-set'))
         .catch(erred)
       if (!name) { return }
 
@@ -407,7 +420,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       iteration++
       if (iteration === files.length) {
         if (config.uploads.scan && config.uploads.scan.enabled) {
-          const scan = await uploadsController.scanFiles(req, infoMap)
+          const scan = await uploadsController.scanFiles(req.app.get('clam-scanner'), infoMap)
           if (scan) { return erred(scan) }
         }
 
@@ -534,7 +547,13 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
+          const identifier = info.data.filename.split('.')[0]
           utils.deleteFile(info.data.filename).catch(console.error)
+          const set = req.app.get('uploads-set')
+          if (set) {
+            set.delete(identifier)
+            // console.log(`Removed ${identifier} from identifiers cache (formatInfoMap)`)
+          }
           existingFiles.push(dbFile)
         }
 
@@ -547,11 +566,9 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
   })
 }
 
-uploadsController.scanFiles = (req, infoMap) => {
+uploadsController.scanFiles = (scanner, infoMap) => {
   return new Promise(async (resolve, reject) => {
     let iteration = 0
-    const scanner = req.app.get('clam-scanner')
-
     for (const info of infoMap) {
       scanner.scanFile(info.path).then(reply => {
         if (!reply.includes('OK') || reply.includes('FOUND')) {
@@ -645,7 +662,7 @@ uploadsController.bulkDelete = async (req, res) => {
     return res.json({ success: false, description: 'No array of files specified.' })
   }
 
-  const failed = await utils.bulkDeleteFiles(field, values, user)
+  const failed = await utils.bulkDeleteFiles(field, values, user, req.app.get('uploads-set'))
   if (failed.length < values.length) {
     return res.json({ success: true, failed })
   }
