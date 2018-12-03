@@ -131,7 +131,7 @@ const start = async () => {
     if (!created) { return process.exit(1) }
   }
 
-  const IDS_CACHE = false // experimental, set to false to disable
+  const IDS_CACHE = true // experimental, set to false to disable
   if (IDS_CACHE) {
     // Cache tree of uploads directory
     process.stdout.write('Caching identifiers in uploads directory ...')
