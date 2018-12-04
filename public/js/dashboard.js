@@ -68,7 +68,9 @@ const page = {
   imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png'],
 
   // byte units for getPrettyBytes()
-  byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+
+  fadingIn: null
 }
 
 page.preparePage = function () {
@@ -267,6 +269,17 @@ page.isLoading = function (element, state) {
   element.classList.remove('is-loading')
 }
 
+page.fadeIn = function (content) {
+  if (page.fadingIn) {
+    clearTimeout(page.fadingIn)
+    page.dom.classList.remove('fade-in')
+  }
+  page.dom.classList.add('fade-in')
+  page.fadingIn = setTimeout(function () {
+    page.dom.classList.remove('fade-in')
+  }, 500)
+}
+
 page.getUploads = function ({ album, pageNum, all } = {}, element) {
   if (element) { page.isLoading(element, true) }
   if (pageNum === undefined) { pageNum = 0 }
@@ -354,6 +367,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         </div>
         ${pagination}
       `
+      page.fadeIn()
 
       const table = document.getElementById('table')
 
@@ -446,6 +460,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         <hr>
         ${pagination}
       `
+      page.fadeIn()
 
       const table = document.getElementById('table')
 
@@ -823,6 +838,7 @@ page.deleteByNames = function () {
       </div>
     </div>
   `
+  page.fadeIn()
 }
 
 page.deleteFileByNames = function () {
@@ -1059,6 +1075,7 @@ page.getAlbums = function () {
         </table>
       </div>
     `
+    page.fadeIn()
 
     const homeDomain = response.data.homeDomain
     const table = document.getElementById('table')
@@ -1351,6 +1368,7 @@ page.changeFileLength = function () {
         <div>
       </div>
     `
+    page.fadeIn()
 
     document.getElementById('setFileLength').addEventListener('click', function () {
       page.setFileLength(document.getElementById('fileLength').value, this)
@@ -1420,6 +1438,7 @@ page.changeToken = function () {
         </div>
       </div>
     `
+    page.fadeIn()
   }).catch(function (error) {
     console.log(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
@@ -1483,6 +1502,7 @@ page.changePassword = function () {
       </div>
     </div>
   `
+  page.fadeIn()
 
   document.getElementById('sendChangePassword').addEventListener('click', function () {
     if (document.getElementById('password').value === document.getElementById('passwordConfirm').value) {
@@ -1651,6 +1671,7 @@ page.getUsers = ({ pageNum } = {}, element) => {
       <hr>
       ${pagination}
     `
+    page.fadeIn()
 
     const table = document.getElementById('table')
 

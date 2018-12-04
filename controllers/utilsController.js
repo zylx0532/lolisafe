@@ -175,9 +175,10 @@ utilsController.deleteFile = file => {
  * @param  {string} field
  * @param  {any} values
  * @param  {user} user
+ * @param  {Set} set
  * @return {any[]} failed
  */
-utilsController.bulkDeleteFiles = async (field, values, user) => {
+utilsController.bulkDeleteFiles = async (field, values, user, set) => {
   if (!user || !['id', 'name'].includes(field)) { return }
 
   const ismoderator = perms.is(user, 'moderator')
@@ -189,14 +190,17 @@ utilsController.bulkDeleteFiles = async (field, values, user) => {
       }
     })
 
-  const deleted = []
+  // an array of file object
+  const deletedFiles = []
+
+  // an array of value of the specified field
   const failed = values.filter(value => !files.find(file => file[field] === value))
 
   // Delete all files physically
   await Promise.all(files.map(file => {
     return new Promise(async resolve => {
       await utilsController.deleteFile(file.name)
-        .then(() => deleted.push(file.id))
+        .then(() => deletedFiles.push(file))
         .catch(error => {
           failed.push(file[field])
           console.error(error)
@@ -205,16 +209,24 @@ utilsController.bulkDeleteFiles = async (field, values, user) => {
     })
   }))
 
-  if (!deleted.length) { return failed }
+  if (!deletedFiles.length) { return failed }
 
   // Delete all files from database
+  const deletedIds = deletedFiles.map(file => file.id)
   const deleteDb = await db.table('files')
-    .whereIn('id', deleted)
+    .whereIn('id', deletedIds)
     .del()
     .catch(console.error)
   if (!deleteDb) { return failed }
 
-  const filtered = files.filter(file => deleted.includes(file.id))
+  if (set) {
+    deletedFiles.forEach(file => {
+      const identifier = file.name.split('.')[0]
+      set.delete(identifier)
+      // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
+    })
+  }
+  const filtered = files.filter(file => deletedIds.includes(file.id))
 
   // Update albums if necessary
   if (deleteDb) {

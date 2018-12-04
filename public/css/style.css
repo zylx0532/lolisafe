@@ -5,6 +5,8 @@ html {
 
 body {
   color: #eff0f1;
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
 }
 
 .title {
@@ -115,9 +117,28 @@ hr {
   border-bottom-right-radius: 0;
   right: 1%;
   opacity: .25;
+  -webkit-transition: opacity .25s;
   transition: opacity .25s;
 }
 
 .render.button:hover {
   opacity: 1;
+}
+
+@-webkit-keyframes fadeInOpacity {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInOpacity {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }

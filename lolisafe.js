@@ -10,6 +10,7 @@ const fs = require('fs')
 const helmet = require('helmet')
 const nunjucks = require('nunjucks')
 const RateLimit = require('express-rate-limit')
+const readline = require('readline')
 const safe = express()
 
 // It appears to be best to catch these before doing anything else
@@ -130,12 +131,46 @@ const start = async () => {
     if (!created) { return process.exit(1) }
   }
 
+  if (config.uploads.cacheIdentifiers) {
+    // Cache tree of uploads directory
+    process.stdout.write('Caching identifiers in uploads directory ...')
+    const setSize = await new Promise((resolve, reject) => {
+      const uploadsDir = `./${config.uploads.folder}`
+      fs.readdir(uploadsDir, (error, names) => {
+        if (error) { return reject(error) }
+        const set = new Set()
+        names.forEach(name => set.add(name.split('.')[0]))
+        safe.set('uploads-set', set)
+        resolve(set.size)
+      })
+    }).catch(error => console.error(error.toString()))
+    if (!setSize) { return process.exit(1) }
+    process.stdout.write(` ${setSize} OK!\n`)
+  }
+
   safe.listen(config.port, () => {
     console.log(`lolisafe started on port ${config.port}`)
     if (process.env.DEV === '1') {
       // DEV=1 yarn start
       console.log('lolisafe is in development mode, nunjucks caching disabled')
     }
+
+    // Add readline interface to allow evaluating arbitrary JavaScript from console
+    readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: ''
+    }).on('line', line => {
+      try {
+        if (line === '.exit') { process.exit(0) }
+        // eslint-disable-next-line no-eval
+        process.stdout.write(`${require('util').inspect(eval(line), { depth: 0 })}\n`)
+      } catch (error) {
+        console.error(error.toString())
+      }
+    }).on('SIGINT', () => {
+      process.exit(0)
+    })
   })
 }
 
