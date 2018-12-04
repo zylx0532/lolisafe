@@ -131,7 +131,7 @@ const start = async () => {
     if (!created) { return process.exit(1) }
   }
 
-  if (config.uploads.cacheIdentifiers) {
+  if (config.uploads.cacheFileIdentifiers) {
     // Cache tree of uploads directory
     process.stdout.write('Caching identifiers in uploads directory ...')
     const setSize = await new Promise((resolve, reject) => {
