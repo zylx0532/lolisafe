@@ -1,6 +1,13 @@
+body {
+  -webkit-animation: none;
+  animation: none;
+}
+
 #auth,
 #dashboard {
-  display: none
+  display: none;
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
 }
 
 .section {
@@ -33,6 +40,23 @@
 
 .menu-list a[disabled]:hover {
   background: none;
+}
+
+ul#albumsContainer {
+  border-left: 0;
+  padding-left: 0;
+}
+
+ul#albumsContainer li {
+  border-left: 1px solid #898b8d;
+  padding-left: .75em;
+  -webkit-animation: animateAlbum 1s;
+  animation: animateAlbum 1s
+}
+
+#page.fade-in {
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s
 }
 
 .pagination a {
@@ -196,4 +220,26 @@
 
 .is-linethrough {
   text-decoration: line-through
+}
+
+@-webkit-keyframes animateAlbum {
+  0% {
+    opacity: 0;
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    max-height: 36px;
+  }
+}
+
+@keyframes animateAlbum {
+  0% {
+    opacity: 0;
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    max-height: 36px;
+  }
 }

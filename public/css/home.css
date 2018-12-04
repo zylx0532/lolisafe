@@ -111,6 +111,11 @@
   margin-bottom: 1rem;
 }
 
+.uploads>div {
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
+}
+
 .uploads.nojs {
   margin-bottom: 0;
 }
@@ -138,6 +143,11 @@
   margin-top: 5px;
 }
 
+#albumDiv {
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
+}
+
 #albumDiv .control {
   text-align: inherit;
 }
@@ -145,6 +155,8 @@
 #linksColumn {
   margin-left: -0.25rem;
   margin-right: -0.25rem;
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
 }
 
 #linksColumn .column {
@@ -159,6 +171,8 @@
 
 #tabs {
   margin-bottom: 1rem;
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
 }
 
 #tabs ul {
@@ -181,4 +195,6 @@
 
 .tab-content {
   margin-bottom: -.75rem;
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
 }

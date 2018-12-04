@@ -131,8 +131,7 @@ const start = async () => {
     if (!created) { return process.exit(1) }
   }
 
-  const IDS_CACHE = true // experimental, set to false to disable
-  if (IDS_CACHE) {
+  if (config.uploads.cacheIdentifiers) {
     // Cache tree of uploads directory
     process.stdout.write('Caching identifiers in uploads directory ...')
     const setSize = await new Promise((resolve, reject) => {

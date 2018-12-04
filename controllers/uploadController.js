@@ -115,7 +115,7 @@ uploadsController.getUniqueRandomName = (length, extension, set) => {
   return new Promise((resolve, reject) => {
     const access = i => {
       const identifier = randomstring.generate(length)
-      if (set) {
+      if (config.uploads.cacheFileIdentifiers) {
         // Filter matching names from uploads tree (as in the identifier)
         if (set.has(identifier)) {
           console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
