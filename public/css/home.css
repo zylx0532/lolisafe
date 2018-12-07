@@ -153,6 +153,7 @@
 }
 
 #linksColumn {
+  margin-top: -0.25rem;
   margin-left: -0.25rem;
   margin-right: -0.25rem;
   -webkit-animation: fadeInOpacity .5s;
@@ -160,8 +161,7 @@
 }
 
 #linksColumn .column {
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding: 0.25rem;
 }
 
 #linksColumn>span {
@@ -197,4 +197,9 @@
   margin-bottom: -.75rem;
   -webkit-animation: fadeInOpacity .5s;
   animation: fadeInOpacity .5s;
+}
+
+.git-commit a {
+  display: inline-block;
+  word-break: break-all;
 }

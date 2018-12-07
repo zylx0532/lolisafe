@@ -111,7 +111,7 @@ page.prepareDashboard = function () {
   page.dom = document.getElementById('page')
   page.dom.addEventListener('click', page.domClick, true)
 
-  document.getElementById('auth').style.display = 'none'
+  // document.getElementById('auth').style.display = 'none'
   document.getElementById('dashboard').style.display = 'block'
 
   if (page.permissions.moderator) {

@@ -6,10 +6,10 @@
 #}
 
 <noscript>
-  <style>body > section { display: none !important; }</style>
-  <section class="hero is-fullheight has-text-centered">
-    <div class="hero-body section">
-      <div class="container">
+  <style>body > section:not(#noscript) { display: none !important; }</style>
+  <section id="noscript" class="hero is-fullheight">
+    <div class="hero-body">
+      <div class="container has-text-centered">
         <p>You have JavaScript disabled, but this page requires JavaScript to function.</p>
         <p>Please <a href="nojs">click here</a> if you want to try out our No-JS uploader.</p>
       </div>

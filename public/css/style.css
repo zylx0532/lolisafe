@@ -25,10 +25,6 @@ a {
   color: #3794d2;
 }
 
-a.is-dotted {
-  border-bottom: 1px dotted #3794d2;
-}
-
 a:hover {
   color: #60a8dc;
 }

@@ -29,16 +29,16 @@
 
 {% block content %}
 {{ super() }}
-<section class="hero is-fullheight has-text-centered" id="home">
-  <div class="hero-body section">
-    <div class="container">
+<section id="home" class="hero is-fullheight">
+  <div class="hero-body">
+    <div class="container has-text-centered">
       <p id="b">
         <img class="logo" alt="logo" src="images/logo_smol.png?v={{ globals.v2 }}">
       </p>
       <h1 class="title">{{ globals.name }}</h1>
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
-      <h3 class="subtitle" id="maxFileSize"></h3>
+      <h3 id="maxFileSize" class="subtitle"></h3>
 
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
@@ -128,7 +128,13 @@
       {% include "_partial/links.njk" %}
 
       {% if gitHash -%}
-      <p class="git-commit">Git commit: <a class="is-dotted" href="https://github.com/BobbyWibowo/lolisafe/commit/{{ gitHash }}" target="_blank" rel="noopener">{{ gitHash }}</a></p>
+      <div class="git-commit columns is-gapless">
+        <div class="column is-hidden-mobile"></div>
+        <div class="column">
+          <span>Git commit: </span><a href="https://github.com/BobbyWibowo/lolisafe/commit/{{ gitHash }}" target="_blank" rel="noopener">{{ gitHash }}</a>
+        </div>
+        <div class="column is-hidden-mobile"></div>
+      </div>
       {%- endif %}
     </div>
   </div>
