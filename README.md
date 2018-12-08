@@ -17,21 +17,27 @@ Configuration file of lolisafe, `config.js`, is also not 100% compatible with th
 
 ## Missing thumbnails
 
-Thumbnails will not be automatically generated for files that have been uploaded prior to enabling thumbnails generation in the config file. To generate thumbnails for old files, you can try running `yarn thumbs` (a shortcut to running `node scripts/thumbs.js`).
+Thumbnails will not be automatically generated for files that have been uploaded prior to enabling thumbnails generation in the config file. To generate thumbnails for old files, you can try running `node scripts/thumbs.js` (shortcut: `yarn thumbs`).
 
 ```
-Usage:
-yarn thumbs <mode=1|2|3> [force=0|1]
+$ node scripts/thumbs.js --help
+Usage  :
+yarn thumbs <mode=1|2|3> [force=0|1] [verbose=0|1]
 
-mode : 1 = images only, 2 = videos only, 3 = both images and videos
-force: 0 = no force (default), 1 = overwrite existing thumbnails
+mode   : 1 = images only, 2 = videos only, 3 = both images and videos
+force  : 0 = no force (default), 1 = overwrite existing thumbnails
+verbose: 0 = only print missing thumbs (default), 1 = print all
 ```
 
-For example, if you only want to generate thumbnails for image files, you can do `yarn thumbs 1`.
+For example, if you only want to generate thumbnails for image files, you can do `node scripts/thumbs.js 1`.
 
 ## Virus scanning
 
-This project is using [clamav](https://www.clamav.net/) to scan files for viruses through [clamdjs](https://github.com/NingLin-P/clamdjs).
+This fork has a virus scanning support. It will scan new files right after they are uploaded, so when the file is dirty, it will print the error message to the uploader (as in the name of the virus in the database).
+
+On the down side, this will slow down uploads processing, however it's still highly recommended for public use.
+
+It uses [clamav](https://www.clamav.net/) through [clamdjs](https://github.com/NingLin-P/clamdjs) library.
 
 To use, make sure you have ClamAV daemon running, then edit your `config.js` and specify the daemon's IP and port.
 

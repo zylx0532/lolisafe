@@ -39,6 +39,8 @@ migration.start = async () => {
       permission: perms.permissions.superadmin
     })
     .then(rows => {
+      // NOTE: permissionController.js actually have a hard-coded check for "root" account so that
+      // it will always have "superadmin" permission regardless of its permission value in database
       if (!rows) { return console.log('Unable to update root\'s permission into superadmin.') }
       console.log(`Updated root's permission to ${perms.permissions.superadmin} (superadmin).`)
     })
