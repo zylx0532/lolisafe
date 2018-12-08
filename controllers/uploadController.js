@@ -127,7 +127,7 @@ uploadsController.getUniqueRandomName = (length, extension, set) => {
         // console.log(`Added ${identifier} to identifiers cache`)
         return resolve(identifier + extension)
       } else {
-        // Less stricter collision check, as the same identifier
+        // Less stricter collision check, as in the same identifier
         // can be used by multiple different extensions
         const name = identifier + extension
         fs.access(path.join(uploadsDir, name), error => {
