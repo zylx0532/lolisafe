@@ -162,22 +162,25 @@ module.exports = {
     /*
       Cache file identifiers.
 
-      They will be used for a stricter collision check, such that a single identifier
+      They will be used for stricter collision checks, such that a single identifier
       may not be used by more than a single file (e.i. if "abcd.jpg" already exists, a new PNG
       file may not be named as "abcd.png").
 
-      If this is enabled, the safe will attempt to read file list of the uploads directory
+      If this is enabled, the safe will then attempt to read file list of the uploads directory
       during first launch, parse the names, then cache the identifiers into memory.
       Its downside is that it will use a bit more memory, generally a few MBs increase
       on a safe with over >10k uploads.
 
-      If this is disabled, the safe will instead read file list of the uploads directory EVERYTIME
-      there is a new upload.
-      Its downside will be slower upload handling and memory usage "spikes",
-      since reading the file list will still consume memory,
-      just that it will only stay in memory for a few moments.
+      If this is disabled, collision check will become less strict.
+      As in, the same identifier may be used by multiple different extensions (e.i. if "abcd.jpg"
+      already exists, new files can be possibly be named as "abcd.png", "abcd.mp4", etc).
+      Its downside will be, in the rare chance that multiple image/video files are sharing the same
+      identifier, they will end up with the same thumbnail in dashboard, since thumbnails will
+      only be saved as PNG in storage (e.i. "abcd.jpg" and "abcd.png" will share a single thumbnail
+      named "abcd.png" in thumbs directory, in which case, the file that's uploaded the earliest will
+      be the source for the thumbnail).
 
-      On most caces, leaving this enabled is recommended.
+      Unless you do not use thumbnails, it is highly recommended to enable this feature.
     */
     cacheFileIdentifiers: true,
 

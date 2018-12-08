@@ -116,9 +116,9 @@ uploadsController.getUniqueRandomName = (length, extension, set) => {
     const access = i => {
       const identifier = randomstring.generate(length)
       if (config.uploads.cacheFileIdentifiers) {
-        // Filter matching names from uploads tree (as in the identifier)
+        // Check whether the identifier is already used in cache
         if (set.has(identifier)) {
-          console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
+          console.log(`Identifier ${identifier} is already in use (${++i}/${maxTries}).`)
           if (i < maxTries) { return access(i) }
           // eslint-disable-next-line prefer-promise-reject-errors
           return reject('Sorry, we could not allocate a unique random name. Try again?')
@@ -127,20 +127,15 @@ uploadsController.getUniqueRandomName = (length, extension, set) => {
         // console.log(`Added ${identifier} to identifiers cache`)
         return resolve(identifier + extension)
       } else {
-        // Read all files names from uploads directory, then filter matching names (as in the identifier)
-        fs.readdir(uploadsDir, (error, names) => {
-          if (error) { return reject(error) }
-          if (names.length) {
-            for (const name of names.filter(name => name.startsWith(identifier))) {
-              if (name.split('.')[0] === identifier) {
-                console.log(`Identifier ${identifier} is already used (${++i}/${maxTries}).`)
-                if (i < maxTries) { return access(i) }
-                // eslint-disable-next-line prefer-promise-reject-errors
-                return reject('Sorry, we could not allocate a unique random name. Try again?')
-              }
-            }
-          }
-          return resolve(identifier + extension)
+        // Less stricter collision check, as the same identifier
+        // can be used by multiple different extensions
+        const name = identifier + extension
+        fs.access(path.join(uploadsDir, name), error => {
+          if (error) { return resolve(name) }
+          console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
+          if (i < maxTries) { return access(i) }
+          // eslint-disable-next-line prefer-promise-reject-errors
+          return reject('Sorry, we could not allocate a unique random name. Try again?')
         })
       }
     }
