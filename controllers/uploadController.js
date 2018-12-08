@@ -228,12 +228,13 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
   if (!config.uploads.urlMaxSize) { return erred('Upload by URLs is disabled at the moment.') }
 
-  let urls = req.body.urls
+  const urls = req.body.urls
   if (!urls || !(urls instanceof Array)) { return erred('Missing "urls" property (Array).') }
 
   // DuckDuckGo's proxy
   if (config.uploads.urlDuckDuckGoProxy) {
-    urls = urls.map(url => `https://proxy.duckduckgo.com/iur/?f=1&image_host=${encodeURIComponent(url)}&u=${url}`)
+    return erred('URL uploads unavailable. Please contact the site owner.')
+    // urls = urls.map(url => `https://proxy.duckduckgo.com/iu/?u=${encodeURIComponent(url)}&f=1`)
   }
 
   let iteration = 0

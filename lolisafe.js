@@ -101,6 +101,11 @@ safe.use((error, req, res, next) => {
 })
 
 const start = async () => {
+  if (config.uploads.urlDuckDuckGoProxy) {
+    console.warn('Warning: DuckDuckGo\'s proxy is no longer supported as it stops reporting Content-Length header.')
+    return process.exit(1)
+  }
+
   if (config.showGitHash) {
     const gitHash = await new Promise((resolve, reject) => {
       require('child_process').exec('git rev-parse HEAD', (error, stdout) => {

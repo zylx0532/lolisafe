@@ -353,7 +353,7 @@ page.uploadUrls = function (button) {
       }).catch(function (error) {
         return posted({
           success: false,
-          description: error.toString()
+          description: error.response ? error.response.data.description : error.toString()
         })
       })
     }
