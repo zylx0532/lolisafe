@@ -204,7 +204,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
     })
 
     if (config.uploads.scan && config.uploads.scan.enabled) {
-      const scan = await uploadsController.scanFiles(req.app.get('clam-scanner'), infoMap)
+      const scan = await uploadsController.scanFiles(req, infoMap)
       if (scan) { return erred(scan) }
     }
 
@@ -290,7 +290,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
         iteration++
         if (iteration === urls.length) {
           if (config.uploads.scan && config.uploads.scan.enabled) {
-            const scan = await uploadsController.scanFiles(req.app.get('clam-scanner'), infoMap)
+            const scan = await uploadsController.scanFiles(req, infoMap)
             if (scan) { return erred(scan) }
           }
 
@@ -415,7 +415,7 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       iteration++
       if (iteration === files.length) {
         if (config.uploads.scan && config.uploads.scan.enabled) {
-          const scan = await uploadsController.scanFiles(req.app.get('clam-scanner'), infoMap)
+          const scan = await uploadsController.scanFiles(req, infoMap)
           if (scan) { return erred(scan) }
         }
 
@@ -542,10 +542,10 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
-          const identifier = info.data.filename.split('.')[0]
           utils.deleteFile(info.data.filename).catch(console.error)
           const set = req.app.get('uploads-set')
           if (set) {
+            const identifier = info.data.filename.split('.')[0]
             set.delete(identifier)
             // console.log(`Removed ${identifier} from identifiers cache (formatInfoMap)`)
           }
@@ -561,8 +561,9 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
   })
 }
 
-uploadsController.scanFiles = (scanner, infoMap) => {
+uploadsController.scanFiles = (req, infoMap) => {
   return new Promise(async (resolve, reject) => {
+    const scanner = req.app.get('clam-scanner')
     let iteration = 0
     for (const info of infoMap) {
       scanner.scanFile(info.path).then(reply => {
@@ -581,12 +582,22 @@ uploadsController.scanFiles = (scanner, infoMap) => {
     }
   }).then(virus => {
     if (!virus) { return false }
-    // If there is at least one dirty file, delete all files
-    infoMap.forEach(info => utils.deleteFile(info.data.filename).catch(console.error))
+    // If there is at least one dirty file, then delete all files
+    const set = req.app.get('uploads-set')
+    infoMap.forEach(info => {
+      utils.deleteFile(info.data.filename).catch(console.error)
+      if (set) {
+        const identifier = info.data.filename.split('.')[0]
+        set.delete(identifier)
+        // console.log(`Removed ${identifier} from identifiers cache (formatInfoMap)`)
+      }
+    })
+    // Unfortunately, we will only be returning name of the first virus
+    // even if the current session was made up by multiple virus types
     return `Virus detected: ${virus}.`
   }).catch(error => {
     console.error(`ClamAV: ${error.toString()}.`)
-    return `ClamAV: ${error.code}, please contact sysadmin.`
+    return `ClamAV: ${error.code}, please contact site owner.`
   })
 }
 
