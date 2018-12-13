@@ -57,6 +57,7 @@ routes.get('/a/:identifier', async (req, res, next) => {
 
   return res.render('album', {
     title: album.name,
+    description: album.description.replace(/\n/g, '<br>'),
     count: files.length,
     thumb,
     files,

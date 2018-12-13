@@ -16,7 +16,7 @@
 {% block opengraph %}
 <!-- Open Graph tags -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="{{ title }} &#8211; {{ count }} files" />
+<meta property="og:title" content="{{ title | safe }} &#8211; {{ count }} files" />
 <meta property="og:url" content="{{ url }}" />
 <meta property="og:description" content="A pomf-like file uploading service that doesn't suck." />
 <meta property="og:image" content="{{ thumb }}" />
@@ -24,7 +24,7 @@
 
 <!-- Twitter Card tags -->
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{{ title }} &#8211; {{ count }} files">
+<meta name="twitter:title" content="{{ title | safe }} &#8211; {{ count }} files">
 <meta name="twitter:description" content="A pomf-like file uploading service that doesn't suck.">
 <meta name="twitter:image" content="{{ thumb }}">
 {% endblock %}
@@ -37,7 +37,7 @@
       <div class="level-left">
         <div class="level-item">
           <h1 id="title" class="title">
-            {{ title }}
+            {{ title | safe }}
           </h1>
         </div>
         <div class="level-item">
@@ -51,7 +51,7 @@
       <div class="level-right">
         <p class="level-item">
           {% if downloadLink -%}
-          <a class="button is-primary is-outlined" title="Download album" href="{{ downloadLink }}">Download album</a>
+          <a class="button is-primary is-outlined" title="Be aware that album archive may be cached by CDN" href="{{ downloadLink }}">Download album</a>
           {%- else -%}
           <a class="button is-primary is-outlined" title="The album's owner has chosen to disable download" disabled>Download disabled</a>
           {%- endif %}
@@ -59,12 +59,10 @@
       </div>
       {%- endif %}
     </nav>
-    {% if generateZips and downloadLink and files.length -%}
-    <article class="message">
-      <div class="message-body">
-        Album archives may be cached by CDN, if the one you have downloaded seems outdated, refresh the page to get the latest download link.
-      </div>
-    </article>
+    {% if description -%}
+    <h2 class="subtitle description">
+      {{ description | safe }}
+    </h2>
     {%- endif %}
     <hr>
     {% if files.length -%}

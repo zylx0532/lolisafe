@@ -1048,6 +1048,11 @@ page.getAlbums = function () {
       </div>
       <div class="field">
         <div class="control">
+          <textarea id="albumDescription" class="textarea" placeholder="Description" rows="1"></textarea>
+        </div>
+      </div>
+      <div class="field">
+        <div class="control">
           <a id="submitAlbum" class="button is-breeze is-fullwidth" data-action="submit-album">
             <span class="icon">
               <i class="icon-paper-plane-empty"></i>
@@ -1090,7 +1095,8 @@ page.getAlbums = function () {
       page.cache.albums[album.id] = {
         name: album.name,
         download: album.download,
-        public: album.public
+        public: album.public,
+        description: album.description
       }
 
       const tr = document.createElement('tr')
@@ -1139,9 +1145,13 @@ page.editAlbum = function (id) {
   const div = document.createElement('div')
   div.innerHTML = `
     <div class="field">
-      <label class="label">Album name</label>
       <div class="controls">
-        <input id="swalName" class="input" type="text" value="${album.name || ''}">
+        <input id="swalName" class="input" type="text" placeholder="Name" value="${album.name || ''}">
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2">${album.description || ''}</textarea>
       </div>
     </div>
     <div class="field">
@@ -1186,6 +1196,7 @@ page.editAlbum = function (id) {
     axios.post('api/albums/edit', {
       id,
       name: document.getElementById('swalName').value,
+      description: document.getElementById('swalDescription').value,
       download: document.getElementById('swalDownload').checked,
       public: document.getElementById('swalPublic').checked,
       requestLink: document.getElementById('swalRequestLink').checked
@@ -1265,7 +1276,8 @@ page.submitAlbum = function (element) {
   page.isLoading(element, true)
 
   axios.post('api/albums', {
-    name: document.getElementById('albumName').value
+    name: document.getElementById('albumName').value,
+    description: document.getElementById('albumDescription').value
   }).then(function (response) {
     if (!response) { return }
 
@@ -1572,6 +1584,7 @@ page.getPrettyDate = date => {
 page.getPrettyBytes = num => {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+
   if (!Number.isFinite(num)) { return num }
 
   const neg = num < 0

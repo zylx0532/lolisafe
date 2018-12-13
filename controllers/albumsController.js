@@ -32,7 +32,7 @@ albumsController.list = async (req, res, next) => {
 
   let fields = ['id', 'name']
   if (req.params.sidebar === undefined) {
-    fields = fields.concat(fields, ['timestamp', 'identifier', 'editedAt', 'download', 'public'])
+    fields = fields.concat(fields, ['timestamp', 'identifier', 'editedAt', 'download', 'public', 'description'])
   }
 
   const albums = await db.table('albums')
@@ -70,7 +70,7 @@ albumsController.create = async (req, res, next) => {
   const user = await utils.authorize(req, res)
   if (!user) { return }
 
-  const name = req.body.name
+  const name = utils.escape(req.body.name)
   if (name === undefined || name === '') {
     return res.json({ success: false, description: 'No album name specified.' })
   }
@@ -102,7 +102,8 @@ albumsController.create = async (req, res, next) => {
     editedAt: 0,
     zipGeneratedAt: 0,
     download: (req.body.download === false || req.body.download === 0) ? 0 : 1,
-    public: (req.body.public === false || req.body.public === 0) ? 0 : 1
+    public: (req.body.public === false || req.body.public === 0) ? 0 : 1,
+    description: utils.escape(req.body.description) || ''
   })
 
   return res.json({ success: true, id: ids[0] })
@@ -191,14 +192,14 @@ albumsController.edit = async (req, res, next) => {
     return res.json({ success: false, description: 'No album specified.' })
   }
 
-  const name = req.body.name
+  const name = utils.escape(req.body.name)
   if (name === undefined || name === '') {
     return res.json({ success: false, description: 'No name specified.' })
   }
 
   const album = await db.table('albums')
     .where({
-      name,
+      id,
       userid: user.id,
       enabled: 1
     })
@@ -221,7 +222,8 @@ albumsController.edit = async (req, res, next) => {
     .update({
       name,
       download: Boolean(req.body.download),
-      public: Boolean(req.body.public)
+      public: Boolean(req.body.public),
+      description: utils.escape(req.body.description) || ''
     })
 
   if (req.body.requestLink) {

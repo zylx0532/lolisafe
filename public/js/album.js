@@ -10,6 +10,7 @@ const page = {
 page.getPrettyBytes = num => {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+
   if (!Number.isFinite(num)) { return num }
 
   const neg = num < 0

@@ -15,6 +15,7 @@ const init = function (db) {
         table.integer('zipGeneratedAt')
         table.integer('download')
         table.integer('public')
+        table.string('description')
       }).then(() => {})
     }
   })

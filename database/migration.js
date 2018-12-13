@@ -7,7 +7,8 @@ const map = {
     editedAt: 'integer',
     zipGeneratedAt: 'integer',
     download: 'integer',
-    public: 'integer'
+    public: 'integer',
+    description: 'string'
   },
   users: {
     enabled: 'integer',
@@ -23,11 +24,11 @@ migration.start = async () => {
     const columns = Object.keys(map[table])
     return Promise.all(columns.map(async column => {
       if (await db.schema.hasColumn(table, column)) {
-        return console.log(`Column "${column}" already exists in table "${table}".`)
+        return // console.log(`SKIP: ${column} => ${table}.`)
       }
       const columnType = map[table][column]
       return db.schema.table(table, t => { t[columnType](column) })
-        .then(() => console.log(`Added column "${column}" to table "${table}".`))
+        .then(() => console.log(`OK: ${column} (${columnType}) => ${table}.`))
         .catch(console.error)
     }))
   }))
@@ -45,7 +46,7 @@ migration.start = async () => {
       console.log(`Updated root's permission to ${perms.permissions.superadmin} (superadmin).`)
     })
 
-  console.log('Migration finished! Now start lolisafe normally')
+  console.log('Migration finished! Now you may start lolisafe normally.')
   process.exit(0)
 }
 

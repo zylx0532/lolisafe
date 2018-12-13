@@ -384,9 +384,13 @@ page.createAlbum = function () {
   const div = document.createElement('div')
   div.innerHTML = `
     <div class="field">
-      <label class="label">Album name</label>
       <div class="controls">
-        <input id="swalName" class="input" type="text" placeholder="My super album">
+        <input id="swalName" class="input" type="text" placeholder="Name">
+      </div>
+    </div>
+    <div class="field">
+      <div class="control">
+        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2"></textarea>
       </div>
     </div>
     <div class="field">
@@ -423,6 +427,7 @@ page.createAlbum = function () {
     const name = document.getElementById('swalName').value
     axios.post('api/albums', {
       name,
+      description: document.getElementById('swalDescription').value,
       download: document.getElementById('swalDownload').checked,
       public: document.getElementById('swalPublic').checked
     }, {
