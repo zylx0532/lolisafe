@@ -238,7 +238,12 @@ authController.listUsers = async (req, res, next) => {
 
   for (const upload of uploads) {
     // This is the fastest method that I can think of
-    if (maps[upload.userid] === undefined) { maps[upload.userid] = { count: 0, size: 0 } }
+    if (maps[upload.userid] === undefined) {
+      maps[upload.userid] = {
+        count: 0,
+        size: 0
+      }
+    }
     maps[upload.userid].count++
     maps[upload.userid].size += parseInt(upload.size)
   }

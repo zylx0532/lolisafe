@@ -39,8 +39,10 @@ routes.get('/a/:identifier', async (req, res, next) => {
   let thumb = ''
   const basedomain = config.domain
 
+  let totalSize = 0
   for (const file of files) {
     file.file = `${basedomain}/${file.name}`
+    totalSize += parseInt(file.size)
 
     file.extname = path.extname(file.name).toLowerCase()
     if (utils.mayGenerateThumb(file.extname)) {
@@ -65,7 +67,8 @@ routes.get('/a/:identifier', async (req, res, next) => {
     generateZips: config.uploads.generateZips,
     downloadLink: album.download === 0 ? null : `../api/album/zip/${album.identifier}?v=${album.editedAt}`,
     editedAt: album.editedAt,
-    url: `${homeDomain}/a/${album.identifier}`
+    url: `${homeDomain}/a/${album.identifier}`,
+    totalSize
   })
 })
 

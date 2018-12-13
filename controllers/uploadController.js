@@ -261,9 +261,8 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
         return erred('File too large.')
       }
 
-      const fetchFile = await fetch(url, {
-        size // limit max response body size with content-length
-      })
+      // limit max response body size with content-length
+      const fetchFile = await fetch(url, { size })
       if (fetchFile.status !== 200) {
         return erred(`${fetchHead.status} ${fetchHead.statusText}`)
       }
