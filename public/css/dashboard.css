@@ -50,8 +50,8 @@ ul#albumsContainer {
 ul#albumsContainer li {
   border-left: 1px solid #898b8d;
   padding-left: .75em;
-  -webkit-animation: animateAlbum 1s;
-  animation: animateAlbum 1s
+  -webkit-animation: fadeInOpacity .5s;
+  animation: fadeInOpacity .5s;
 }
 
 #page.fade-in {
@@ -220,26 +220,4 @@ ul#albumsContainer li {
 
 .is-linethrough {
   text-decoration: line-through
-}
-
-@-webkit-keyframes animateAlbum {
-  0% {
-    opacity: 0;
-    max-height: 0;
-  }
-  100% {
-    opacity: 1;
-    max-height: 36px;
-  }
-}
-
-@keyframes animateAlbum {
-  0% {
-    opacity: 0;
-    max-height: 0;
-  }
-  100% {
-    opacity: 1;
-    max-height: 36px;
-  }
 }
