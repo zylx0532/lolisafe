@@ -223,11 +223,6 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
   const urls = req.body.urls
   if (!urls || !(urls instanceof Array)) return erred('Missing "urls" property (Array).')
 
-  // DuckDuckGo's proxy
-  if (config.uploads.urlDuckDuckGoProxy)
-    return erred('URL uploads unavailable. Please contact the site owner.')
-    // urls = urls.map(url => `https://proxy.duckduckgo.com/iu/?u=${encodeURIComponent(url)}&f=1`)
-
   let iteration = 0
   const infoMap = []
   for (const url of urls) {

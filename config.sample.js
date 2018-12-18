@@ -125,16 +125,6 @@ module.exports = {
     },
 
     /*
-      Use DuckDuckGo's proxy when fetching URL uploads.
-      This may be considered a hack and not supported by DuckDuckGo, so USE AT YOUR OWN RISK.
-      This should work with any type of URLs, but they have to be direct links,
-      since DuckDuckGo's proxy will not follow redirects.
-      NOTE: As of 09/12/18, this is no longer supported.
-      The option will be removed from config file in the near future.
-    */
-    urlDuckDuckGoProxy: false,
-
-    /*
       Chunk size for chunk uploads. Needs to be in MB.
       If this is enabled, every files uploaded from the homepage uploader will forcibly be chunked
       by the size specified in "chunkSize". People will still be able to upload bigger files with
