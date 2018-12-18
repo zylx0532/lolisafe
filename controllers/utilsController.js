@@ -27,7 +27,7 @@ utilsController.preserves = ['.tar.gz', '.tar.z', '.tar.bz2', '.tar.lzma', '.tar
 utilsController.extname = filename => {
   // Always return blank string if the filename does not seem to have a valid extension
   // Files such as .DS_Store (anything that starts with a dot, without any extension after) will still be accepted
-  if (!/\../.test(filename)) { return '' }
+  if (!/\../.test(filename)) return ''
 
   let lower = filename.toLowerCase() // due to this, the returned extname will always be lower case
   let multi = ''
@@ -40,16 +40,14 @@ utilsController.extname = filename => {
   }
 
   // check against extensions that must be preserved
-  for (let i = 0; i < utilsController.preserves.length; i++) {
+  for (let i = 0; i < utilsController.preserves.length; i++)
     if (lower.endsWith(utilsController.preserves[i])) {
       extname = utilsController.preserves[i]
       break
     }
-  }
 
-  if (!extname) {
+  if (!extname)
     extname = lower.slice(lower.lastIndexOf('.') - lower.length) // path.extname(lower)
-  }
 
   return extname + multi
 }
@@ -60,12 +58,12 @@ utilsController.escape = string => {
   // Copyright(c) 2015 Andreas Lubbe
   // Copyright(c) 2015 Tiancheng "Timothy" Gu
 
-  if (!string) { return string }
+  if (!string) return string
 
   const str = '' + string
   const match = /["'&<>]/.exec(str)
 
-  if (!match) { return str }
+  if (!match) return str
 
   let escape
   let html = ''
@@ -93,9 +91,8 @@ utilsController.escape = string => {
         continue
     }
 
-    if (lastIndex !== index) {
+    if (lastIndex !== index)
       html += str.substring(lastIndex, index)
-    }
 
     lastIndex = index + 1
     html += escape
@@ -142,15 +139,15 @@ utilsController.generateThumbs = (name, force) => {
         // Unlink symlink
         const unlink = await new Promise((resolve, reject) => {
           fs.unlink(thumbname, error => {
-            if (error) { return reject(error) }
+            if (error) return reject(error)
             return resolve(true)
           })
         }).catch(console.error)
-        if (!unlink) { return resolve(false) }
+        if (!unlink) return resolve(false)
       }
 
       // Only make thumbnail if it does not exist (ENOENT)
-      if (!error && !stats.isSymbolicLink() && !force) { return resolve(true) }
+      if (!error && !stats.isSymbolicLink() && !force) return resolve(true)
 
       // If image extension
       if (utilsController.imageExtensions.includes(extname)) {
@@ -169,10 +166,10 @@ utilsController.generateThumbs = (name, force) => {
           .resize(resizeOptions)
           .toFile(thumbname)
           .catch(error => {
-            if (!error) { return resolve(true) }
+            if (!error) return resolve(true)
             console.error(`${name}: ${error.message.trim()}`)
             fs.symlink(thumbUnavailable, thumbname, error => {
-              if (error) { console.error(error) }
+              if (error) console.error(error)
               resolve(!error)
             })
           })
@@ -189,7 +186,7 @@ utilsController.generateThumbs = (name, force) => {
         .on('error', error => {
           console.log(`${name}: ${error.message}`)
           fs.symlink(thumbUnavailable, thumbname, error => {
-            if (error) { console.error(error) }
+            if (error) console.error(error)
             resolve(!error)
           })
         })
@@ -204,12 +201,12 @@ utilsController.deleteFile = file => {
   return new Promise((resolve, reject) => {
     const extname = utilsController.extname(file)
     return fs.unlink(path.join(uploadsDir, file), error => {
-      if (error && error.code !== 'ENOENT') { return reject(error) }
+      if (error && error.code !== 'ENOENT') return reject(error)
 
       if (utilsController.imageExtensions.includes(extname) || utilsController.videoExtensions.includes(extname)) {
         const thumb = file.substr(0, file.lastIndexOf('.')) + '.png'
         return fs.unlink(path.join(thumbsDir, thumb), error => {
-          if (error && error.code !== 'ENOENT') { return reject(error) }
+          if (error && error.code !== 'ENOENT') return reject(error)
           resolve(true)
         })
       }
@@ -231,15 +228,14 @@ utilsController.deleteFile = file => {
  * @return {any[]} failed
  */
 utilsController.bulkDeleteFiles = async (field, values, user, set) => {
-  if (!user || !['id', 'name'].includes(field)) { return }
+  if (!user || !['id', 'name'].includes(field)) return
 
   const ismoderator = perms.is(user, 'moderator')
   const files = await db.table('files')
     .whereIn(field, values)
     .where(function () {
-      if (!ismoderator) {
+      if (!ismoderator)
         this.where('userid', user.id)
-      }
     })
 
   // an array of file object
@@ -261,7 +257,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
     })
   }))
 
-  if (!deletedFiles.length) { return failed }
+  if (!deletedFiles.length) return failed
 
   // Delete all files from database
   const deletedIds = deletedFiles.map(file => file.id)
@@ -269,24 +265,23 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
     .whereIn('id', deletedIds)
     .del()
     .catch(console.error)
-  if (!deleteDb) { return failed }
+  if (!deleteDb) return failed
 
-  if (set) {
+  if (set)
     deletedFiles.forEach(file => {
       const identifier = file.name.split('.')[0]
       set.delete(identifier)
       // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
     })
-  }
+
   const filtered = files.filter(file => deletedIds.includes(file.id))
 
   // Update albums if necessary
   if (deleteDb) {
     const albumids = []
     filtered.forEach(file => {
-      if (file.albumid && !albumids.includes(file.albumid)) {
+      if (file.albumid && !albumids.includes(file.albumid))
         albumids.push(file.albumid)
-      }
     })
     await db.table('albums')
       .whereIn('id', albumids)
@@ -304,15 +299,15 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
 }
 
 utilsController.purgeCloudflareCache = async names => {
-  if (!cloudflareAuth) { return }
+  if (!cloudflareAuth) return
 
   const thumbs = []
   names = names.map(name => {
     const url = `${config.domain}/${name}`
     const extname = utilsController.extname(name)
-    if (utilsController.mayGenerateThumb(extname)) {
+    if (utilsController.mayGenerateThumb(extname))
       thumbs.push(`${config.domain}/thumbs/${name.slice(0, -extname.length)}.png`)
-    }
+
     return url
   })
 
@@ -328,9 +323,8 @@ utilsController.purgeCloudflareCache = async names => {
       }
     }).then(res => res.json())
 
-    if (fetchPurge.errors) {
+    if (fetchPurge.errors)
       fetchPurge.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
-    }
   } catch (error) {
     console.error(`CF: ${error.toString()}`)
   }

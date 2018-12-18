@@ -10,7 +10,7 @@ permissionController.permissions = {
 
 permissionController.is = (user, group) => {
   // root bypass
-  if (user.username === 'root') { return true }
+  if (user.username === 'root') return true
   const permission = user.permission || 0
   return permission >= permissionController.permissions[group]
 }

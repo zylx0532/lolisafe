@@ -12,7 +12,7 @@
   "rules": {
     "curly": [
       "error",
-      "all"
+      "multi"
     ],
     "prefer-const": [
       "error",

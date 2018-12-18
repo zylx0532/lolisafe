@@ -46,7 +46,7 @@ page.doRenderSwal = function () {
       confirm: true
     }
   }).then(function (value) {
-    if (!value) { return }
+    if (!value) return
     const newValue = div.querySelector('#swalRender').checked ? undefined : '0'
     if (newValue !== localStorage.render) {
       newValue ? localStorage.render = newValue : localStorage.removeItem('render')
@@ -60,14 +60,14 @@ page.doRenderSwal = function () {
 
 page.getRenderVersion = function () {
   const renderScript = document.getElementById('renderScript')
-  if (!renderScript) { return '' }
+  if (!renderScript) return ''
   const match = renderScript.src.match(/\?v=\w*$/)
-  if (!match) { return '' }
+  if (!match) return ''
   return match[0]
 }
 
 page.doRender = function () {
-  if (!page.renderRoot || !page.renderArray || !page.renderArray.length) { return }
+  if (!page.renderRoot || !page.renderArray || !page.renderArray.length) return
 
   let element
   if (localStorage.render === '0') {

@@ -40,7 +40,7 @@ page.checkIfPublic = function () {
 }
 
 page.preparePage = function () {
-  if (page.private) {
+  if (page.private)
     if (page.token) {
       return page.verifyToken(page.token, true)
     } else {
@@ -48,32 +48,29 @@ page.preparePage = function () {
       button.href = 'auth'
       button.classList.remove('is-loading')
 
-      if (page.enableUserAccounts) {
+      if (page.enableUserAccounts)
         button.innerText = 'Anonymous upload is disabled. Log in to page.'
-      } else {
+      else
         button.innerText = 'Running in private mode. Log in to page.'
-      }
     }
-  } else {
+  else
     return page.prepareUpload()
-  }
 }
 
 page.verifyToken = function (token, reloadOnError) {
-  if (reloadOnError === undefined) { reloadOnError = false }
+  if (reloadOnError === undefined) reloadOnError = false
 
   axios.post('api/tokens/verify', { token }).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       return swal({
         title: 'An error occurred!',
         text: response.data.description,
         icon: 'error'
       }).then(function () {
-        if (!reloadOnError) { return }
+        if (!reloadOnError) return
         localStorage.removeItem('token')
         location.reload()
       })
-    }
 
     localStorage.token = token
     page.token = token
@@ -102,9 +99,8 @@ page.prepareUpload = function () {
   document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${page.maxFileSize}`
   document.getElementById('loginToUpload').style.display = 'none'
 
-  if (!page.token && page.enableUserAccounts) {
+  if (!page.token && page.enableUserAccounts)
     document.getElementById('loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
-  }
 
   const previewNode = document.querySelector('#tpl')
   page.previewTemplate = previewNode.innerHTML
@@ -116,18 +112,17 @@ page.prepareUpload = function () {
   if (tabs) {
     tabs.style.display = 'flex'
     const items = tabs.getElementsByTagName('li')
-    for (let i = 0; i < items.length; i++) {
+    for (let i = 0; i < items.length; i++)
       items[i].addEventListener('click', function () {
         page.setActiveTab(this.dataset.id)
       })
-    }
+
     document.getElementById('uploadUrls').addEventListener('click', function () {
       page.uploadUrls(this)
     })
     page.setActiveTab('tab-files')
-  } else {
+  } else
     document.getElementById('tab-files').style.display = 'block'
-  }
 }
 
 page.prepareAlbums = function () {
@@ -143,13 +138,12 @@ page.prepareAlbums = function () {
       token: page.token
     }
   }).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       return swal('An error occurred!', response.data.description, 'error')
-    }
 
     // If the user doesn't have any albums we don't really need to display
     // an album selection
-    if (!response.data.albums.length) { return }
+    if (!response.data.albums.length) return
 
     // Loop through the albums and create an option for each album
     for (let i = 0; i < response.data.albums.length; i++) {
@@ -230,13 +224,12 @@ page.prepareDropzone = function () {
       }).then(function (response) {
         file.previewElement.querySelector('.progress').style.display = 'none'
 
-        if (response.data.success === false) {
+        if (response.data.success === false)
           file.previewElement.querySelector('.error').innerHTML = response.data.description
-        }
 
-        if (response.data.files && response.data.files[0]) {
+        if (response.data.files && response.data.files[0])
           page.updateTemplate(file, response.data.files[0])
-        }
+
         return done()
       }).catch(function (error) {
         return {
@@ -254,29 +247,27 @@ page.prepareDropzone = function () {
 
   // Add the selected albumid, if an album is selected, as a header
   page.dropzone.on('sending', function (file, xhr) {
-    if (file.upload.chunked) { return }
-    if (page.album) { xhr.setRequestHeader('albumid', page.album) }
+    if (file.upload.chunked) return
+    if (page.album) xhr.setRequestHeader('albumid', page.album)
   })
 
   // Update the total progress bar
   page.dropzone.on('uploadprogress', function (file, progress) {
-    if (file.upload.chunked && progress === 100) { return }
+    if (file.upload.chunked && progress === 100) return
     file.previewElement.querySelector('.progress').setAttribute('value', progress)
     file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
   })
 
   page.dropzone.on('success', function (file, response) {
-    if (!response) { return }
+    if (!response) return
     file.previewElement.querySelector('.progress').style.display = 'none'
     // file.previewElement.querySelector('.name').innerHTML = file.name
 
-    if (response.success === false) {
+    if (response.success === false)
       file.previewElement.querySelector('.error').innerHTML = response.description
-    }
 
-    if (response.files && response.files[0]) {
+    if (response.files && response.files[0])
       page.updateTemplate(file, response.files[0])
-    }
   })
 
   page.dropzone.on('error', function (file, error) {
@@ -285,18 +276,18 @@ page.prepareDropzone = function () {
     file.previewElement.querySelector('.error').innerHTML = error.description || error
   })
 
-  if (typeof page.prepareShareX === 'function') { page.prepareShareX() }
+  if (typeof page.prepareShareX === 'function') page.prepareShareX()
 }
 
 page.uploadUrls = function (button) {
   const tabDiv = document.getElementById('tab-urls')
-  if (!tabDiv) { return }
+  if (!tabDiv) return
 
-  if (button.classList.contains('is-loading')) { return }
+  if (button.classList.contains('is-loading')) return
   button.classList.add('is-loading')
 
   function done (error) {
-    if (error) { swal('An error occurred!', error, 'error') }
+    if (error) swal('An error occurred!', error, 'error')
     button.classList.remove('is-loading')
   }
 
@@ -308,10 +299,9 @@ page.uploadUrls = function (button) {
       .filter(function (url) { return url.trim().length })
     document.getElementById('urls').value = urls.join('\n')
 
-    if (!urls.length) {
+    if (!urls.length)
       // eslint-disable-next-line prefer-promise-reject-errors
       return done('You have not entered any URLs.')
-    }
 
     tabDiv.getElementsByClassName('uploads')[0].style.display = 'block'
     const files = urls.map(function (url) {
@@ -327,17 +317,17 @@ page.uploadUrls = function (button) {
     })
 
     function post (i) {
-      if (i === files.length) { return done() }
+      if (i === files.length) return done()
 
       const file = files[i]
 
       function posted (result) {
         file.previewElement.querySelector('.progress').style.display = 'none'
-        if (result.success) {
+        if (result.success)
           page.updateTemplate(file, result.files[0])
-        } else {
+        else
           file.previewElement.querySelector('.error').innerHTML = result.description
-        }
+
         return post(i + 1)
       }
 
@@ -363,7 +353,7 @@ page.uploadUrls = function (button) {
 }
 
 page.updateTemplate = function (file, response) {
-  if (!response.url) { return }
+  if (!response.url) return
 
   const a = file.previewElement.querySelector('.link > a')
   const clipboard = file.previewElement.querySelector('.clipboard-mobile > .clipboard-js')
@@ -422,7 +412,7 @@ page.createAlbum = function () {
       }
     }
   }).then(function (value) {
-    if (!value) { return }
+    if (!value) return
 
     const name = document.getElementById('swalName').value
     axios.post('api/albums', {
@@ -435,9 +425,8 @@ page.createAlbum = function () {
         token: page.token
       }
     }).then(function (response) {
-      if (response.data.success === false) {
+      if (response.data.success === false)
         return swal('An error occurred!', response.data.description, 'error')
-      }
 
       const option = document.createElement('option')
       option.value = response.data.id

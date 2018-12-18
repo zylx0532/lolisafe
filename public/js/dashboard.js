@@ -83,17 +83,16 @@ page.preparePage = function () {
 
 page.verifyToken = function (token, reloadOnError) {
   axios.post('api/tokens/verify', { token }).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       return swal({
         title: 'An error occurred!',
         text: response.data.description,
         icon: 'error'
       }).then(function () {
-        if (!reloadOnError) { return }
+        if (!reloadOnError) return
         localStorage.removeItem(LS_KEYS.token)
         location.location = 'auth'
       })
-    }
 
     axios.defaults.headers.common.token = token
     localStorage[LS_KEYS.token] = token
@@ -170,7 +169,7 @@ page.prepareDashboard = function () {
 
   page.getAlbumsSidebar()
 
-  if (typeof page.prepareShareX === 'function') { page.prepareShareX() }
+  if (typeof page.prepareShareX === 'function') page.prepareShareX()
 }
 
 page.logout = function () {
@@ -182,20 +181,20 @@ page.getItemID = function (element) {
   // This expects the item's parent to have the item's ID
   let parent = element.parentNode
   // If the element is part of a set of controls, use the container's parent instead
-  if (element.parentNode.classList.contains('controls')) { parent = parent.parentNode }
+  if (element.parentNode.classList.contains('controls')) parent = parent.parentNode
   return parseInt(parent.dataset.id)
 }
 
 page.domClick = function (event) {
   let element = event.target
-  if (!element) { return }
+  if (!element) return
 
   // If the clicked element is an icon, delegate event to its A parent; hacky
-  if (element.tagName === 'I' && element.parentNode.tagName === 'SPAN') { element = element.parentNode }
-  if (element.tagName === 'SPAN' && element.parentNode.tagName === 'A') { element = element.parentNode }
+  if (element.tagName === 'I' && element.parentNode.tagName === 'SPAN') element = element.parentNode
+  if (element.tagName === 'SPAN' && element.parentNode.tagName === 'A') element = element.parentNode
 
   // Skip elements that have no action data
-  if (!element.dataset || !element.dataset.action) { return }
+  if (!element.dataset || !element.dataset.action) return
 
   event.stopPropagation() // maybe necessary
   const id = page.getItemID(element)
@@ -210,16 +209,15 @@ page.domClick = function (event) {
       views.album = page.views.uploads.album
       views.all = page.views.uploads.all
       func = page.getUploads
-    } else if (page.currentView === 'users') {
+    } else if (page.currentView === 'users')
       func = page.getUsers
-    }
 
     switch (action) {
       case 'page-prev':
         views.pageNum = page.views[page.currentView].pageNum - 1
-        if (views.pageNum < 0) {
+        if (views.pageNum < 0)
           return swal('An error occurred!', 'This is already the first page.', 'error')
-        }
+
         return func(views, element)
       case 'page-next':
         views.pageNum = page.views[page.currentView].pageNum + 1
@@ -264,8 +262,8 @@ page.domClick = function (event) {
 }
 
 page.isLoading = function (element, state) {
-  if (!element) { return }
-  if (state) { return element.classList.add('is-loading') }
+  if (!element) return
+  if (state) return element.classList.add('is-loading')
   element.classList.remove('is-loading')
 }
 
@@ -281,32 +279,30 @@ page.fadeIn = function (content) {
 }
 
 page.getUploads = function ({ album, pageNum, all } = {}, element) {
-  if (element) { page.isLoading(element, true) }
-  if (pageNum === undefined) { pageNum = 0 }
+  if (element) page.isLoading(element, true)
+  if (pageNum === undefined) pageNum = 0
 
   let url = `api/uploads/${pageNum}`
-  if (album !== undefined) { url = `api/album/${album}/${pageNum}` }
+  if (album !== undefined) url = `api/album/${album}/${pageNum}`
 
-  if (all && !page.permissions.moderator) {
+  if (all && !page.permissions.moderator)
     return swal('An error occurred!', 'You can not do this!', 'error')
-  }
 
   axios.get(url, {
     headers: {
       all: all ? '1' : '0'
     }
   }).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     if (pageNum && (response.data.files.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
-      if (element) { page.isLoading(element, false) }
+      if (element) page.isLoading(element, false)
       return swal('An error occurred!', 'There are no more uploads.', 'error')
     }
 
@@ -374,7 +370,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
       for (let i = 0; i < response.data.files.length; i++) {
         const upload = response.data.files[i]
         const selected = page.selected.uploads.includes(upload.id)
-        if (!selected && allSelected) { allSelected = false }
+        if (!selected && allSelected) allSelected = false
 
         page.cache.uploads[upload.id] = {
           name: upload.name,
@@ -387,16 +383,15 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
 
         let displayAlbumOrUser = upload.album
-        if (all) { displayAlbumOrUser = upload.username || '' }
+        if (all) displayAlbumOrUser = upload.username || ''
 
         const div = document.createElement('div')
         div.className = 'image-container column is-narrow'
         div.dataset.id = upload.id
-        if (upload.thumb !== undefined) {
+        if (upload.thumb !== undefined)
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><img alt="${upload.name}" data-src="${upload.thumb}"/></a>`
-        } else {
+        else
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><h1 class="title">${upload.extname || 'N/A'}</h1></a>`
-        }
 
         div.innerHTML += `
           <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}>
@@ -435,7 +430,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
       }
     } else {
       let albumOrUser = 'Album'
-      if (all) { albumOrUser = 'User' }
+      if (all) albumOrUser = 'User'
 
       page.dom.innerHTML = `
         ${pagination}
@@ -467,7 +462,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
       for (let i = 0; i < response.data.files.length; i++) {
         const upload = response.data.files[i]
         const selected = page.selected.uploads.includes(upload.id)
-        if (!selected && allSelected) { allSelected = false }
+        if (!selected && allSelected) allSelected = false
 
         page.cache.uploads[upload.id] = {
           name: upload.name,
@@ -480,7 +475,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
 
         let displayAlbumOrUser = upload.album
-        if (all) { displayAlbumOrUser = upload.username || '' }
+        if (all) displayAlbumOrUser = upload.username || ''
 
         const tr = document.createElement('tr')
         tr.dataset.id = upload.id
@@ -523,14 +518,14 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 
     if (allSelected && response.data.files.length) {
       const selectAll = document.getElementById('selectAll')
-      if (selectAll) { selectAll.checked = true }
+      if (selectAll) selectAll.checked = true
     }
 
     page.views.uploads.album = album
     page.views.uploads.pageNum = response.data.files.length ? pageNum : 0
     page.views.uploads.all = all
   }).catch(function (error) {
-    if (element) { page.isLoading(element, false) }
+    if (element) page.isLoading(element, false)
     console.log(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
@@ -544,7 +539,7 @@ page.setUploadsView = function (view, element) {
 
 page.displayThumbnail = function (id) {
   const file = page.cache.uploads[id]
-  if (!file.thumb) { return }
+  if (!file.thumb) return
 
   const div = document.createElement('div')
   div.innerHTML = `
@@ -601,7 +596,7 @@ page.displayThumbnail = function (id) {
     buttons: false
   }).then(function () {
     const video = div.querySelector('#swalVideo')
-    if (video) { video.remove() }
+    if (video) video.remove()
 
     // Restore modal size
     document.body.querySelector('.swal-overlay .swal-modal.is-expanded').classList.remove('is-expanded')
@@ -615,48 +610,45 @@ page.selectAll = function (element) {
 
   for (let i = 0; i < checkboxes.length; i++) {
     const id = page.getItemID(checkboxes[i])
-    if (isNaN(id)) { continue }
+    if (isNaN(id)) continue
     if (checkboxes[i].checked !== element.checked) {
       checkboxes[i].checked = element.checked
-      if (checkboxes[i].checked) {
+      if (checkboxes[i].checked)
         selected.push(id)
-      } else {
+      else
         selected.splice(selected.indexOf(id), 1)
-      }
     }
   }
 
-  if (selected.length) {
+  if (selected.length)
     localStorage[LS_KEYS.selected[currentView]] = JSON.stringify(selected)
-  } else {
+  else
     localStorage.removeItem(LS_KEYS.selected[currentView])
-  }
 
   page.selected[currentView] = selected
   element.title = element.checked ? 'Unselect all uploads' : 'Select all uploads'
 }
 
 page.selectInBetween = function (element, lastElement) {
-  if (!element || !lastElement) { return }
-  if (element === lastElement) { return }
+  if (!element || !lastElement) return
+  if (element === lastElement) return
 
   const currentView = page.currentView
   const checkboxes = page.checkboxes[currentView]
-  if (!checkboxes || !checkboxes.length) { return }
+  if (!checkboxes || !checkboxes.length) return
 
   const thisIndex = checkboxes.indexOf(element)
   const lastIndex = checkboxes.indexOf(lastElement)
 
   const distance = thisIndex - lastIndex
-  if (distance >= -1 && distance <= 1) { return }
+  if (distance >= -1 && distance <= 1) return
 
-  for (let i = 0; i < checkboxes.length; i++) {
+  for (let i = 0; i < checkboxes.length; i++)
     if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
       (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
       checkboxes[i].checked = true
       page.selected[currentView].push(page.getItemID(checkboxes[i]))
     }
-  }
 
   localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected[currentView])
   page.checkboxes[currentView] = checkboxes
@@ -665,27 +657,24 @@ page.selectInBetween = function (element, lastElement) {
 page.select = function (element, event) {
   const currentView = page.currentView
   const lastSelected = page.lastSelected[currentView]
-  if (event.shiftKey && lastSelected) {
+  if (event.shiftKey && lastSelected)
     page.selectInBetween(element, lastSelected)
-  } else {
+  else
     page.lastSelected[currentView] = element
-  }
 
   const id = page.getItemID(element)
-  if (isNaN(id)) { return }
+  if (isNaN(id)) return
 
   const selected = page.selected[currentView]
-  if (!selected.includes(id) && element.checked) {
+  if (!selected.includes(id) && element.checked)
     selected.push(id)
-  } else if (selected.includes(id) && !element.checked) {
+  else if (selected.includes(id) && !element.checked)
     selected.splice(selected.indexOf(id), 1)
-  }
 
-  if (selected.length) {
+  if (selected.length)
     localStorage[LS_KEYS.selected[currentView]] = JSON.stringify(selected)
-  } else {
+  else
     localStorage.removeItem(LS_KEYS.selected[currentView])
-  }
 
   page.selected[currentView] = selected
 }
@@ -694,9 +683,8 @@ page.clearSelection = function () {
   const currentView = page.currentView
   const selected = page.selected[currentView]
   const count = selected.length
-  if (!count) {
+  if (!count)
     return swal('An error occurred!', `You have not selected any ${currentView}.`, 'error')
-  }
 
   const suffix = count === 1 ? currentView.substring(0, currentView.length - 1) : currentView
   return swal({
@@ -704,20 +692,18 @@ page.clearSelection = function () {
     text: `You are going to unselect ${count} ${suffix}.`,
     buttons: true
   }).then(function (proceed) {
-    if (!proceed) { return }
+    if (!proceed) return
 
     const checkboxes = page.checkboxes[currentView]
-    for (let i = 0; i < checkboxes.length; i++) {
-      if (checkboxes[i].checked) {
+    for (let i = 0; i < checkboxes.length; i++)
+      if (checkboxes[i].checked)
         checkboxes[i].checked = false
-      }
-    }
 
     localStorage.removeItem(LS_KEYS.selected[currentView])
     page.selected[currentView] = []
 
     const selectAll = document.getElementById('selectAll')
-    if (selectAll) { selectAll.checked = false }
+    if (selectAll) selectAll.checked = false
 
     return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
   })
@@ -738,18 +724,17 @@ page.deleteFile = function (id) {
       }
     }
   }).then(function (proceed) {
-    if (!proceed) { return }
+    if (!proceed) return
 
     axios.post('api/upload/delete', { id }).then(function (response) {
-      if (!response) { return }
+      if (!response) return
 
-      if (response.data.success === false) {
+      if (response.data.success === false)
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
-      }
 
       swal('Deleted!', 'The file has been deleted.', 'success')
       page.getUploads(page.views.uploads)
@@ -762,9 +747,8 @@ page.deleteFile = function (id) {
 
 page.deleteSelectedFiles = function () {
   const count = page.selected.uploads.length
-  if (!count) {
+  if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
-  }
 
   const suffix = `file${count === 1 ? '' : 's'}`
   swal({
@@ -780,21 +764,20 @@ page.deleteSelectedFiles = function () {
       }
     }
   }).then(function (proceed) {
-    if (!proceed) { return }
+    if (!proceed) return
 
     axios.post('api/upload/bulkdelete', {
       field: 'id',
       values: page.selected.uploads
     }).then(function (bulkdelete) {
-      if (!bulkdelete) { return }
+      if (!bulkdelete) return
 
-      if (bulkdelete.data.success === false) {
+      if (bulkdelete.data.success === false)
         if (bulkdelete.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', bulkdelete.data.description, 'error')
         }
-      }
 
       let deleted = count
       if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
@@ -802,9 +785,8 @@ page.deleteSelectedFiles = function () {
         page.selected.uploads = page.selected.uploads.filter(function (id) {
           return bulkdelete.data.failed.includes(id)
         })
-      } else {
+      } else
         page.selected.uploads = []
-      }
 
       localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
 
@@ -848,9 +830,8 @@ page.deleteFileByNames = function () {
       return n.trim().length
     })
   const count = names.length
-  if (!count) {
+  if (!count)
     return swal('An error occurred!', 'You have not entered any file names.', 'error')
-  }
 
   const suffix = `file${count === 1 ? '' : 's'}`
   swal({
@@ -866,26 +847,24 @@ page.deleteFileByNames = function () {
       }
     }
   }).then(function (proceed) {
-    if (!proceed) { return }
+    if (!proceed) return
 
     axios.post('api/upload/bulkdelete', {
       field: 'name',
       values: names
     }).then(function (bulkdelete) {
-      if (!bulkdelete) { return }
+      if (!bulkdelete) return
 
-      if (bulkdelete.data.success === false) {
+      if (bulkdelete.data.success === false)
         if (bulkdelete.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', bulkdelete.data.description, 'error')
         }
-      }
 
       let deleted = count
-      if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
+      if (bulkdelete.data.failed && bulkdelete.data.failed.length)
         deleted -= bulkdelete.data.failed.length
-      }
 
       document.getElementById('names').value = bulkdelete.data.failed.join('\n')
       swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
@@ -898,19 +877,18 @@ page.deleteFileByNames = function () {
 
 page.addSelectedFilesToAlbum = function () {
   const count = page.selected.uploads.length
-  if (!count) {
+  if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
-  }
 
   page.addFilesToAlbum(page.selected.uploads, function (failed) {
-    if (!failed) { return }
-    if (failed.length) {
+    if (!failed) return
+    if (failed.length)
       page.selected.uploads = page.selected.uploads.filter(function (id) {
         return failed.includes(id)
       })
-    } else {
+    else
       page.selected.uploads = []
-    }
+
     localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
     page.getUploads(page.views.uploads)
   })
@@ -918,7 +896,7 @@ page.addSelectedFilesToAlbum = function () {
 
 page.addSingleFileToAlbum = function (id) {
   page.addFilesToAlbum([id], function (failed) {
-    if (!failed) { return }
+    if (!failed) return
     page.getUploads(page.views.uploads)
   })
 }
@@ -955,37 +933,34 @@ page.addFilesToAlbum = function (ids, callback) {
       }
     }
   }).then(function (choose) {
-    if (!choose) { return }
+    if (!choose) return
 
     const albumid = parseInt(document.getElementById('swalAlbum').value)
-    if (isNaN(albumid)) {
+    if (isNaN(albumid))
       return swal('An error occurred!', 'You did not choose an album.', 'error')
-    }
 
     axios.post('api/albums/addfiles', {
       ids,
       albumid
     }).then(function (add) {
-      if (!add) { return }
+      if (!add) return
 
       if (add.data.success === false) {
-        if (add.data.description === 'No token provided') {
+        if (add.data.description === 'No token provided')
           page.verifyToken(page.token)
-        } else {
+        else
           swal('An error occurred!', add.data.description, 'error')
-        }
+
         return
       }
 
       let added = ids.length
-      if (add.data.failed && add.data.failed.length) {
+      if (add.data.failed && add.data.failed.length)
         added -= add.data.failed.length
-      }
 
       const suffix = `file${ids.length === 1 ? '' : 's'}`
-      if (!added) {
+      if (!added)
         return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
-      }
 
       swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
       return callback(add.data.failed)
@@ -1001,17 +976,17 @@ page.addFilesToAlbum = function (ids, callback) {
   // Get albums list then update content of swal
   axios.get('api/albums').then(function (list) {
     if (list.data.success === false) {
-      if (list.data.description === 'No token provided') {
+      if (list.data.description === 'No token provided')
         page.verifyToken(page.token)
-      } else {
+      else
         swal('An error occurred!', list.data.description, 'error')
-      }
+
       return
     }
 
     const select = document.getElementById('swalAlbum')
     // If the prompt was replaced, the container would be missing
-    if (!select) { return }
+    if (!select) return
     select.innerHTML += list.data.albums
       .map(function (album) {
         return `<option value="${album.id}">${album.name}</option>`
@@ -1027,15 +1002,14 @@ page.addFilesToAlbum = function (ids, callback) {
 
 page.getAlbums = function () {
   axios.get('api/albums').then(function (response) {
-    if (!response) { return }
+    if (!response) return
 
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     page.cache.albums = {}
 
@@ -1140,7 +1114,7 @@ page.getAlbums = function () {
 
 page.editAlbum = function (id) {
   const album = page.cache.albums[id]
-  if (!album) { return }
+  if (!album) return
 
   const div = document.createElement('div')
   div.innerHTML = `
@@ -1191,7 +1165,7 @@ page.editAlbum = function (id) {
       }
     }
   }).then(function (value) {
-    if (!value) { return }
+    if (!value) return
 
     axios.post('api/albums/edit', {
       id,
@@ -1201,23 +1175,21 @@ page.editAlbum = function (id) {
       public: document.getElementById('swalPublic').checked,
       requestLink: document.getElementById('swalRequestLink').checked
     }).then(function (response) {
-      if (!response) { return }
+      if (!response) return
 
-      if (response.data.success === false) {
+      if (response.data.success === false)
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
-      }
 
-      if (response.data.identifier) {
+      if (response.data.identifier)
         swal('Success!', `Your album's new identifier is: ${response.data.identifier}.`, 'success')
-      } else if (response.data.name !== album.name) {
+      else if (response.data.name !== album.name)
         swal('Success!', `Your album was renamed to: ${response.data.name}.`, 'success')
-      } else {
+      else
         swal('Success!', 'Your album was edited!', 'success')
-      }
 
       page.getAlbumsSidebar()
       page.getAlbums()
@@ -1248,19 +1220,18 @@ page.deleteAlbum = function (id) {
       }
     }
   }).then(function (proceed) {
-    if (!proceed) { return }
+    if (!proceed) return
 
     axios.post('api/albums/delete', {
       id,
       purge: proceed === 'purge'
     }).then(function (response) {
-      if (response.data.success === false) {
+      if (response.data.success === false)
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
-      }
 
       swal('Deleted!', 'Your album has been deleted.', 'success')
       page.getAlbumsSidebar()
@@ -1279,17 +1250,16 @@ page.submitAlbum = function (element) {
     name: document.getElementById('albumName').value,
     description: document.getElementById('albumDescription').value
   }).then(function (response) {
-    if (!response) { return }
+    if (!response) return
 
     page.isLoading(element, false)
 
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     swal('Woohoo!', 'Album was created successfully', 'success')
     page.getAlbumsSidebar()
@@ -1303,20 +1273,19 @@ page.submitAlbum = function (element) {
 
 page.getAlbumsSidebar = function () {
   axios.get('api/albums/sidebar').then(function (response) {
-    if (!response) { return }
+    if (!response) return
 
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     const albumsContainer = document.getElementById('albumsContainer')
     albumsContainer.innerHTML = ''
 
-    if (response.data.albums === undefined) { return }
+    if (response.data.albums === undefined) return
 
     for (let i = 0; i < response.data.albums.length; i++) {
       const album = response.data.albums[i]
@@ -1345,13 +1314,12 @@ page.getAlbum = function (album) {
 
 page.changeFileLength = function () {
   axios.get('api/filelength/config').then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     // Shorter vars
     const { max, min } = response.data.config
@@ -1397,13 +1365,12 @@ page.setFileLength = function (fileLength, element) {
   axios.post('api/filelength/change', { fileLength }).then(function (response) {
     page.isLoading(element, false)
 
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     swal({
       title: 'Woohoo!',
@@ -1421,13 +1388,12 @@ page.setFileLength = function (fileLength, element) {
 
 page.changeToken = function () {
   axios.get('api/tokens').then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     page.dom.innerHTML = `
       <h2 class="subtitle">Manage your token</h2>
@@ -1463,13 +1429,12 @@ page.getNewToken = function (element) {
   axios.post('api/tokens/change').then(function (response) {
     page.isLoading(element, false)
 
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     swal({
       title: 'Woohoo!',
@@ -1517,15 +1482,14 @@ page.changePassword = function () {
   page.fadeIn()
 
   document.getElementById('sendChangePassword').addEventListener('click', function () {
-    if (document.getElementById('password').value === document.getElementById('passwordConfirm').value) {
+    if (document.getElementById('password').value === document.getElementById('passwordConfirm').value)
       page.sendNewPassword(document.getElementById('password').value, this)
-    } else {
+    else
       swal({
         title: 'Password mismatch!',
         text: 'Your passwords do not match, please try again.',
         icon: 'error'
       })
-    }
   })
 }
 
@@ -1535,13 +1499,12 @@ page.sendNewPassword = function (pass, element) {
   axios.post('api/password/change', { password: pass }).then(function (response) {
     page.isLoading(element, false)
 
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     swal({
       title: 'Woohoo!',
@@ -1560,9 +1523,8 @@ page.sendNewPassword = function (pass, element) {
 page.setActiveMenu = function (activeItem) {
   const menu = document.getElementById('menu')
   const items = menu.getElementsByTagName('a')
-  for (let i = 0; i < items.length; i++) {
+  for (let i = 0; i < items.length; i++)
     items[i].classList.remove('is-active')
-  }
 
   activeItem.classList.add('is-active')
 }
@@ -1585,11 +1547,11 @@ page.getPrettyBytes = num => {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
 
-  if (!Number.isFinite(num)) { return num }
+  if (!Number.isFinite(num)) return num
 
   const neg = num < 0
-  if (neg) { num = -num }
-  if (num < 1) { return `${neg ? '-' : ''}${num}B` }
+  if (neg) num = -num
+  if (num < 1) return `${neg ? '-' : ''}${num}B`
 
   const exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
   const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
@@ -1599,26 +1561,24 @@ page.getPrettyBytes = num => {
 }
 
 page.getUsers = ({ pageNum } = {}, element) => {
-  if (element) { page.isLoading(element, true) }
-  if (pageNum === undefined) { pageNum = 0 }
+  if (element) page.isLoading(element, true)
+  if (pageNum === undefined) pageNum = 0
 
-  if (!page.permissions.admin) {
+  if (!page.permissions.admin)
     return swal('An error occurred!', 'You can not do this!', 'error')
-  }
 
   const url = `api/users/${pageNum}`
   axios.get(url).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
         return swal('An error occurred!', response.data.description, 'error')
       }
-    }
 
     if (pageNum && (response.data.users.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
-      if (element) { page.isLoading(element, false) }
+      if (element) page.isLoading(element, false)
       return swal('An error occurred!', 'There are no more users!', 'error')
     }
 
@@ -1691,11 +1651,11 @@ page.getUsers = ({ pageNum } = {}, element) => {
     for (let i = 0; i < response.data.users.length; i++) {
       const user = response.data.users[i]
       const selected = page.selected.users.includes(user.id)
-      if (!selected && allSelected) { allSelected = false }
+      if (!selected && allSelected) allSelected = false
 
       let displayGroup = null
       for (const group of Object.keys(user.groups)) {
-        if (!user.groups[group]) { break }
+        if (!user.groups[group]) break
         displayGroup = group
       }
 
@@ -1744,12 +1704,12 @@ page.getUsers = ({ pageNum } = {}, element) => {
 
     if (allSelected && response.data.users.length) {
       const selectAll = document.getElementById('selectAll')
-      if (selectAll) { selectAll.checked = true }
+      if (selectAll) selectAll.checked = true
     }
 
     page.views.users.pageNum = response.data.users.length ? pageNum : 0
   }).catch(function (error) {
-    if (element) { page.isLoading(element, false) }
+    if (element) page.isLoading(element, false)
     console.log(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
@@ -1757,7 +1717,7 @@ page.getUsers = ({ pageNum } = {}, element) => {
 
 page.editUser = function (id) {
   const user = page.cache.users[id]
-  if (!user) { return }
+  if (!user) return
 
   const groupOptions = Object.keys(page.permissions).map((g, i, a) => {
     const selected = g === user.displayGroup
@@ -1812,7 +1772,7 @@ page.editUser = function (id) {
       }
     }
   }).then(function (value) {
-    if (!value) { return }
+    if (!value) return
 
     axios.post('api/users/edit', {
       id,
@@ -1821,15 +1781,14 @@ page.editUser = function (id) {
       enabled: document.getElementById('swalEnabled').checked,
       resetPassword: document.getElementById('swalResetPassword').checked
     }).then(function (response) {
-      if (!response) { return }
+      if (!response) return
 
-      if (response.data.success === false) {
+      if (response.data.success === false)
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
-      }
 
       if (response.data.password) {
         const div = document.createElement('div')
@@ -1842,11 +1801,10 @@ page.editUser = function (id) {
           icon: 'success',
           content: div
         })
-      } else if (response.data.name !== user.name) {
+      } else if (response.data.name !== user.name)
         swal('Success!', `${user.username} was renamed into: ${response.data.name}.`, 'success')
-      } else {
+      else
         swal('Success!', 'The user was edited!', 'success')
-      }
 
       page.getUsers(page.views.users)
     }).catch(function (error) {
@@ -1896,14 +1854,13 @@ page.disableUser = function (id) {
 
 window.onload = function () {
   // Add 'no-touch' class to non-touch devices
-  if (!('ontouchstart' in document.documentElement)) {
+  if (!('ontouchstart' in document.documentElement))
     document.documentElement.classList.add('no-touch')
-  }
 
   const selectedKeys = ['uploads', 'users']
   for (const selectedKey of selectedKeys) {
     const ls = localStorage[LS_KEYS.selected[selectedKey]]
-    if (ls) { page.selected[selectedKey] = JSON.parse(ls) }
+    if (ls) page.selected[selectedKey] = JSON.parse(ls)
   }
 
   page.preparePage()

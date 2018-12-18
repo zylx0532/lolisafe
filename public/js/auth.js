@@ -13,21 +13,18 @@ page.do = function (dest) {
   const user = page.user.value
   const pass = page.pass.value
 
-  if (!user) {
+  if (!user)
     return swal('An error occurred!', 'You need to specify a username', 'error')
-  }
 
-  if (!pass) {
+  if (!pass)
     return swal('An error occurred!', 'You need to specify a username', 'error')
-  }
 
   axios.post(`api/${dest}`, {
     username: user,
     password: pass
   }).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       return swal('An error occurred!', response.data.description, 'error')
-    }
 
     localStorage.token = response.data.token
     window.location = 'dashboard'
@@ -38,14 +35,13 @@ page.do = function (dest) {
 }
 
 page.verify = function () {
-  if (!page.token) { return }
+  if (!page.token) return
 
   axios.post('api/tokens/verify', {
     token: page.token
   }).then(function (response) {
-    if (response.data.success === false) {
+    if (response.data.success === false)
       return swal('An error occurred!', response.data.description, 'error')
-    }
 
     window.location = 'dashboard'
   }).catch(function (error) {

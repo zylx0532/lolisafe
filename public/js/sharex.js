@@ -1,7 +1,7 @@
 /* global page */
 
 page.prepareShareX = function () {
-  if (!page.token) { return }
+  if (!page.token) return
   const origin = (location.hostname + location.pathname).replace(/\/(dashboard)?$/, '')
   const originClean = origin.replace(/\//g, '_')
   const sharexElement = document.getElementById('ShareX')

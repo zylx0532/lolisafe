@@ -12,7 +12,7 @@
   "rules": {
     "curly": [
       "error",
-      "all"
+      "multi"
     ],
     "quotes": [
       "error",
