@@ -159,7 +159,7 @@ authController.editUser = async (req, res, next) => {
   else if (target.username === 'root')
     return res.json({ success: false, description: 'Root user may not be edited.' })
 
-  const username = String(req.body.username)
+  const username = `${req.body.username}`
   if (username.length < 4 || username.length > 32)
     return res.json({ success: false, description: 'Username must have 4-32 characters.' })
 
@@ -197,7 +197,7 @@ authController.listUsers = async (req, res, next) => {
   if (!user) return
 
   const isadmin = perms.is(user, 'admin')
-  if (!isadmin) return res.status(403)
+  if (!isadmin) return res.status(403).end()
 
   let offset = req.params.page
   if (offset === undefined) offset = 0

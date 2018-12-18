@@ -215,18 +215,6 @@ utilsController.deleteFile = file => {
   })
 }
 
-/**
- * Delete files by matching whether the specified field contains any value
- * in the array of values. This will return an array of values that could
- * not be deleted. At the moment it's hard-coded to only accept either
- * "id" or "name" field.
- *
- * @param  {string} field
- * @param  {any} values
- * @param  {user} user
- * @param  {Set} set
- * @return {any[]} failed
- */
 utilsController.bulkDeleteFiles = async (field, values, user, set) => {
   if (!user || !['id', 'name'].includes(field)) return
 

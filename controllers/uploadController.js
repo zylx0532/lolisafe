@@ -47,7 +47,7 @@ const storage = multer.diskStorage({
     }
 
     // index.extension (e.i. 0, 1, ..., n - will prepend zeros depending on the amount of chunks)
-    const digits = req.body.totalchunkcount !== undefined ? String(req.body.totalchunkcount - 1).length : 1
+    const digits = req.body.totalchunkcount !== undefined ? `${req.body.totalchunkcount - 1}`.length : 1
     const zeros = new Array(digits + 1).join('0')
     const name = (zeros + req.body.chunkindex).slice(-digits)
     return cb(null, name)
@@ -628,11 +628,10 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 }
 
 uploadsController.delete = async (req, res) => {
-  const id = parseInt(req.body.id) || parseInt(req.params.identifier)
+  const id = parseInt(req.body.id)
   req.body.field = 'id'
   req.body.values = isNaN(id) ? undefined : [id]
   delete req.body.id
-  delete req.params.identifier
   return uploadsController.bulkDelete(req, res)
 }
 
@@ -663,7 +662,7 @@ uploadsController.list = async (req, res) => {
   // Headers is string-only, this seem to be the safest and lightest
   const all = req.headers.all === '1'
   const ismoderator = perms.is(user, 'moderator')
-  if (all && !ismoderator) return res.json(403)
+  if (all && !ismoderator) return res.status(403).end()
 
   const files = await db.table('files')
     .where(function () {
