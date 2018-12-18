@@ -23,9 +23,9 @@ migration.start = async () => {
   await Promise.all(tables.map(table => {
     const columns = Object.keys(map[table])
     return Promise.all(columns.map(async column => {
-      if (await db.schema.hasColumn(table, column)) {
+      if (await db.schema.hasColumn(table, column))
         return // console.log(`SKIP: ${column} => ${table}.`)
-      }
+
       const columnType = map[table][column]
       return db.schema.table(table, t => { t[columnType](column) })
         .then(() => console.log(`OK: ${column} (${columnType}) => ${table}.`))
@@ -42,7 +42,7 @@ migration.start = async () => {
     .then(rows => {
       // NOTE: permissionController.js actually have a hard-coded check for "root" account so that
       // it will always have "superadmin" permission regardless of its permission value in database
-      if (!rows) { return console.log('Unable to update root\'s permission into superadmin.') }
+      if (!rows) return console.log('Unable to update root\'s permission into superadmin.')
       console.log(`Updated root's permission to ${perms.permissions.superadmin} (superadmin).`)
     })
 

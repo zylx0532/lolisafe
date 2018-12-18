@@ -15,13 +15,13 @@ thumbs.mayGenerateThumb = extname => {
 thumbs.getFiles = directory => {
   return new Promise((resolve, reject) => {
     fs.readdir(directory, async (error, names) => {
-      if (error) { return reject(error) }
+      if (error) return reject(error)
       const files = []
       await Promise.all(names.map(name => {
         return new Promise((resolve, reject) => {
           fs.lstat(path.join(directory, name), (error, stats) => {
-            if (error) { return reject(error) }
-            if (stats.isFile() && !name.startsWith('.')) { files.push(name) }
+            if (error) return reject(error)
+            if (stats.isFile() && !name.startsWith('.')) files.push(name)
             resolve()
           })
         })
@@ -62,16 +62,16 @@ thumbs.do = async () => {
   await new Promise((resolve, reject) => {
     const generate = async i => {
       const _upload = _uploads[i]
-      if (!_upload) { return resolve() }
+      if (!_upload) return resolve()
 
       const extname = path.extname(_upload)
       const basename = _upload.slice(0, -extname.length)
 
       if (_thumbs.includes(basename) && !thumbs.force) {
-        if (thumbs.verbose) { console.log(`${_upload}: thumb exists.`) }
+        if (thumbs.verbose) console.log(`${_upload}: thumb exists.`)
         skipped++
       } else if (!thumbs.mayGenerateThumb(extname)) {
-        if (thumbs.verbose) { console.log(`${_upload}: extension skipped.`) }
+        if (thumbs.verbose) console.log(`${_upload}: extension skipped.`)
         skipped++
       } else {
         const generated = await utils.generateThumbs(_upload, thumbs.force)

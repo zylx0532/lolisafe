@@ -56,16 +56,15 @@ const setHeaders = res => {
   res.set('Cache-Control', 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800') // max-age: 30 days
 }
 
-if (config.serveFilesWithNode) {
+if (config.serveFilesWithNode)
   safe.use('/', express.static(config.uploads.folder, { setHeaders }))
-}
 
 safe.use('/', express.static('./public', { setHeaders }))
 safe.use('/', album)
 safe.use('/', nojs)
 safe.use('/api', api)
 
-for (const page of config.pages) {
+for (const page of config.pages)
   if (fs.existsSync(`./pages/custom/${page}.html`)) {
     safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, {
       root: './pages/custom/'
@@ -90,7 +89,6 @@ for (const page of config.pages) {
   } else {
     safe.get(`/${page}`, (req, res, next) => res.render(page))
   }
-}
 
 safe.use((req, res, next) => {
   res.status(404).sendFile(config.errorPages[404], { root: config.errorPages.rootDir })
@@ -109,31 +107,31 @@ const start = async () => {
   if (config.showGitHash) {
     const gitHash = await new Promise((resolve, reject) => {
       require('child_process').exec('git rev-parse HEAD', (error, stdout) => {
-        if (error) { return reject(error) }
+        if (error) return reject(error)
         resolve(stdout.replace(/\n$/, ''))
       })
     }).catch(console.error)
-    if (!gitHash) { return }
+    if (!gitHash) return
     console.log(`Git commit: ${gitHash}`)
     safe.set('git-hash', gitHash)
   }
 
   if (config.uploads.scan && config.uploads.scan.enabled) {
     const created = await new Promise(async (resolve, reject) => {
-      if (!config.uploads.scan.ip || !config.uploads.scan.port) {
+      if (!config.uploads.scan.ip || !config.uploads.scan.port)
         return reject(new Error('clamd IP or port is missing'))
-      }
+
       const ping = await clamd.ping(config.uploads.scan.ip, config.uploads.scan.port).catch(reject)
-      if (!ping) {
+      if (!ping)
         return reject(new Error('Could not ping clamd'))
-      }
+
       const version = await clamd.version(config.uploads.scan.ip, config.uploads.scan.port).catch(reject)
       console.log(`${config.uploads.scan.ip}:${config.uploads.scan.port} ${version}`)
       const scanner = clamd.createScanner(config.uploads.scan.ip, config.uploads.scan.port)
       safe.set('clam-scanner', scanner)
       return resolve(true)
     }).catch(error => console.error(error.toString()))
-    if (!created) { return process.exit(1) }
+    if (!created) return process.exit(1)
   }
 
   if (config.uploads.cacheFileIdentifiers) {
@@ -142,40 +140,39 @@ const start = async () => {
     const setSize = await new Promise((resolve, reject) => {
       const uploadsDir = `./${config.uploads.folder}`
       fs.readdir(uploadsDir, (error, names) => {
-        if (error) { return reject(error) }
+        if (error) return reject(error)
         const set = new Set()
         names.forEach(name => set.add(name.split('.')[0]))
         safe.set('uploads-set', set)
         resolve(set.size)
       })
     }).catch(error => console.error(error.toString()))
-    if (!setSize) { return process.exit(1) }
+    if (!setSize) return process.exit(1)
     process.stdout.write(` ${setSize} OK!\n`)
   }
 
   safe.listen(config.port, () => {
     console.log(`lolisafe started on port ${config.port}`)
+    // DEV=1 yarn start
     if (process.env.DEV === '1') {
-      // DEV=1 yarn start
-      console.log('lolisafe is in development mode, nunjucks caching disabled')
+      // Add readline interface to allow evaluating arbitrary JavaScript from console
+      readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        prompt: ''
+      }).on('line', line => {
+        try {
+          if (line === '.exit') process.exit(0)
+          // eslint-disable-next-line no-eval
+          process.stdout.write(`${require('util').inspect(eval(line), { depth: 0 })}\n`)
+        } catch (error) {
+          console.error(error.toString())
+        }
+      }).on('SIGINT', () => {
+        process.exit(0)
+      })
+      console.warn('development mode enabled (disabled nunjucks caching & enabled readline interface)')
     }
-
-    // Add readline interface to allow evaluating arbitrary JavaScript from console
-    readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: ''
-    }).on('line', line => {
-      try {
-        if (line === '.exit') { process.exit(0) }
-        // eslint-disable-next-line no-eval
-        process.stdout.write(`${require('util').inspect(eval(line), { depth: 0 })}\n`)
-      } catch (error) {
-        console.error(error.toString())
-      }
-    }).on('SIGINT', () => {
-      process.exit(0)
-    })
   })
 }
 

@@ -121,8 +121,9 @@ page.prepareUpload = function () {
       page.uploadUrls(this)
     })
     page.setActiveTab('tab-files')
-  } else
+  } else {
     document.getElementById('tab-files').style.display = 'block'
+  }
 }
 
 page.prepareAlbums = function () {
@@ -296,7 +297,9 @@ page.uploadUrls = function (button) {
     const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
     const urls = document.getElementById('urls').value
       .split(/\r?\n/)
-      .filter(function (url) { return url.trim().length })
+      .filter(function (url) {
+        return url.trim().length
+      })
     document.getElementById('urls').value = urls.join('\n')
 
     if (!urls.length)
@@ -365,7 +368,11 @@ page.updateTemplate = function (file, response) {
     const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
     img.dataset['src'] = response.url
-    img.onerror = function () { this.style.display = 'none' } // hide webp in firefox and ie
+    img.onerror = function () {
+      // Hide images that failed to load
+      // Consequently also WEBP in browsers that do not have WEBP support (Firefox/IE)
+      this.style.display = 'none'
+    }
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
   }
 }

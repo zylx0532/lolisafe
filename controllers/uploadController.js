@@ -143,8 +143,9 @@ uploadsController.upload = async (req, res, next) => {
   if (config.private === true) {
     user = await utils.authorize(req, res)
     if (!user) return
-  } else if (req.headers.token)
+  } else if (req.headers.token) {
     user = await db.table('users').where('token', req.headers.token).first()
+  }
 
   if (user && (user.enabled === false || user.enabled === 0))
     return res.json({ success: false, description: 'This account has been disabled.' })
@@ -289,7 +290,9 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
           uploadsController.processFilesForDisplay(req, res, result.files, result.existingFiles)
         }
       })
-    } catch (error) { erred(error) }
+    } catch (error) {
+      erred(error)
+    }
   }
 }
 
@@ -301,8 +304,9 @@ uploadsController.finishChunks = async (req, res, next) => {
   if (config.private === true) {
     user = await utils.authorize(req, res)
     if (!user) return
-  } else if (req.headers.token)
+  } else if (req.headers.token) {
     user = await db.table('users').where('token', req.headers.token).first()
+  }
 
   if (user && (user.enabled === false || user.enabled === 0))
     return res.json({ success: false, description: 'This account has been disabled.' })
@@ -624,10 +628,11 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 }
 
 uploadsController.delete = async (req, res) => {
-  const id = parseInt(req.body.id)
+  const id = parseInt(req.body.id) || parseInt(req.params.identifier)
   req.body.field = 'id'
   req.body.values = isNaN(id) ? undefined : [id]
-  if (req.body.id !== undefined) delete req.body.id
+  delete req.body.id
+  delete req.params.identifier
   return uploadsController.bulkDelete(req, res)
 }
 

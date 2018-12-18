@@ -209,8 +209,9 @@ page.domClick = function (event) {
       views.album = page.views.uploads.album
       views.all = page.views.uploads.all
       func = page.getUploads
-    } else if (page.currentView === 'users')
+    } else if (page.currentView === 'users') {
       func = page.getUsers
+    }
 
     switch (action) {
       case 'page-prev':
@@ -785,8 +786,9 @@ page.deleteSelectedFiles = function () {
         page.selected.uploads = page.selected.uploads.filter(function (id) {
           return bulkdelete.data.failed.includes(id)
         })
-      } else
+      } else {
         page.selected.uploads = []
+      }
 
       localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
 
@@ -1801,10 +1803,11 @@ page.editUser = function (id) {
           icon: 'success',
           content: div
         })
-      } else if (response.data.name !== user.name)
+      } else if (response.data.name !== user.name) {
         swal('Success!', `${user.username} was renamed into: ${response.data.name}.`, 'success')
-      else
+      } else {
         swal('Success!', 'The user was edited!', 'success')
+      }
 
       page.getUsers(page.views.users)
     }).catch(function (error) {
@@ -1829,17 +1832,16 @@ page.disableUser = function (id) {
       }
     }
   }).then(function (proceed) {
-    if (!proceed) { return }
+    if (!proceed) return
 
     axios.post('api/users/disable', { id }).then(function (response) {
-      if (!response) { return }
+      if (!response) return
 
       if (response.data.success === false) {
-        if (response.data.description === 'No token provided') {
+        if (response.data.description === 'No token provided')
           return page.verifyToken(page.token)
-        } else {
+        else
           return swal('An error occurred!', response.data.description, 'error')
-        }
       }
 
       swal('Success!', 'The user has been disabled.', 'success')
