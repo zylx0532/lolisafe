@@ -584,7 +584,7 @@ uploadsController.scanFiles = (req, infoMap) => {
     for (const info of infoMap)
       scanner.scanFile(info.path).then(reply => {
         if (!reply.includes('OK') || reply.includes('FOUND')) {
-        // eslint-disable-next-line no-control-regex
+          // eslint-disable-next-line no-control-regex
           const virus = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
           console.log(`ClamAV: ${info.data.filename}: ${virus} FOUND.`)
           return resolve(virus)
