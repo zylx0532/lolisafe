@@ -144,7 +144,7 @@ module.exports = {
     urlProxy: 'https://images.weserv.nl/?url={url-noprot}',
 
     /*
-      Disclaimer message that will be printed in the URL uploads form.
+      Disclaimer message that will be printed underneath the URL uploads form.
       Supports HTML. Be safe though.
     */
     urlDisclaimerMessage: 'URL uploads are being proxied and compressed by <a href="https://images.weserv.nl/" target="_blank" rel="noopener">images.weserv.nl</a>. By using this feature, you agree to their <a href="https://github.com/weserv/images/blob/4.x/Privacy-Policy.md" target="_blank" rel="noopener">Privacy Policy</a>.',
@@ -159,12 +159,11 @@ module.exports = {
     urlExtensionsFilterMode: 'whitelist',
 
     /*
-      An array of extensions that are allowed for URL uploads.
-      Intended for URL proxies that only support certain extensions.
+      Mainly intended for URL proxies that only support certain extensions.
       This will parse the extensions from the URLs, so URLs that do not end with
-      the file's extensions will always be rejected
-      Queries and segments in the URLs will be bypassed when parsing.
-      NOTE: Set to falsy value to disable filters.
+      the file's extensions will always be rejected.
+      Queries and segments in the URLs will be bypassed.
+      NOTE: Can not be empty when using either 'blacklist' or 'whitelist' mode.
     */
     urlExtensionsFilter: [
       '.gif',
