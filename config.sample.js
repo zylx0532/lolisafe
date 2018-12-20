@@ -30,7 +30,7 @@ module.exports = {
 
   /*
     If you are serving your files with a different domain than your lolisafe homepage,
-    then fill this option with your lolisafe homepage, otherwise leave it null (or other falsy value).
+    then fill this option with your lolisafe homepage, otherwise any falsy value.
     This will be used when listing album links in the dashboard.
   */
   homeDomain: null,
@@ -46,30 +46,30 @@ module.exports = {
   pages: ['home', 'auth', 'dashboard', 'faq'],
 
   /*
-    If set to true, all extensions in "extensionsFilter" array will be blacklisted,
-    otherwise only files with those extensions that can be uploaded.
+    This can be either 'blacklist' or 'whitelist', which should be self-explanatory.
+    When this is set to neither, this will fallback to 'blacklist'.
   */
-  filterBlacklist: true,
+  extensionsFilterMode: 'blacklist',
 
   extensionsFilter: [
-    '.jar',
+    '.bash_profile',
+    '.bash',
+    '.bashrc',
+    '.bat',
+    '.bsh',
+    '.cmd',
+    '.com',
+    '.csh',
     '.exe',
     '.exec',
+    '.jar',
     '.msi',
-    '.com',
-    '.bat',
-    '.cmd',
     '.nt',
-    '.scr',
+    '.profile',
     '.ps1',
     '.psm1',
-    '.sh',
-    '.bash',
-    '.bsh',
-    '.csh',
-    '.bash_profile',
-    '.bashrc',
-    '.profile'
+    '.scr',
+    '.sh'
   ],
 
   /*
@@ -78,13 +78,20 @@ module.exports = {
   filterNoExtension: false,
 
   /*
+    If set to true, files with zero bytes size will always be rejected.
+    NOTE: Even if the files only contain whitespaces, as long as they aren't
+    zero bytes, they will be accepted.
+  */
+  filterEmptyFile: true,
+
+  /*
     Show hash of the current git commit in homepage.
   */
   showGitHash: false,
 
   /*
     Path to error pages. Only 404 and 500 will be used.
-    Note: rootDir can either be relative or absolute path.
+    NOTE: rootDir can either be relative or absolute path.
   */
   errorPages: {
     rootDir: './pages/error',
@@ -93,17 +100,23 @@ module.exports = {
   },
 
   /*
+    Trust proxy.
+    Only enable if you are running this behind a proxy like Cloudflare, Incapsula, etc.
+  */
+  trustProxy: true,
+
+  /*
     Uploads config.
   */
   uploads: {
     /*
-      Folder where images should be stored.
+      Folder where files should be stored.
     */
     folder: 'uploads',
 
     /*
       Max file size allowed. Needs to be in MB.
-      Note: When maxSize is greater than 1 MiB and using nginx as reverse proxy,
+      NOTE: When maxSize is greater than 1 MiB and using nginx as reverse proxy,
       you must set client_max_body_size to the same as maxSize.
       https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size
     */
@@ -111,9 +124,57 @@ module.exports = {
 
     /*
       Max file size allowed for upload by URLs. Needs to be in MB.
-      NOTE: Set to falsy value (false, null, etc.) to disable upload by URLs.
+      NOTE: Set to falsy value to disable upload by URLs.
     */
     urlMaxSize: '32MB',
+
+    /*
+      Proxy URL uploads.
+      NOTE: Set to falsy value to disable.
+
+      Available templates:
+      {url} = full URL (encoded & with protocol)
+      {url-noprot} = URL without protocol (images.weserv.nl prefers this format)
+
+      Example:
+      https://images.weserv.nl/?url={url-noprot}
+      will become:
+      https://images.weserv.nl/?url=example.com/assets/image.png
+    */
+    urlProxy: 'https://images.weserv.nl/?url={url-noprot}',
+
+    /*
+      Disclaimer message that will be printed in the URL uploads form.
+      Supports HTML. Be safe though.
+    */
+    urlDisclaimerMessage: 'URL uploads are being proxied and compressed by <a href="https://images.weserv.nl/" target="_blank" rel="noopener">images.weserv.nl</a>. By using this feature, you agree to their <a href="https://github.com/weserv/images/blob/4.x/Privacy-Policy.md" target="_blank" rel="noopener">Privacy Policy</a>.',
+
+    /*
+      Filter mode for URL uploads.
+      Can be 'blacklist', 'whitelist', or 'inherit'.
+      'inherit' => inherit primary extensions filter (extensionsFilter option).
+      The rest are paired with urlExtensionsFilter option below and should be self-explanatory.
+      When this is not set to any of the 3 values, this will fallback to 'inherit'.
+    */
+    urlExtensionsFilterMode: 'whitelist',
+
+    /*
+      An array of extensions that are allowed for URL uploads.
+      Intented for URL proxies that only support certain extensions.
+      This will parse the extensions from the URLs, so URLs that do not end with
+      the file's extensions will always be rejected
+      Queries and segments in the URLs will be bypassed when parsing.
+      NOTE: Set to falsy value to disable filters.
+    */
+    urlExtensionsFilter: [
+      '.gif',
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.bmp',
+      '.xbm',
+      '.webp'
+    ],
 
     /*
       Scan files using ClamAV through clamd.
@@ -130,7 +191,7 @@ module.exports = {
       by the size specified in "chunkSize". People will still be able to upload bigger files with
       the API as long as they don't surpass the limit specified in the "maxSize" option above.
       Total size of the whole chunks will also later be checked against the "maxSize" option.
-      NOTE: Set to falsy value (false, null, etc.) to disable chunked uploads.
+      NOTE: Set to falsy value to disable chunked uploads.
     */
     chunkSize: '10MB',
 
@@ -184,13 +245,13 @@ module.exports = {
     /*
       This option will limit how many times it will try to
       generate a new random name when a collision occurrs.
-      The shorter the length is, the higher the chance for a collision to occur.
+      Generally, the shorter the length is, the higher the chance for a collision to occur.
       This applies to both file name and album identifier.
     */
-    maxTries: 1,
+    maxTries: 3,
 
     /*
-      Thumbnails are only for the dashboard.
+      Thumbnails are only used in the dashboard and album's public pages.
       You need to install a separate binary called ffmpeg (https://ffmpeg.org/) for video thumbnails.
     */
     generateThumbs: {
@@ -214,7 +275,7 @@ module.exports = {
       No-JS uploader page will not chunk the uploads, so it's recommended to change this
       into the maximum upload size you have in Cloudflare.
       This limit will only be applied to the subtitle in the page.
-      NOTE: Set to falsy value (false, null, etc.) to inherit "maxSize" option.
+      NOTE: Set to falsy value to inherit "maxSize" option.
     */
     noJsMaxSize: '100MB',
 
@@ -223,7 +284,7 @@ module.exports = {
       API route (homeDomain/api/album/zip/*), with this option you can limit the
       maximum total size of files in an album that can be zipped.
       Cloudflare will not cache files bigger than 512MB.
-      NOTE: Set to falsy value (false, null, etc.) to disable max total size.
+      NOTE: Set to falsy value to disable max total size.
     */
     zipMaxTotalSize: '512MB',
 

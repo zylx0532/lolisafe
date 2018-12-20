@@ -72,27 +72,34 @@ const upload = multer({
       delete req.body[key]
     }
 
-    if (req.body.chunkindex)
-      if (chunkedUploads && parseInt(req.body.totalfilesize) > maxSizeBytes) {
-        // This will not be true if "totalfilesize" key does not exist, since "NaN > number" is false.
-        // eslint-disable-next-line standard/no-callback-literal
-        return cb('Chunk error occurred. Total file size is larger than the maximum file size.')
-      } else if (!chunkedUploads) {
+    if (req.body.chunkindex) {
+      if (!chunkedUploads)
         // eslint-disable-next-line standard/no-callback-literal
         return cb('Chunked uploads are disabled at the moment.')
+
+      const totalfilesize = parseInt(req.body.totalfilesize)
+      if (!isNaN(totalfilesize)) {
+        if (config.filterEmptyFile && totalfilesize === 0)
+          // eslint-disable-next-line standard/no-callback-literal
+          return cb('Empty files are not allowed.')
+        if (totalfilesize > maxSizeBytes)
+          // eslint-disable-next-line standard/no-callback-literal
+          return cb('Chunk error occurred. Total file size is larger than the maximum file size.')
       }
+    }
 
     return cb(null, true)
   }
 }).array('files[]')
 
 uploadsController.isExtensionFiltered = extname => {
+  // If empty extension needs to be filtered
   if (!extname && config.filterNoExtension) return true
   // If there are extensions that have to be filtered
-  if (extname && config.extensionsFilter && config.extensionsFilter.length) {
+  if (extname && Array.isArray(config.extensionsFilter) && config.extensionsFilter.length) {
     const match = config.extensionsFilter.some(extension => extname === extension.toLowerCase())
-    if ((config.filterBlacklist && match) || (!config.filterBlacklist && !match))
-      return true
+    const whitelist = config.extensionsFilterMode === 'whitelist'
+    if ((!whitelist && match) || (whitelist && !match)) return true
   }
   return false
 }
@@ -195,6 +202,13 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
       }
     })
 
+    if (config.filterEmptyFile && infoMap.some(file => file.data.size === 0)) {
+      infoMap.forEach(file => {
+        utils.deleteFile(file.data.filename, req.app.get('uploads-set')).catch(console.error)
+      })
+      return erred('Empty files are not allowed.')
+    }
+
     if (config.uploads.scan && config.uploads.scan.enabled) {
       const scan = await uploadsController.scanFiles(req, infoMap)
       if (scan) return erred(scan)
@@ -225,11 +239,29 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
 
   let iteration = 0
   const infoMap = []
-  for (const url of urls) {
+  for (let url of urls) {
     const original = path.basename(url).split(/[?#]/)[0]
-    const extension = utils.extname(original)
-    if (uploadsController.isExtensionFiltered(extension))
-      return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
+    const extname = utils.extname(original)
+
+    // Extensions filter
+    let filtered = false
+    if (['blacklist', 'whitelist'].includes(config.uploads.urlExtensionsFilterMode))
+      if (Array.isArray(config.uploads.urlExtensionsFilter) && config.uploads.urlExtensionsFilter.length) {
+        const match = config.uploads.urlExtensionsFilter.some(extension => extname === extension.toLowerCase())
+        const whitelist = config.uploads.urlExtensionsFilterMode === 'whitelist'
+        filtered = ((!whitelist && match) || (whitelist && !match))
+      } else {
+        return erred('config.uploads.urlExtensionsFilter is not an array or is an empty array, please contact site owner.')
+      }
+    else filtered = uploadsController.isExtensionFiltered(extname)
+
+    if (filtered)
+      return erred(`${extname ? `${extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted due to security reasons.`)
+
+    if (config.uploads.urlProxy)
+      url = config.uploads.urlProxy
+        .replace(/{url}/g, encodeURIComponent(url))
+        .replace(/{url-noprot}/g, encodeURIComponent(url.replace(/^https?:\/\//, '')))
 
     try {
       const fetchHead = await fetch(url, { method: 'HEAD' })
@@ -244,7 +276,10 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
       if (size > urlMaxSizeBytes)
         return erred('File too large.')
 
-      // limit max response body size with content-length
+      if (config.filterEmptyFile && size === 0)
+        return erred('Empty files are not allowed.')
+
+      // Limit max response body size with the size reported by Content-Length
       const fetchFile = await fetch(url, { size })
       if (fetchFile.status !== 200)
         return erred(`${fetchHead.status} ${fetchHead.statusText}`)
@@ -252,7 +287,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
       const file = await fetchFile.buffer()
 
       const length = uploadsController.getFileNameLength(req)
-      const name = await uploadsController.getUniqueRandomName(length, extension, req.app.get('uploads-set'))
+      const name = await uploadsController.getUniqueRandomName(length, extname, req.app.get('uploads-set'))
 
       const destination = path.join(uploadsDir, name)
       fs.writeFile(destination, file, async error => {
@@ -342,12 +377,12 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       }
       if (file.count < chunkNames.length) return erred('Chunks count mismatch.')
 
-      const extension = typeof file.original === 'string' ? utils.extname(file.original) : ''
-      if (uploadsController.isExtensionFiltered(extension))
-        return erred(`${extension.substr(1).toUpperCase()} files are not permitted due to security reasons.`)
+      const extname = typeof file.original === 'string' ? utils.extname(file.original) : ''
+      if (uploadsController.isExtensionFiltered(extname))
+        return erred(`${extname ? `${extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted due to security reasons.`)
 
       const length = uploadsController.getFileNameLength(req)
-      const name = await uploadsController.getUniqueRandomName(length, extension, req.app.get('uploads-set'))
+      const name = await uploadsController.getUniqueRandomName(length, extname, req.app.get('uploads-set'))
         .catch(erred)
       if (!name) return
 
@@ -360,12 +395,19 @@ uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
       const chunksTotalSize = await uploadsController.getTotalSize(uuidDir, chunkNames)
         .catch(erred)
       if (typeof chunksTotalSize !== 'number') return
-      if (chunksTotalSize > maxSizeBytes) {
+
+      const isEmpty = config.filterEmptyFile && (chunksTotalSize === 0)
+      const isBigger = chunksTotalSize > maxSizeBytes
+      if (isEmpty || isBigger) {
         // Delete all chunks and remove chunks dir
         const chunksCleaned = await uploadsController.cleanUpChunks(uuidDir, chunkNames)
           .catch(erred)
         if (!chunksCleaned) return
-        return erred(`Total chunks size is bigger than ${maxSize}.`)
+
+        if (isEmpty)
+          return erred('Empty files are not allowed.')
+        else
+          return erred(`Total chunks size is bigger than ${maxSize}.`)
       }
 
       // Append all chunks
@@ -523,13 +565,7 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
             timestamp: Math.floor(Date.now() / 1000)
           })
         } else {
-          utils.deleteFile(info.data.filename).catch(console.error)
-          const set = req.app.get('uploads-set')
-          if (set) {
-            const identifier = info.data.filename.split('.')[0]
-            set.delete(identifier)
-            // console.log(`Removed ${identifier} from identifiers cache (formatInfoMap)`)
-          }
+          utils.deleteFile(info.data.filename, req.app.get('uploads-set')).catch(console.error)
           existingFiles.push(dbFile)
         }
 
@@ -548,7 +584,7 @@ uploadsController.scanFiles = (req, infoMap) => {
     for (const info of infoMap)
       scanner.scanFile(info.path).then(reply => {
         if (!reply.includes('OK') || reply.includes('FOUND')) {
-          // eslint-disable-next-line no-control-regex
+        // eslint-disable-next-line no-control-regex
           const virus = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
           console.log(`ClamAV: ${info.data.filename}: ${virus} FOUND.`)
           return resolve(virus)
@@ -696,9 +732,8 @@ uploadsController.list = async (req, res) => {
 
     // Only push usernames if we are a moderator
     if (all && ismoderator)
-      if (file.userid !== undefined && file.userid !== null && file.userid !== '') {
+      if (file.userid !== undefined && file.userid !== null && file.userid !== '')
         userids.push(file.userid)
-      }
 
     file.extname = utils.extname(file.name)
     if (utils.mayGenerateThumb(file.extname))

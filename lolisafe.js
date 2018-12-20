@@ -31,7 +31,7 @@ fs.existsSync(`./${config.uploads.folder}/thumbs`) || fs.mkdirSync(`./${config.u
 fs.existsSync(`./${config.uploads.folder}/zips`) || fs.mkdirSync(`./${config.uploads.folder}/zips`)
 
 safe.use(helmet())
-safe.set('trust proxy', 1)
+if (config.trustProxy) safe.set('trust proxy', 1)
 
 // https://mozilla.github.io/nunjucks/api.html#configure
 nunjucks.configure('views', {
@@ -64,31 +64,38 @@ safe.use('/', album)
 safe.use('/', nojs)
 safe.use('/api', api)
 
-for (const page of config.pages)
-  if (fs.existsSync(`./pages/custom/${page}.html`)) {
-    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, {
-      root: './pages/custom/'
-    }))
-  } else if (page === 'home') {
-    safe.get('/', (req, res, next) => res.render('home', {
-      maxSize: config.uploads.maxSize,
-      urlMaxSize: config.uploads.urlMaxSize,
-      gitHash: safe.get('git-hash'),
-      urlDuckDuckGoProxy: config.uploads.urlDuckDuckGoProxy
-    }))
-  } else if (page === 'faq') {
-    const fileLength = config.uploads.fileLength
-    safe.get('/faq', (req, res, next) => res.render('faq', {
-      filterBlacklist: config.filterBlacklist,
-      extensionsFilter: config.extensionsFilter,
-      fileLength,
-      tooShort: (fileLength.max - fileLength.default) > (fileLength.default - fileLength.min),
-      noJsMaxSize: parseInt(config.cloudflare.noJsMaxSize) < parseInt(config.uploads.maxSize),
-      chunkSize: config.uploads.chunkSize
-    }))
-  } else {
-    safe.get(`/${page}`, (req, res, next) => res.render(page))
-  }
+if (Array.isArray(config.pages) && config.pages.length) {
+  for (const page of config.pages)
+    if (fs.existsSync(`./pages/custom/${page}.html`)) {
+      safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, {
+        root: './pages/custom/'
+      }))
+    } else if (page === 'home') {
+      safe.get('/', (req, res, next) => res.render('home', {
+        maxSize: config.uploads.maxSize,
+        urlMaxSize: config.uploads.urlMaxSize,
+        urlDisclaimerMessage: config.uploads.urlDisclaimerMessage,
+        urlExtensionsFilterMode: config.uploads.urlExtensionsFilterMode,
+        urlExtensionsFilter: config.uploads.urlExtensionsFilter,
+        gitHash: safe.get('git-hash')
+      }))
+    } else if (page === 'faq') {
+      const fileLength = config.uploads.fileLength
+      safe.get('/faq', (req, res, next) => res.render('faq', {
+        whitelist: config.extensionsFilterMode === 'whitelist',
+        extensionsFilter: config.extensionsFilter,
+        fileLength,
+        tooShort: (fileLength.max - fileLength.default) > (fileLength.default - fileLength.min),
+        noJsMaxSize: parseInt(config.cloudflare.noJsMaxSize) < parseInt(config.uploads.maxSize),
+        chunkSize: config.uploads.chunkSize
+      }))
+    } else {
+      safe.get(`/${page}`, (req, res, next) => res.render(page))
+    }
+} else {
+  console.error('config.pages is not an array or is an empty array. This won\t do!')
+  process.exit(1)
+}
 
 safe.use((req, res, next) => {
   res.status(404).sendFile(config.errorPages[404], { root: config.errorPages.rootDir })

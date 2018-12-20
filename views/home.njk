@@ -78,10 +78,16 @@
                 {% if urlMaxSize !== maxSize -%}
                 Maximum file size for URL upload is <span style="font-weight: bold">{{ urlMaxSize }}</span>.
                 {%- endif %}
-                {%- if urlMaxSize and urlMaxSize !== maxSize and urlDuckDuckGoProxy %}<br>{% endif -%}
-                {%- if urlDuckDuckGoProxy %}
-                Since we're using DuckDuckGo's proxy, the URLs have to be direct links.
-              {% endif -%}
+
+                {% if urlExtensionsFilter.length and (urlExtensionsFilterMode === 'blacklist') -%}
+                Blacklisted extensions: {{ urlExtensionsFilter | join(', ') }}.
+                {%- elif urlExtensionsFilter.length and (urlExtensionsFilterMode === 'whitelist') -%}
+                Whitelisted extensions: {{ urlExtensionsFilter | join(', ') }}.
+                {%- endif %}
+
+                {%- if urlDisclaimerMessage %}
+                {{ urlDisclaimerMessage | safe }}
+                {% endif -%}
               </p>
             </div>
             <div class="field">

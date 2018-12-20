@@ -87,9 +87,9 @@
     <h2 class='subtitle'>What are the allowed extensions here?</h2>
     <article class="message">
       <div class="message-body">
-        {% if extensionsFilter.length and filterBlacklist -%}
+        {% if extensionsFilter.length and not whitelist -%}
         We support any file extensions except the following: {{ extensionsFilter | join(', ') }}.
-        {%- elif extensionsFilter.length and not filterBlacklist -%}
+        {%- elif extensionsFilter.length and whitelist -%}
         We only support the following extensions: {{ extensionsFilter | join(', ') }}.
         {%- else -%}
         We support any file extensions.

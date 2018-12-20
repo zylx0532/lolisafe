@@ -197,14 +197,19 @@ utilsController.generateThumbs = (name, force) => {
   })
 }
 
-utilsController.deleteFile = file => {
+utilsController.deleteFile = (filename, set) => {
   return new Promise((resolve, reject) => {
-    const extname = utilsController.extname(file)
-    return fs.unlink(path.join(uploadsDir, file), error => {
+    const extname = utilsController.extname(filename)
+    return fs.unlink(path.join(uploadsDir, filename), error => {
       if (error && error.code !== 'ENOENT') return reject(error)
-
+      const identifier = filename.split('.')[0]
+      // eslint-disable-next-line curly
+      if (set) {
+        set.delete(identifier)
+        // console.log(`Removed ${identifier} from identifiers cache (deleteFile)`)
+      }
       if (utilsController.imageExtensions.includes(extname) || utilsController.videoExtensions.includes(extname)) {
-        const thumb = file.substr(0, file.lastIndexOf('.')) + '.png'
+        const thumb = `${identifier}.png`
         return fs.unlink(path.join(thumbsDir, thumb), error => {
           if (error && error.code !== 'ENOENT') return reject(error)
           resolve(true)
