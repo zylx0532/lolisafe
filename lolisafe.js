@@ -65,7 +65,7 @@ safe.use('/', nojs)
 safe.use('/api', api)
 
 if (!Array.isArray(config.pages) || !config.pages.length) {
-  console.error('config.pages is not an array or is an empty array. This won\t do!')
+  console.error('config.pages is not an array or is an empty array. This won\'t do!')
   process.exit(1)
 }
 
