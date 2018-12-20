@@ -160,7 +160,7 @@ module.exports = {
 
     /*
       An array of extensions that are allowed for URL uploads.
-      Intented for URL proxies that only support certain extensions.
+      Intended for URL proxies that only support certain extensions.
       This will parse the extensions from the URLs, so URLs that do not end with
       the file's extensions will always be rejected
       Queries and segments in the URLs will be bypassed when parsing.
@@ -244,7 +244,7 @@ module.exports = {
 
     /*
       This option will limit how many times it will try to
-      generate a new random name when a collision occurrs.
+      generate a new random name when a collision occurs.
       Generally, the shorter the length is, the higher the chance for a collision to occur.
       This applies to both file name and album identifier.
     */
