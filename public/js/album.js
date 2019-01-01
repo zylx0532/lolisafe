@@ -7,7 +7,7 @@ const page = {
   byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 }
 
-page.getPrettyBytes = num => {
+page.getPrettyBytes = function (num) {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
 

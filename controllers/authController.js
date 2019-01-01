@@ -159,23 +159,29 @@ authController.editUser = async (req, res, next) => {
   else if (target.username === 'root')
     return res.json({ success: false, description: 'Root user may not be edited.' })
 
-  const username = `${req.body.username}`
-  if (username.length < 4 || username.length > 32)
-    return res.json({ success: false, description: 'Username must have 4-32 characters.' })
+  const update = {}
 
-  let permission = req.body.group ? perms.permissions[req.body.group] : target.permission
-  if (typeof permission !== 'number' || permission < 0) permission = target.permission
+  if (req.body.username !== undefined) {
+    update.username = `${req.body.username}`
+    if (update.username.length < 4 || update.username.length > 32)
+      return res.json({ success: false, description: 'Username must have 4-32 characters.' })
+  }
+
+  if (req.body.enabled !== undefined)
+    update.enabled = Boolean(req.body.enabled)
+
+  if (req.body.group !== undefined) {
+    update.permission = perms.permissions[req.body.group] || target.permission
+    if (typeof update.permission !== 'number' || update.permission < 0)
+      update.permission = target.permission
+  }
 
   await db.table('users')
     .where('id', id)
-    .update({
-      username,
-      enabled: Boolean(req.body.enabled),
-      permission
-    })
+    .update(update)
 
   if (!req.body.resetPassword)
-    return res.json({ success: true, username })
+    return res.json({ success: true, update })
 
   const password = randomstring.generate(16)
   bcrypt.hash(password, 10, async (error, hash) => {
@@ -188,8 +194,17 @@ authController.editUser = async (req, res, next) => {
       .where('id', id)
       .update('password', hash)
 
-    return res.json({ success: true, password })
+    return res.json({ success: true, update, password })
   })
+}
+
+authController.disableUser = async (req, res, next) => {
+  const body = {
+    id: req.body.id,
+    enabled: false
+  }
+  req.body = body
+  return authController.editUser(req, res, next)
 }
 
 authController.listUsers = async (req, res, next) => {
@@ -199,16 +214,18 @@ authController.listUsers = async (req, res, next) => {
   const isadmin = perms.is(user, 'admin')
   if (!isadmin) return res.status(403).end()
 
+  const count = await db.table('users')
+    .count('id as count')
+    .then(rows => rows[0].count)
+  if (!count) return res.json({ success: true, users: [], count })
+
   let offset = req.params.page
   if (offset === undefined) offset = 0
 
   const users = await db.table('users')
-    // .orderBy('id', 'DESC')
     .limit(25)
     .offset(25 * offset)
     .select('id', 'username', 'enabled', 'fileLength', 'permission')
-
-  if (!users.length) return res.json({ success: true, users })
 
   const userids = []
 
@@ -242,7 +259,7 @@ authController.listUsers = async (req, res, next) => {
     user.diskUsage = maps[user.id].size
   }
 
-  return res.json({ success: true, users })
+  return res.json({ success: true, users, count })
 }
 
 module.exports = authController

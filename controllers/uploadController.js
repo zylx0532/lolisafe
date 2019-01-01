@@ -660,9 +660,11 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
 
 uploadsController.delete = async (req, res) => {
   const id = parseInt(req.body.id)
-  req.body.field = 'id'
-  req.body.values = isNaN(id) ? undefined : [id]
-  delete req.body.id
+  const body = {
+    field: 'id',
+    values: isNaN(id) ? undefined : [id]
+  }
+  req.body = body
   return uploadsController.bulkDelete(req, res)
 }
 
@@ -687,25 +689,31 @@ uploadsController.list = async (req, res) => {
   const user = await utils.authorize(req, res)
   if (!user) return
 
-  let offset = req.params.page
-  if (offset === undefined) offset = 0
-
   // Headers is string-only, this seem to be the safest and lightest
   const all = req.headers.all === '1'
   const ismoderator = perms.is(user, 'moderator')
   if (all && !ismoderator) return res.status(403).end()
 
+  function filter () {
+    if (req.params.id === undefined)
+      this.where('id', '<>', '')
+    else
+      this.where('albumid', req.params.id)
+    if (!all || !ismoderator)
+      this.where('userid', user.id)
+  }
+
+  const count = await db.table('files')
+    .where(filter)
+    .count('id as count')
+    .then(rows => rows[0].count)
+  if (!count) return res.json({ success: true, files: [], count })
+
+  let offset = req.params.page
+  if (offset === undefined) offset = 0
+
   const files = await db.table('files')
-    .where(function () {
-      if (req.params.id === undefined)
-        this.where('id', '<>', '')
-      else
-        this.where('albumid', req.params.id)
-    })
-    .where(function () {
-      if (!all || !ismoderator)
-        this.where('userid', user.id)
-    })
+    .where(filter)
     .orderBy('id', 'DESC')
     .limit(25)
     .offset(25 * offset)
@@ -741,10 +749,10 @@ uploadsController.list = async (req, res) => {
   }
 
   // If we are a normal user, send response
-  if (!ismoderator) return res.json({ success: true, files })
+  if (!ismoderator) return res.json({ success: true, files, count })
 
   // If we are a moderator but there are no uploads attached to a user, send response
-  if (userids.length === 0) return res.json({ success: true, files })
+  if (userids.length === 0) return res.json({ success: true, files, count })
 
   const users = await db.table('users').whereIn('id', userids)
   for (const dbUser of users)
@@ -752,7 +760,7 @@ uploadsController.list = async (req, res) => {
       if (file.userid === dbUser.id)
         file.username = dbUser.username
 
-  return res.json({ success: true, files })
+  return res.json({ success: true, files, count })
 }
 
 module.exports = uploadsController

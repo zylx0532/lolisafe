@@ -196,12 +196,15 @@ page.domClick = function (event) {
   // Skip elements that have no action data
   if (!element.dataset || !element.dataset.action) return
 
+  // Skip disabled elements
+  if (element.hasAttribute('disabled')) return
+
   event.stopPropagation() // maybe necessary
   const id = page.getItemID(element)
   const action = element.dataset.action
 
   // Handle pagination actions
-  if (['page-prev', 'page-next'].includes(action)) {
+  if (['page-prev', 'page-next', 'page-goto'].includes(action)) {
     const views = {}
     let func = null
 
@@ -222,6 +225,9 @@ page.domClick = function (event) {
         return func(views, element)
       case 'page-next':
         views.pageNum = page.views[page.currentView].pageNum + 1
+        return func(views, element)
+      case 'page-goto':
+        views.pageNum = parseInt(element.dataset.goto)
         return func(views, element)
     }
   }
@@ -259,6 +265,8 @@ page.domClick = function (event) {
       return page.getNewToken(element)
     case 'edit-user':
       return page.editUser(id)
+    case 'disable-user':
+      return page.disableUser(id)
   }
 }
 
@@ -310,12 +318,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
     page.currentView = 'uploads'
     page.cache.uploads = {}
 
-    const pagination = `
-      <nav class="pagination is-centered">
-        <a class="button pagination-previous" data-action="page-prev">Previous</a>
-        <a class="button pagination-next" data-action="page-next">Next page</a>
-      </nav>
-    `
+    const pagination = page.paginate(response.data.count, 25, pageNum)
 
     const controls = `
       <div class="columns">
@@ -362,6 +365,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         ${controls}
         <div id="table" class="columns is-multiline is-mobile is-centered">
         </div>
+        <hr>
         ${pagination}
       `
       page.fadeIn()
@@ -1531,7 +1535,7 @@ page.setActiveMenu = function (activeItem) {
   activeItem.classList.add('is-active')
 }
 
-page.getPrettyDate = date => {
+page.getPrettyDate = function (date) {
   return date.getFullYear() + '-' +
     (date.getMonth() < 9 ? '0' : '') + // month's index starts from zero
     (date.getMonth() + 1) + '-' +
@@ -1545,7 +1549,7 @@ page.getPrettyDate = date => {
     date.getSeconds()
 }
 
-page.getPrettyBytes = num => {
+page.getPrettyBytes = function (num) {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
 
@@ -1562,7 +1566,7 @@ page.getPrettyBytes = num => {
   return `${neg ? '-' : ''}${numStr} ${unit}`
 }
 
-page.getUsers = ({ pageNum } = {}, element) => {
+page.getUsers = function ({ pageNum } = {}, element) {
   if (element) page.isLoading(element, true)
   if (pageNum === undefined) pageNum = 0
 
@@ -1587,12 +1591,7 @@ page.getUsers = ({ pageNum } = {}, element) => {
     page.currentView = 'users'
     page.cache.users = {}
 
-    const pagination = `
-      <nav class="pagination is-centered">
-        <a class="button pagination-previous" data-action="page-prev">Previous</a>
-        <a class="button pagination-next" data-action="page-next">Next page</a>
-      </nav>
-    `
+    const pagination = page.paginate(response.data.count, 25, pageNum)
 
     const controls = `
       <div class="columns">
@@ -1686,7 +1685,7 @@ page.getUsers = ({ pageNum } = {}, element) => {
               <i class="icon-pencil-1"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Disable user (WIP)" data-action="disable-user" disabled>
+          <a class="button is-small is-warning" title="Disable user" data-action="disable-user" ${enabled ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-hammer"></i>
             </span>
@@ -1721,7 +1720,7 @@ page.editUser = function (id) {
   const user = page.cache.users[id]
   if (!user) return
 
-  const groupOptions = Object.keys(page.permissions).map((g, i, a) => {
+  const groupOptions = Object.keys(page.permissions).map(function (g, i, a) {
     const selected = g === user.displayGroup
     const disabled = !(a[i + 1] && page.permissions[a[i + 1]])
     return `<option value="${g}"${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}>${g}</option>`
@@ -1773,8 +1772,8 @@ page.editUser = function (id) {
         closeModal: false
       }
     }
-  }).then(function (value) {
-    if (!value) return
+  }).then(function (proceed) {
+    if (!proceed) return
 
     axios.post('api/users/edit', {
       id,
@@ -1803,8 +1802,8 @@ page.editUser = function (id) {
           icon: 'success',
           content: div
         })
-      } else if (response.data.name !== user.name) {
-        swal('Success!', `${user.username} was renamed into: ${response.data.name}.`, 'success')
+      } else if (response.data.update && response.data.update.username !== user.username) {
+        swal('Success!', `${user.username} was renamed into: ${response.data.update.name}.`, 'success')
       } else {
         swal('Success!', 'The user was edited!', 'success')
       }
@@ -1817,12 +1816,17 @@ page.editUser = function (id) {
   })
 }
 
-/*
 page.disableUser = function (id) {
+  const user = page.cache.users[id]
+  if (!user || !user.enabled) return
+
+  const content = document.createElement('div')
+  content.innerHTML = `You will be disabling a user with the username <b>${page.cache.users[id].username}</b>!`
+
   swal({
     title: 'Are you sure?',
-    text: `You will be disabling a user with the username <b>${page.cache.users.id.username}!</b>`,
     icon: 'warning',
+    content,
     dangerMode: true,
     buttons: {
       cancel: true,
@@ -1837,12 +1841,11 @@ page.disableUser = function (id) {
     axios.post('api/users/disable', { id }).then(function (response) {
       if (!response) return
 
-      if (response.data.success === false) {
+      if (response.data.success === false)
         if (response.data.description === 'No token provided')
           return page.verifyToken(page.token)
         else
           return swal('An error occurred!', response.data.description, 'error')
-      }
 
       swal('Success!', 'The user has been disabled.', 'success')
       page.getUsers(page.views.users)
@@ -1852,7 +1855,56 @@ page.disableUser = function (id) {
     })
   })
 }
-*/
+
+page.paginate = function (totalItems, itemsPerPage, currentPage) {
+  // Roughly based on https://github.com/mayuska/pagination/blob/master/index.js
+  currentPage = currentPage + 1
+  const step = 3
+  const numPages = Math.ceil(totalItems / itemsPerPage)
+
+  let template = ''
+  const elementsToShow = step * 2
+  const add = {
+    pageNum (start, end) {
+      for (let i = start; i <= end; ++i)
+        template += `<li><a class="pagination-link ${i === currentPage ? ' is-current' : ''}" aria-label="Goto page ${i}" data-action="page-goto" data-goto="${i - 1}">${i}</a></li>`
+    },
+    startDots () {
+      template += `
+        <li><a class="pagination-link" aria-label="Goto page 1" data-action="page-goto" data-goto="0">1</a></li>
+        <li><span class="pagination-ellipsis">&hellip;</span></li>
+      `
+    },
+    endDots () {
+      template += `
+        <li><span class="pagination-ellipsis">&hellip;</span></li>
+        <li><a class="pagination-link" aria-label="Goto page ${numPages}" data-action="page-goto" data-goto="${numPages - 1}">${numPages}</a></li>
+      `
+    }
+  }
+
+  if (elementsToShow >= numPages) {
+    add.pageNum(1, numPages)
+  } else if (currentPage < elementsToShow) {
+    add.pageNum(1, elementsToShow)
+    add.endDots()
+  } else if (currentPage > numPages - elementsToShow) {
+    add.startDots()
+    add.pageNum(numPages - elementsToShow, numPages)
+  } else {
+    add.startDots()
+    add.pageNum(currentPage - step, currentPage, step)
+    add.endDots()
+  }
+
+  return `
+    <nav class="pagination is-centered is-small">
+      <a class="button pagination-previous" data-action="page-prev">Previous</a>
+      <a class="button pagination-next" data-action="page-next">Next page</a>
+      <ul class="pagination-list">${template}</ul>
+    </nav>
+  `
+}
 
 window.onload = function () {
   // Add 'no-touch' class to non-touch devices

@@ -142,3 +142,14 @@ hr {
     opacity: 1;
   }
 }
+
+.pagination-link.is-current {
+  background-color: #3794d2;
+  border-color: #3794d2;
+}
+
+.pagination-link:hover,
+.pagination-next:hover,
+.pagination-previous:hover {
+  border-color: #3794d2;
+}
