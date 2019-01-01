@@ -108,8 +108,6 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [wtf.hyper.lol](https://wtf.hyper.lol): My personal clone with some ~~terrible~~ great changes.
 - [discordjs.moe](https://discordjs.moe): A まじ卍 as fuck copy of lolisafe.moe
 - [i.liich.me](https://i.liich.me): Another private clone with a different look.
-- [discordimages.com](https://discordimages.com): A file hosting service that is available for public use.
-- [uwu.ninja](https://uwu.ninja): UwU'ish your uploads with us, now. plz.
 - [criminals.host](https://criminals.host): Redesigned, offshore by AZATEJ.
 - [vortex.64i.de](https://vortex.64i.de/): ShareX/WeebShit place for the 64i.de team and interested ones.
 - Feel free to add yours here.
