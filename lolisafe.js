@@ -14,6 +14,7 @@ const readline = require('readline')
 const safe = express()
 
 // It appears to be best to catch these before doing anything else
+// Probably before require() too, especially require('knex')(db), but nevermind
 process.on('uncaughtException', error => {
   console.error('Uncaught Exception:', error)
 })
@@ -23,6 +24,7 @@ process.on('unhandledRejection', error => {
 
 require('./database/db.js')(db)
 
+// Check and create missing directories
 fs.existsSync('./pages/custom') || fs.mkdirSync('./pages/custom')
 fs.existsSync(`./${config.logsFolder}`) || fs.mkdirSync(`./${config.logsFolder}`)
 fs.existsSync(`./${config.uploads.folder}`) || fs.mkdirSync(`./${config.uploads.folder}`)
@@ -37,8 +39,7 @@ if (config.trustProxy) safe.set('trust proxy', 1)
 nunjucks.configure('views', {
   autoescape: true,
   express: safe,
-  // watch: true, // will this be fine in production?
-  noCache: process.env.DEV === '1'
+  noCache: process.env.NODE_ENV === 'development'
 })
 safe.set('view engine', 'njk')
 safe.enable('view cache')
@@ -118,18 +119,20 @@ const start = async () => {
     safe.set('git-hash', gitHash)
   }
 
-  if (config.uploads.scan && config.uploads.scan.enabled) {
+  const scan = config.uploads.scan
+  if (scan && scan.enabled) {
     const created = await new Promise(async (resolve, reject) => {
-      if (!config.uploads.scan.ip || !config.uploads.scan.port)
+      if (!scan.ip || !scan.port)
         return reject(new Error('clamd IP or port is missing'))
 
-      const ping = await clamd.ping(config.uploads.scan.ip, config.uploads.scan.port).catch(reject)
+      const ping = await clamd.ping(scan.ip, scan.port).catch(reject)
       if (!ping)
         return reject(new Error('Could not ping clamd'))
 
-      const version = await clamd.version(config.uploads.scan.ip, config.uploads.scan.port).catch(reject)
-      console.log(`${config.uploads.scan.ip}:${config.uploads.scan.port} ${version}`)
-      const scanner = clamd.createScanner(config.uploads.scan.ip, config.uploads.scan.port)
+      const version = await clamd.version(scan.ip, scan.port).catch(reject)
+      console.log(`${scan.ip}:${scan.port} ${version}`)
+
+      const scanner = clamd.createScanner(scan.ip, scan.port)
       safe.set('clam-scanner', scanner)
       return resolve(true)
     }).catch(error => console.error(error.toString()))
@@ -155,8 +158,8 @@ const start = async () => {
 
   safe.listen(config.port, () => {
     console.log(`lolisafe started on port ${config.port}`)
-    // DEV=1 yarn start
-    if (process.env.DEV === '1') {
+    // NODE_ENV=development yarn start
+    if (process.env.NODE_ENV === 'development') {
       // Add readline interface to allow evaluating arbitrary JavaScript from console
       readline.createInterface({
         input: process.stdin,
@@ -173,7 +176,7 @@ const start = async () => {
       }).on('SIGINT', () => {
         process.exit(0)
       })
-      console.warn('development mode enabled (disabled nunjucks caching & enabled readline interface)')
+      console.log('Development mode enabled (disabled nunjucks caching & enabled readline interface)')
     }
   })
 }
