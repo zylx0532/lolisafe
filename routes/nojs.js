@@ -7,13 +7,12 @@ const renderOptions = {
   maxFileSize: config.cloudflare.noJsMaxSize || config.uploads.maxSize
 }
 
-if (config.private) {
+if (config.private)
   if (config.enableUserAccounts) {
     renderOptions.uploadDisabled = 'Anonymous upload is disabled.'
   } else {
     renderOptions.uploadDisabled = 'Running in private mode.'
   }
-}
 
 routes.get('/nojs', async (req, res, next) => {
   const options = { renderOptions }

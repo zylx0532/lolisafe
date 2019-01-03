@@ -1,14 +1,16 @@
 /* global swal, axios, ClipboardJS, LazyLoad */
 
 // keys for localStorage
-const LS_KEYS = {
+const lsKeys = {
   token: 'token',
   viewType: {
-    uploads: 'UPLOADS_VIEW_TYPE'
+    uploads: 'viewTypeUploads',
+    uploadsAll: 'viewTypeUploadsAll'
   },
   selected: {
-    uploads: 'SELECTED_UPLOADS',
-    users: 'SELECTED_USERS'
+    uploads: 'selectedUploads',
+    uploadsAll: 'selectedUploadsAll',
+    users: 'selectedUsers'
   }
 }
 
@@ -17,7 +19,7 @@ const page = {
   dom: null,
 
   // user token
-  token: localStorage[LS_KEYS.token],
+  token: localStorage[lsKeys.token],
 
   // from api/tokens/verify
   username: null,
@@ -27,10 +29,16 @@ const page = {
   views: {
     // config of uploads view
     uploads: {
-      type: localStorage[LS_KEYS.viewType.uploads],
+      type: localStorage[lsKeys.viewType.uploads],
       album: null, // album's id
+      pageNum: null // page num
+    },
+    // config of uploads view (all)
+    uploadsAll: {
+      type: localStorage[lsKeys.viewType.uploadsAll],
+      uploader: null, // uploader's name
       pageNum: null, // page num
-      all: null // listing all uploads or just the user's
+      all: true
     },
     // config of users view
     users: {
@@ -41,14 +49,17 @@ const page = {
   // id of selected items (shared across pages and will be synced with localStorage)
   selected: {
     uploads: [],
+    uploadsAll: [],
     users: []
   },
   checkboxes: {
     uploads: [],
+    uploadsAll: [],
     users: []
   },
   lastSelected: {
     upload: null,
+    uploadsAll: null,
     user: null
   },
 
@@ -90,12 +101,12 @@ page.verifyToken = function (token, reloadOnError) {
         icon: 'error'
       }).then(function () {
         if (!reloadOnError) return
-        localStorage.removeItem(LS_KEYS.token)
+        localStorage.removeItem(lsKeys.token)
         location.location = 'auth'
       })
 
     axios.defaults.headers.common.token = token
-    localStorage[LS_KEYS.token] = token
+    localStorage[lsKeys.token] = token
     page.token = token
     page.username = response.data.username
     page.permissions = response.data.permissions
@@ -173,7 +184,7 @@ page.prepareDashboard = function () {
 }
 
 page.logout = function () {
-  localStorage.removeItem(LS_KEYS.token)
+  localStorage.removeItem(lsKeys.token)
   location.reload('.')
 }
 
@@ -202,35 +213,6 @@ page.domClick = function (event) {
   event.stopPropagation() // maybe necessary
   const id = page.getItemID(element)
   const action = element.dataset.action
-
-  // Handle pagination actions
-  if (['page-prev', 'page-next', 'page-goto'].includes(action)) {
-    const views = {}
-    let func = null
-
-    if (page.currentView === 'uploads') {
-      views.album = page.views.uploads.album
-      views.all = page.views.uploads.all
-      func = page.getUploads
-    } else if (page.currentView === 'users') {
-      func = page.getUsers
-    }
-
-    switch (action) {
-      case 'page-prev':
-        views.pageNum = page.views[page.currentView].pageNum - 1
-        if (views.pageNum < 0)
-          return swal('An error occurred!', 'This is already the first page.', 'error')
-
-        return func(views, element)
-      case 'page-next':
-        views.pageNum = page.views[page.currentView].pageNum + 1
-        return func(views, element)
-      case 'page-goto':
-        views.pageNum = parseInt(element.dataset.goto)
-        return func(views, element)
-    }
-  }
 
   switch (action) {
     case 'view-list':
@@ -267,6 +249,15 @@ page.domClick = function (event) {
       return page.editUser(id)
     case 'disable-user':
       return page.disableUser(id)
+    case 'filter-by-uploader':
+      return page.filterByUploader(element)
+    case 'view-user-uploads':
+      return page.viewUserUploads(id)
+    case 'page-prev':
+    case 'page-next':
+    case 'page-goto':
+    case 'jump-to-page':
+      return page.switchPage(action, element)
   }
 }
 
@@ -287,21 +278,56 @@ page.fadeIn = function (content) {
   }, 500)
 }
 
-page.getUploads = function ({ album, pageNum, all } = {}, element) {
+page.switchPage = function (action, element) {
+  const views = {}
+  let func = null
+
+  if (page.currentView === 'users') {
+    func = page.getUsers
+  } else {
+    func = page.getUploads
+    views.album = page.views[page.currentView].album
+    views.all = page.views[page.currentView].all
+    views.uploader = page.views[page.currentView].uploader
+  }
+
+  switch (action) {
+    case 'page-prev':
+      views.pageNum = page.views[page.currentView].pageNum - 1
+      if (views.pageNum < 0)
+        return swal('An error occurred!', 'This is already the first page.', 'error')
+      return func(views, element)
+    case 'page-next':
+      views.pageNum = page.views[page.currentView].pageNum + 1
+      return func(views, element)
+    case 'page-goto':
+      views.pageNum = parseInt(element.dataset.goto)
+      return func(views, element)
+    case 'jump-to-page':
+      const jumpToPage = parseInt(document.getElementById('jumpToPage').value)
+      views.pageNum = isNaN(jumpToPage) ? 0 : (jumpToPage - 1)
+      if (views.pageNum < 0) views.pageNum = 0
+      return func(views, element)
+  }
+}
+
+page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
   if (element) page.isLoading(element, true)
-  if (pageNum === undefined) pageNum = 0
 
-  let url = `api/uploads/${pageNum}`
-  if (album !== undefined) url = `api/album/${album}/${pageNum}`
-
-  if (all && !page.permissions.moderator)
+  if ((all || uploader) && !page.permissions.moderator)
     return swal('An error occurred!', 'You can not do this!', 'error')
 
-  axios.get(url, {
-    headers: {
-      all: all ? '1' : '0'
-    }
-  }).then(function (response) {
+  if (typeof pageNum !== 'number' || pageNum < 0)
+    pageNum = 0
+
+  let url = `api/uploads/${pageNum}`
+  if (typeof album === 'string')
+    url = `api/album/${album}/${pageNum}`
+
+  const headers = {}
+  if (all) headers.all = '1'
+  if (uploader) headers.uploader = uploader
+  axios.get(url, { headers }).then(function (response) {
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
@@ -315,10 +341,49 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
       return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
     }
 
-    page.currentView = 'uploads'
+    page.currentView = all ? 'uploadsAll' : 'uploads'
     page.cache.uploads = {}
 
     const pagination = page.paginate(response.data.count, 25, pageNum)
+
+    let filter = ''
+    if (all)
+      filter = `
+        <div class="column is-one-quarter">
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input id="uploader" class="input is-small" type="text" placeholder="Username" value="${uploader || ''}">
+            </div>
+            <div class="control">
+              <a class="button is-small is-breeze" title="Filter by uploader" data-action="filter-by-uploader">
+                <span class="icon">
+                  <i class="icon-filter"></i>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      `
+    const extraControls = `
+      <div class="columns" style="margin-top: 10px">
+        ${filter}
+        <div class="column is-hidden-mobile"></div>
+        <div class="column is-one-quarter">
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+            </div>
+            <div class="control">
+              <a class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+                <span class="icon">
+                  <i class="icon-paper-plane-empty"></i>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
 
     const controls = `
       <div class="columns">
@@ -358,10 +423,10 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
     `
 
     let allSelected = true
-    if (page.views.uploads.type === 'thumbs') {
+    if (page.views[page.currentView].type === 'thumbs') {
       page.dom.innerHTML = `
         ${pagination}
-        <hr>
+        ${extraControls}
         ${controls}
         <div id="table" class="columns is-multiline is-mobile is-centered">
         </div>
@@ -374,7 +439,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 
       for (let i = 0; i < response.data.files.length; i++) {
         const upload = response.data.files[i]
-        const selected = page.selected.uploads.includes(upload.id)
+        const selected = page.selected[page.currentView].includes(upload.id)
         if (!selected && allSelected) allSelected = false
 
         page.cache.uploads[upload.id] = {
@@ -429,8 +494,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         `
 
         table.appendChild(div)
-        // page.checkboxes.uploads = Array.from(table.getElementsByClassName('checkbox'))
-        page.checkboxes.uploads = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+        page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
         page.lazyLoad.update()
       }
     } else {
@@ -439,7 +503,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 
       page.dom.innerHTML = `
         ${pagination}
-        <hr>
+        ${extraControls}
         ${controls}
         <div class="table-container">
           <table class="table is-narrow is-fullwidth is-hoverable">
@@ -466,7 +530,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 
       for (let i = 0; i < response.data.files.length; i++) {
         const upload = response.data.files[i]
-        const selected = page.selected.uploads.includes(upload.id)
+        const selected = page.selected[page.currentView].includes(upload.id)
         if (!selected && allSelected) allSelected = false
 
         page.cache.uploads[upload.id] = {
@@ -516,8 +580,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
         `
 
         table.appendChild(tr)
-        // page.checkboxes.uploads = Array.from(table.getElementsByClassName('checkbox'))
-        page.checkboxes.uploads = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+        page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
       }
     }
 
@@ -526,9 +589,9 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
       if (selectAll) selectAll.checked = true
     }
 
-    page.views.uploads.album = album
-    page.views.uploads.pageNum = response.data.files.length ? pageNum : 0
-    page.views.uploads.all = all
+    if (page.currentView === 'uploads') page.views.uploads.album = album
+    if (page.currentView === 'uploadsAll') page.views.uploadsAll.uploader = uploader
+    page.views[page.currentView].pageNum = response.data.files.length ? pageNum : 0
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
     console.log(error)
@@ -537,9 +600,9 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
 }
 
 page.setUploadsView = function (view, element) {
-  localStorage[LS_KEYS.viewType.uploads] = view
-  page.views.uploads.type = view
-  page.getUploads(page.views.uploads, element)
+  localStorage[lsKeys.viewType[page.currentView]] = view
+  page.views[page.currentView].type = view
+  page.getUploads(page.views[page.currentView], element)
 }
 
 page.displayThumbnail = function (id) {
@@ -626,9 +689,9 @@ page.selectAll = function (element) {
   }
 
   if (selected.length)
-    localStorage[LS_KEYS.selected[currentView]] = JSON.stringify(selected)
+    localStorage[lsKeys.selected[currentView]] = JSON.stringify(selected)
   else
-    localStorage.removeItem(LS_KEYS.selected[currentView])
+    localStorage.removeItem(lsKeys.selected[currentView])
 
   page.selected[currentView] = selected
   element.title = element.checked ? 'Unselect all uploads' : 'Select all uploads'
@@ -655,7 +718,7 @@ page.selectInBetween = function (element, lastElement) {
       page.selected[currentView].push(page.getItemID(checkboxes[i]))
     }
 
-  localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected[currentView])
+  localStorage[lsKeys.selected.uploads] = JSON.stringify(page.selected[currentView])
   page.checkboxes[currentView] = checkboxes
 }
 
@@ -677,9 +740,9 @@ page.select = function (element, event) {
     selected.splice(selected.indexOf(id), 1)
 
   if (selected.length)
-    localStorage[LS_KEYS.selected[currentView]] = JSON.stringify(selected)
+    localStorage[lsKeys.selected[currentView]] = JSON.stringify(selected)
   else
-    localStorage.removeItem(LS_KEYS.selected[currentView])
+    localStorage.removeItem(lsKeys.selected[currentView])
 
   page.selected[currentView] = selected
 }
@@ -687,11 +750,12 @@ page.select = function (element, event) {
 page.clearSelection = function () {
   const currentView = page.currentView
   const selected = page.selected[currentView]
+  const type = page.currentView === 'users' ? 'users' : 'uploads'
   const count = selected.length
   if (!count)
-    return swal('An error occurred!', `You have not selected any ${currentView}.`, 'error')
+    return swal('An error occurred!', `You have not selected any ${type}.`, 'error')
 
-  const suffix = count === 1 ? currentView.substring(0, currentView.length - 1) : currentView
+  const suffix = count === 1 ? type.substring(0, type.length - 1) : type
   return swal({
     title: 'Are you sure?',
     text: `You are going to unselect ${count} ${suffix}.`,
@@ -704,7 +768,7 @@ page.clearSelection = function () {
       if (checkboxes[i].checked)
         checkboxes[i].checked = false
 
-    localStorage.removeItem(LS_KEYS.selected[currentView])
+    localStorage.removeItem(lsKeys.selected[currentView])
     page.selected[currentView] = []
 
     const selectAll = document.getElementById('selectAll')
@@ -712,6 +776,18 @@ page.clearSelection = function () {
 
     return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
   })
+}
+
+page.filterByUploader = function (element) {
+  const uploader = document.getElementById('uploader').value
+  page.getUploads({ all: true, uploader }, element)
+}
+
+page.viewUserUploads = function (id) {
+  const user = page.cache.users[id]
+  if (!user) return
+  page.setActiveMenu(document.getElementById('itemManageUploads'))
+  page.getUploads({ all: true, uploader: user.username })
 }
 
 page.deleteFile = function (id) {
@@ -751,14 +827,18 @@ page.deleteFile = function (id) {
 }
 
 page.deleteSelectedFiles = function () {
-  const count = page.selected.uploads.length
+  const count = page.selected[page.currentView].length
   if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
 
-  const suffix = `file${count === 1 ? '' : 's'}`
+  const suffix = `upload${count === 1 ? '' : 's'}`
+  let text = `You won't be able to recover ${count} ${suffix}!`
+  if (page.currentView === 'uploadsAll')
+    text += '\nBe aware, you may be nuking uploads by other users!'
+
   swal({
     title: 'Are you sure?',
-    text: `You won't be able to recover ${count} ${suffix}!`,
+    text,
     icon: 'warning',
     dangerMode: true,
     buttons: {
@@ -773,7 +853,7 @@ page.deleteSelectedFiles = function () {
 
     axios.post('api/upload/bulkdelete', {
       field: 'id',
-      values: page.selected.uploads
+      values: page.selected[page.currentView]
     }).then(function (bulkdelete) {
       if (!bulkdelete) return
 
@@ -787,14 +867,14 @@ page.deleteSelectedFiles = function () {
       let deleted = count
       if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
         deleted -= bulkdelete.data.failed.length
-        page.selected.uploads = page.selected.uploads.filter(function (id) {
+        page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
           return bulkdelete.data.failed.includes(id)
         })
       } else {
-        page.selected.uploads = []
+        page.selected[page.currentView] = []
       }
 
-      localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
+      localStorage[lsKeys.selected.uploads] = JSON.stringify(page.selected[page.currentView])
 
       swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
       return page.getUploads(page.views.uploads)
@@ -882,20 +962,23 @@ page.deleteFileByNames = function () {
 }
 
 page.addSelectedFilesToAlbum = function () {
-  const count = page.selected.uploads.length
+  if (page.currentView !== 'uploads')
+    return
+
+  const count = page.selected[page.currentView].length
   if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
 
-  page.addFilesToAlbum(page.selected.uploads, function (failed) {
+  page.addFilesToAlbum(page.selected[page.currentView], function (failed) {
     if (!failed) return
     if (failed.length)
-      page.selected.uploads = page.selected.uploads.filter(function (id) {
+      page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
         return failed.includes(id)
       })
     else
-      page.selected.uploads = []
+      page.selected[page.currentView] = []
 
-    localStorage[LS_KEYS.selected.uploads] = JSON.stringify(page.selected.uploads)
+    localStorage[lsKeys.selected.uploads] = JSON.stringify(page.selected[page.currentView])
     page.getUploads(page.views.uploads)
   })
 }
@@ -1448,7 +1531,7 @@ page.getNewToken = function (element) {
       icon: 'success'
     }).then(function () {
       axios.defaults.headers.common.token = response.data.token
-      localStorage[LS_KEYS.token] = response.data.token
+      localStorage[lsKeys.token] = response.data.token
       page.token = response.data.token
       page.changeToken()
     })
@@ -1593,6 +1676,26 @@ page.getUsers = function ({ pageNum } = {}, element) {
 
     const pagination = page.paginate(response.data.count, 25, pageNum)
 
+    const extraControls = `
+      <div class="columns" style="margin-top: 10px">
+        <div class="column is-hidden-mobile"></div>
+        <div class="column is-one-quarter">
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+            </div>
+            <div class="control">
+              <a class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+                <span class="icon">
+                  <i class="icon-paper-plane-empty"></i>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
     const controls = `
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
@@ -1622,7 +1725,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
 
     page.dom.innerHTML = `
       ${pagination}
-      <hr>
+      ${extraControls}
       ${controls}
       <div class="table-container">
         <table class="table is-narrow is-fullwidth is-hoverable">
@@ -1683,6 +1786,11 @@ page.getUsers = function ({ pageNum } = {}, element) {
           <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
             <span class="icon">
               <i class="icon-pencil-1"></i>
+            </span>
+          </a>
+          <a class="button is-small is-info" title="View uploads" data-action="view-user-uploads" ${user.uploadsCount ? '' : 'disabled'}>
+            <span class="icon">
+              <i class="icon-picture-1"></i>
             </span>
           </a>
           <a class="button is-small is-warning" title="Disable user" data-action="disable-user" ${enabled ? '' : 'disabled'}>
@@ -1911,9 +2019,9 @@ window.onload = function () {
   if (!('ontouchstart' in document.documentElement))
     document.documentElement.classList.add('no-touch')
 
-  const selectedKeys = ['uploads', 'users']
+  const selectedKeys = ['uploads', 'uploadsAll', 'users']
   for (const selectedKey of selectedKeys) {
-    const ls = localStorage[LS_KEYS.selected[selectedKey]]
+    const ls = localStorage[lsKeys.selected[selectedKey]]
     if (ls) page.selected[selectedKey] = JSON.parse(ls)
   }
 

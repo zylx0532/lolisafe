@@ -691,16 +691,27 @@ uploadsController.list = async (req, res) => {
 
   // Headers is string-only, this seem to be the safest and lightest
   const all = req.headers.all === '1'
+  const uploader = req.headers.uploader
   const ismoderator = perms.is(user, 'moderator')
-  if (all && !ismoderator) return res.status(403).end()
+  if ((all || uploader) && !ismoderator) return res.status(403).end()
+
+  let uploaderID = null
+  if (uploader)
+    uploaderID = await db.table('users')
+      .where('username', uploader)
+      .select('id')
+      .first()
+      .then(row => row ? row.id : null)
 
   function filter () {
     if (req.params.id === undefined)
       this.where('id', '<>', '')
     else
       this.where('albumid', req.params.id)
-    if (!all || !ismoderator)
+    if (!ismoderator || !all)
       this.where('userid', user.id)
+    else if (uploaderID)
+      this.where('userid', uploaderID)
   }
 
   const count = await db.table('files')
