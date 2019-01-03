@@ -1790,7 +1790,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
           </a>
           <a class="button is-small is-info" title="View uploads" data-action="view-user-uploads" ${user.uploadsCount ? '' : 'disabled'}>
             <span class="icon">
-              <i class="icon-picture-1"></i>
+              <i class="icon-docs"></i>
             </span>
           </a>
           <a class="button is-small is-warning" title="Disable user" data-action="disable-user" ${enabled ? '' : 'disabled'}>
