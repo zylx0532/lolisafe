@@ -312,7 +312,7 @@ page.getUploads = function ({ album, pageNum, all } = {}, element) {
     if (pageNum && (response.data.files.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
       if (element) page.isLoading(element, false)
-      return swal('An error occurred!', 'There are no more uploads.', 'error')
+      return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
     }
 
     page.currentView = 'uploads'
@@ -1585,7 +1585,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
     if (pageNum && (response.data.users.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
       if (element) page.isLoading(element, false)
-      return swal('An error occurred!', 'There are no more users!', 'error')
+      return swal('An error occurred!', `There are no more users to populate page ${pageNum + 1}.`, 'error')
     }
 
     page.currentView = 'users'

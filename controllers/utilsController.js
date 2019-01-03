@@ -162,12 +162,34 @@ utilsController.generateThumbs = (name, force) => {
             alpha: 0
           }
         }
-        return sharp(path.join(__dirname, '..', config.uploads.folder, name))
-          .resize(resizeOptions)
-          .toFile(thumbname)
+        const image = sharp(path.join(__dirname, '..', config.uploads.folder, name))
+        return image
+          .metadata()
+          .then(metadata => {
+            if (metadata.width > resizeOptions.width || metadata.height > resizeOptions.height) {
+              return image
+                .resize(resizeOptions)
+                .toFile(thumbname)
+            } else if (metadata.width === resizeOptions.width && metadata.height === resizeOptions.height) {
+              return image
+                .toFile(thumbname)
+            } else {
+              const x = resizeOptions.width - metadata.width
+              const y = resizeOptions.height - metadata.height
+              return image
+                .extend({
+                  top: Math.floor(y / 2),
+                  bottom: Math.ceil(y / 2),
+                  left: Math.floor(x / 2),
+                  right: Math.ceil(x / 2),
+                  background: resizeOptions.background
+                })
+                .toFile(thumbname)
+            }
+          })
           .catch(error => {
             if (!error) return resolve(true)
-            console.error(`${name}: ${error.message.trim()}`)
+            console.error(`${name}: ${error.toString()}`)
             fs.symlink(thumbUnavailable, thumbname, error => {
               if (error) console.error(error)
               resolve(!error)
