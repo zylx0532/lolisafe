@@ -78,9 +78,6 @@ const page = {
 
   imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png'],
 
-  // byte units for getPrettyBytes()
-  byteUnits: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
-
   fadingIn: null
 }
 
@@ -1632,21 +1629,19 @@ page.getPrettyDate = function (date) {
     date.getSeconds()
 }
 
-page.getPrettyBytes = function (num) {
+page.getPrettyBytes = function (num, si) {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-
   if (!Number.isFinite(num)) return num
 
-  const neg = num < 0
+  const neg = num < 0 ? '-' : ''
   if (neg) num = -num
-  if (num < 1) return `${neg ? '-' : ''}${num}B`
+  if (num < 1) return `${neg}${num} B`
 
-  const exponent = Math.min(Math.floor(Math.log10(num) / 3), page.byteUnits.length - 1)
-  const numStr = Number((num / Math.pow(1000, exponent)).toPrecision(3))
-  const unit = page.byteUnits[exponent]
-
-  return `${neg ? '-' : ''}${numStr} ${unit}`
+  const exponent = Math.min(Math.floor(Math.log10(num) / 3), 8) // 8 is count of KMGTPEZY
+  const numStr = Number((num / Math.pow(si ? 1000 : 1024, exponent)).toPrecision(3))
+  const pre = (si ? 'kMGTPEZY' : 'KMGTPEZY').charAt(exponent - 1) + (si ? '' : 'i')
+  return `${neg}${numStr} ${pre}B`
 }
 
 page.getUsers = function ({ pageNum } = {}, element) {
