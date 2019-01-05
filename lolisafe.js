@@ -69,8 +69,8 @@ if (config.cacheControl) {
 
   safe.use('/', express.static('./public', { setHeaders }))
 
-  // Do NOT cache /api and /a routes
-  safe.use(['/api', '/a'], (req, res, next) => {
+  // Do NOT cache dynamic routes
+  safe.use(['/a', '/api', '/nojs'], (req, res, next) => {
     res.set('Cache-Control', 'no-store')
     next()
   })
