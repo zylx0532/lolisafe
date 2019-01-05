@@ -74,6 +74,12 @@ if (config.cacheControl) {
     res.set('Cache-Control', 'no-store')
     next()
   })
+
+  // But do cache album ZIPs
+  safe.use('/api/album/zip', (req, res, next) => {
+    setHeaders(res)
+    next()
+  })
 } else {
   if (config.serveFilesWithNode)
     safe.use('/', express.static(config.uploads.folder))
