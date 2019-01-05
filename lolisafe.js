@@ -51,16 +51,36 @@ safe.use('/api/register/', limiter)
 safe.use(bodyParser.urlencoded({ extended: true }))
 safe.use(bodyParser.json())
 
-const setHeaders = res => {
-  // Apply Cache-Control to all static files
-  res.set('Access-Control-Allow-Origin', '*')
-  res.set('Cache-Control', 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800') // max-age: 30 days
+if (config.cacheControl) {
+  safe.use('/', (req, res, next) => {
+    // max-age: 12 hours (aimed at the HTML pages themselves)
+    res.set('Cache-Control', 'public, max-age=43200, must-revalidate, proxy-revalidate, stale-while-revalidate=86400, stale-if-error=86400')
+    next()
+  })
+
+  const setHeaders = res => {
+    res.set('Access-Control-Allow-Origin', '*')
+    // max-age: 30 days
+    res.set('Cache-Control', 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800')
+  }
+
+  if (config.serveFilesWithNode)
+    safe.use('/', express.static(config.uploads.folder, { setHeaders }))
+
+  safe.use('/', express.static('./public', { setHeaders }))
+
+  // Do NOT cache /api and /a routes
+  safe.use(['/api', '/a'], (req, res, next) => {
+    res.set('Cache-Control', 'no-store')
+    next()
+  })
+} else {
+  if (config.serveFilesWithNode)
+    safe.use('/', express.static(config.uploads.folder))
+
+  safe.use('/', express.static('./public'))
 }
 
-if (config.serveFilesWithNode)
-  safe.use('/', express.static(config.uploads.folder, { setHeaders }))
-
-safe.use('/', express.static('./public', { setHeaders }))
 safe.use('/', album)
 safe.use('/', nojs)
 safe.use('/api', api)

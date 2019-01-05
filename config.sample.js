@@ -299,6 +299,13 @@ module.exports = {
   },
 
   /*
+    ADVANCED: Use safe.fiery.me-exclusive cache control.
+    This will only work properly with certain settings in nginx reverse proxy and Cloudflare.
+    Do NOT enable unless you know what you are doing.
+  */
+  cacheControl: false,
+
+  /*
     Folder where to store logs.
     NOTE: This is currently unused.
   */
