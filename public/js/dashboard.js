@@ -669,9 +669,8 @@ page.displayThumbnail = function (id) {
 }
 
 page.selectAll = function (element) {
-  const currentView = page.currentView
-  const checkboxes = page.checkboxes[currentView]
-  const selected = page.selected[currentView]
+  const checkboxes = page.checkboxes[page.currentView]
+  const selected = page.selected[page.currentView]
 
   for (let i = 0; i < checkboxes.length; i++) {
     const id = page.getItemID(checkboxes[i])
@@ -685,12 +684,8 @@ page.selectAll = function (element) {
     }
   }
 
-  if (selected.length)
-    localStorage[lsKeys.selected[currentView]] = JSON.stringify(selected)
-  else
-    localStorage.removeItem(lsKeys.selected[currentView])
-
-  page.selected[currentView] = selected
+  localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(selected)
+  page.selected[page.currentView] = selected
   element.title = element.checked ? 'Unselect all uploads' : 'Select all uploads'
 }
 
@@ -698,8 +693,7 @@ page.selectInBetween = function (element, lastElement) {
   if (!element || !lastElement) return
   if (element === lastElement) return
 
-  const currentView = page.currentView
-  const checkboxes = page.checkboxes[currentView]
+  const checkboxes = page.checkboxes[page.currentView]
   if (!checkboxes || !checkboxes.length) return
 
   const thisIndex = checkboxes.indexOf(element)
@@ -712,41 +706,35 @@ page.selectInBetween = function (element, lastElement) {
     if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
       (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
       checkboxes[i].checked = true
-      page.selected[currentView].push(page.getItemID(checkboxes[i]))
+      page.selected[page.currentView].push(page.getItemID(checkboxes[i]))
     }
 
-  localStorage[lsKeys.selected.uploads] = JSON.stringify(page.selected[currentView])
-  page.checkboxes[currentView] = checkboxes
+  localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+  page.checkboxes[page.currentView] = checkboxes
 }
 
 page.select = function (element, event) {
-  const currentView = page.currentView
-  const lastSelected = page.lastSelected[currentView]
+  const lastSelected = page.lastSelected[page.currentView]
   if (event.shiftKey && lastSelected)
     page.selectInBetween(element, lastSelected)
   else
-    page.lastSelected[currentView] = element
+    page.lastSelected[page.currentView] = element
 
   const id = page.getItemID(element)
   if (isNaN(id)) return
 
-  const selected = page.selected[currentView]
+  const selected = page.selected[page.currentView]
   if (!selected.includes(id) && element.checked)
     selected.push(id)
   else if (selected.includes(id) && !element.checked)
     selected.splice(selected.indexOf(id), 1)
 
-  if (selected.length)
-    localStorage[lsKeys.selected[currentView]] = JSON.stringify(selected)
-  else
-    localStorage.removeItem(lsKeys.selected[currentView])
-
-  page.selected[currentView] = selected
+  localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(selected)
+  page.selected[page.currentView] = selected
 }
 
 page.clearSelection = function () {
-  const currentView = page.currentView
-  const selected = page.selected[currentView]
+  const selected = page.selected[page.currentView]
   const type = page.currentView === 'users' ? 'users' : 'uploads'
   const count = selected.length
   if (!count)
@@ -760,13 +748,13 @@ page.clearSelection = function () {
   }).then(function (proceed) {
     if (!proceed) return
 
-    const checkboxes = page.checkboxes[currentView]
+    const checkboxes = page.checkboxes[page.currentView]
     for (let i = 0; i < checkboxes.length; i++)
       if (checkboxes[i].checked)
         checkboxes[i].checked = false
 
-    localStorage.removeItem(lsKeys.selected[currentView])
-    page.selected[currentView] = []
+    localStorage[lsKeys.selected[page.currentView]] = '[]'
+    page.selected[page.currentView] = []
 
     const selectAll = document.getElementById('selectAll')
     if (selectAll) selectAll.checked = false
@@ -815,7 +803,7 @@ page.deleteFile = function (id) {
         }
 
       swal('Deleted!', 'The file has been deleted.', 'success')
-      page.getUploads(page.views.uploads)
+      page.getUploads(page.views[page.currentView])
     }).catch(function (error) {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
@@ -871,10 +859,10 @@ page.deleteSelectedFiles = function () {
         page.selected[page.currentView] = []
       }
 
-      localStorage[lsKeys.selected.uploads] = JSON.stringify(page.selected[page.currentView])
+      localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
 
       swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
-      return page.getUploads(page.views.uploads)
+      return page.getUploads(page.views[page.currentView])
     }).catch(function (error) {
       console.log(error)
       swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
@@ -975,15 +963,15 @@ page.addSelectedFilesToAlbum = function () {
     else
       page.selected[page.currentView] = []
 
-    localStorage[lsKeys.selected.uploads] = JSON.stringify(page.selected[page.currentView])
-    page.getUploads(page.views.uploads)
+    localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+    page.getUploads(page.views[page.currentView])
   })
 }
 
 page.addSingleFileToAlbum = function (id) {
   page.addFilesToAlbum([id], function (failed) {
     if (!failed) return
-    page.getUploads(page.views.uploads)
+    page.getUploads(page.views[page.currentView])
   })
 }
 
