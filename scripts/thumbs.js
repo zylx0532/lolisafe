@@ -1,3 +1,4 @@
+const { stripIndents } = require('./_utils')
 const fs = require('fs')
 const path = require('path')
 const utils = require('./../controllers/utilsController')
@@ -32,19 +33,26 @@ thumbs.getFiles = directory => {
 }
 
 thumbs.do = async () => {
+  const location = process.argv[1].replace(process.cwd() + '/', '')
   const args = process.argv.slice(2)
 
   thumbs.mode = parseInt(args[0])
-  thumbs.force = parseInt(args[1])
-  thumbs.verbose = parseInt(args[2])
-  if ((isNaN(thumbs.mode) || ![1, 2, 3].includes(thumbs.mode)) ||
-  (!isNaN(thumbs.force) && ![0, 1].includes(thumbs.force))) {
-    console.log('Usage  :\nyarn thumbs <mode=1|2|3> [force=0|1] [verbose=0|1]\n')
-    console.log('mode   : 1 = images only, 2 = videos only, 3 = both images and videos')
-    console.log('force  : 0 = no force (default), 1 = overwrite existing thumbnails')
-    console.log('verbose: 0 = only print missing thumbs (default), 1 = print all')
-    return
-  }
+  thumbs.force = parseInt(args[1] || 0)
+  thumbs.verbose = parseInt(args[2] || 0)
+  if (![1, 2, 3].includes(thumbs.mode) ||
+    ![0, 1].includes(thumbs.force) ||
+    ![0, 1].includes(thumbs.verbose) ||
+    args.includes('--help') ||
+    args.includes('-h'))
+    return console.log(stripIndents(`
+      Generate thumbnails.
+
+      Usage  :\nnode ${location} <mode=1|2|3> [force=0|1] [verbose=0|1]
+
+      mode   : 1 = images only, 2 = videos only, 3 = both images and videos
+      force  : 0 = no force (default), 1 = overwrite existing thumbnails
+      verbose: 0 = only print missing thumbs (default), 1 = print all
+    `))
 
   const uploadsDir = path.join(__dirname, '..', 'uploads')
   const thumbsDir = path.join(uploadsDir, 'thumbs')

@@ -187,8 +187,10 @@ utilsController.generateThumbs = (name, force) => {
                 .toFile(thumbname)
             }
           })
+          .then(() => {
+            resolve(true)
+          })
           .catch(error => {
-            if (!error) return resolve(true)
             console.error(`${name}: ${error.toString()}`)
             fs.symlink(thumbUnavailable, thumbname, error => {
               if (error) console.error(error)
@@ -304,33 +306,34 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
       .catch(console.error)
   }
 
-  if (config.cloudflare.purgeCache) {
-    // purgeCloudflareCache() is an async function, but let us not wait for it
-    const names = filtered.map(file => file.name)
-    utilsController.purgeCloudflareCache(names)
-  }
+  // purgeCloudflareCache() is an async function, but let us not wait for it
+  if (config.cloudflare.purgeCache)
+    utilsController.purgeCloudflareCache(filtered.map(file => file.name), true)
 
   return failed
 }
 
-utilsController.purgeCloudflareCache = async names => {
-  if (!cloudflareAuth) return
+utilsController.purgeCloudflareCache = async (names, uploads, verbose) => {
+  if (!cloudflareAuth) return false
+
+  let domain = config.domain
+  if (!uploads) domain = config.homeDomain
 
   const thumbs = []
   names = names.map(name => {
-    const url = `${config.domain}/${name}`
+    const url = `${domain}/${name}`
     const extname = utilsController.extname(name)
-    if (utilsController.mayGenerateThumb(extname))
-      thumbs.push(`${config.domain}/thumbs/${name.slice(0, -extname.length)}.png`)
-
+    if (uploads && utilsController.mayGenerateThumb(extname))
+      thumbs.push(`${domain}/thumbs/${name.slice(0, -extname.length)}.png`)
     return url
   })
 
   try {
+    const files = names.concat(thumbs)
     const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`
     const fetchPurge = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify({ files: names.concat(thumbs) }),
+      body: JSON.stringify({ files }),
       headers: {
         'Content-Type': 'application/json',
         'X-Auth-Email': config.cloudflare.email,
@@ -338,8 +341,10 @@ utilsController.purgeCloudflareCache = async names => {
       }
     }).then(res => res.json())
 
-    if (fetchPurge.errors)
+    if (Array.isArray(fetchPurge.errors) && fetchPurge.errors.length)
       fetchPurge.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
+    else if (verbose)
+      console.log(`URLs:\n${files.join('\n')}\n\nSuccess: ${fetchPurge.success}`)
   } catch (error) {
     console.error(`CF: ${error.toString()}`)
   }

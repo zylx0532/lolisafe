@@ -16,10 +16,10 @@
   "license": "MIT",
   "scripts": {
     "start": "node ./lolisafe.js",
-    "pm2": "pm2 start --name lolisafe ./lolisafe.js",
+    "pm2": "pm2 start --name safe ./lolisafe.js",
     "thumbs": "node ./scripts/thumbs.js",
-    "randver": "node -e \"console.log(require('randomstring').generate(10))\"",
-    "pull": "git stash; git pull; yarn; git stash pop"
+    "pull": "git stash; git pull; yarn; git stash pop",
+    "pm2restart": "pm2 restart safe"
   },
   "dependencies": {
     "bcrypt": "^2.0.1",
