@@ -321,11 +321,15 @@ utilsController.purgeCloudflareCache = async (names, uploads, verbose) => {
 
   const thumbs = []
   names = names.map(name => {
-    const url = `${domain}/${name}`
-    const extname = utilsController.extname(name)
-    if (uploads && utilsController.mayGenerateThumb(extname))
-      thumbs.push(`${domain}/thumbs/${name.slice(0, -extname.length)}.png`)
-    return url
+    if (uploads) {
+      const url = `${domain}/${name}`
+      const extname = utilsController.extname(name)
+      if (utilsController.mayGenerateThumb(extname))
+        thumbs.push(`${domain}/thumbs/${name.slice(0, -extname.length)}.png`)
+      return url
+    } else {
+      return name === 'home' ? domain : `${domain}/${name}`
+    }
   })
 
   try {

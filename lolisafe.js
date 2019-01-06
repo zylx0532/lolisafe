@@ -53,8 +53,9 @@ safe.use(bodyParser.json())
 
 if (config.cacheControl) {
   safe.use('/', (req, res, next) => {
-    // max-age: 12 hours (aimed at the HTML pages themselves)
-    res.set('Cache-Control', 'public, max-age=43200, must-revalidate, proxy-revalidate, stale-while-revalidate=86400, stale-if-error=86400')
+    // s-max-age: 30 days (only cache in proxy server)
+    // Obviously we have to purge proxy cache on every update
+    res.set('Cache-Control', 'public, s-max-age=2592000, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800')
     next()
   })
 
