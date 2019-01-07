@@ -1958,18 +1958,18 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
   const add = {
     pageNum (start, end) {
       for (let i = start; i <= end; ++i)
-        template += `<li><a class="pagination-link ${i === currentPage ? ' is-current' : ''}" aria-label="Goto page ${i}" data-action="page-goto" data-goto="${i - 1}">${i}</a></li>`
+        template += `<li><a class="button pagination-link ${i === currentPage ? ' is-current' : ''}" aria-label="Goto page ${i}" data-action="page-goto" data-goto="${i - 1}">${i}</a></li>`
     },
     startDots () {
       template += `
-        <li><a class="pagination-link" aria-label="Goto page 1" data-action="page-goto" data-goto="0">1</a></li>
+        <li><a class="button pagination-link" aria-label="Goto page 1" data-action="page-goto" data-goto="0">1</a></li>
         <li><span class="pagination-ellipsis">&hellip;</span></li>
       `
     },
     endDots () {
       template += `
         <li><span class="pagination-ellipsis">&hellip;</span></li>
-        <li><a class="pagination-link" aria-label="Goto page ${numPages}" data-action="page-goto" data-goto="${numPages - 1}">${numPages}</a></li>
+        <li><a class="button pagination-link" aria-label="Goto page ${numPages}" data-action="page-goto" data-goto="${numPages - 1}">${numPages}</a></li>
       `
     }
   }
