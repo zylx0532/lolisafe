@@ -610,7 +610,7 @@ page.displayThumbnail = function (id) {
   div.innerHTML = `
     <div class="field has-text-centered">
       <label class="label">${file.name}</label>
-      <div class="controls">
+      <div class="controls swal-display-thumb-container">
         <img id="swalThumb" src="${file.thumb}">
       </div>
     </div>
