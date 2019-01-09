@@ -306,15 +306,24 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
       .catch(console.error)
   }
 
-  // purgeCloudflareCache() is an async function, but let us not wait for it
+  // Purge Cloudflare's cache if necessary
   if (config.cloudflare.purgeCache)
     utilsController.purgeCloudflareCache(filtered.map(file => file.name), true)
+      .then(result => {
+        if (!result.errors.length) return
+        result.errors.forEach(error => console.error(`CF: ${error}`))
+      })
 
   return failed
 }
 
-utilsController.purgeCloudflareCache = async (names, uploads, verbose) => {
-  if (!cloudflareAuth) return false
+utilsController.purgeCloudflareCache = async (names, uploads) => {
+  if (!cloudflareAuth)
+    return {
+      success: false,
+      files: [],
+      errors: ['Missing auth.']
+    }
 
   let domain = config.domain
   if (!uploads) domain = config.homeDomain
@@ -332,8 +341,10 @@ utilsController.purgeCloudflareCache = async (names, uploads, verbose) => {
     }
   })
 
+  const files = names.concat(thumbs)
+  let success = false
+  let errors = []
   try {
-    const files = names.concat(thumbs)
     const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`
     const fetchPurge = await fetch(url, {
       method: 'POST',
@@ -344,14 +355,13 @@ utilsController.purgeCloudflareCache = async (names, uploads, verbose) => {
         'X-Auth-Key': config.cloudflare.apiKey
       }
     }).then(res => res.json())
-
+    success = fetchPurge.success
     if (Array.isArray(fetchPurge.errors) && fetchPurge.errors.length)
-      fetchPurge.errors.forEach(error => console.error(`CF: ${error.code}: ${error.message}`))
-    else if (verbose)
-      console.log(`URLs:\n${files.join('\n')}\n\nSuccess: ${fetchPurge.success}`)
+      errors = fetchPurge.errors.map(error => `${error.code}: ${error.message}`)
   } catch (error) {
-    console.error(`CF: ${error.toString()}`)
+    errors.push(error.toString())
   }
+  return { success, files, errors }
 }
 
 module.exports = utilsController

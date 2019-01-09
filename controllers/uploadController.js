@@ -631,14 +631,18 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
       responseFiles.push(file)
 
   // We send response first before generating thumbnails and updating album timestamps
+  const nojs = req.path === '/nojs'
   res.json({
     success: true,
     files: responseFiles.map(file => {
-      return {
+      const result = {
         name: file.name,
         size: file.size,
         url: `${config.domain}/${file.name}`
       }
+      // Add original name if it's /nojs route
+      if (nojs) result.original = file.original
+      return result
     })
   })
 
@@ -652,7 +656,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
   }
 
   if (albumids.length)
-    await db.table('albums')
+    db.table('albums')
       .whereIn('id', albumids)
       .update('editedAt', Math.floor(Date.now() / 1000))
       .catch(console.error)

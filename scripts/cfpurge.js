@@ -1,3 +1,6 @@
+// This is sorta no longer in use since lolisafe.js will do this automatically
+// everytime is launches.
+
 const { stripIndents } = require('./_utils')
 const utils = require('./../controllers/utilsController')
 const config = require('./../config')
@@ -18,8 +21,12 @@ cfpurge.do = async () => {
       If not provided, this will default to frontend pages listed in "pages" array in config.js.
     `))
 
-  const filenames = args.length ? args : config.pages
-  return utils.purgeCloudflareCache(filenames, Boolean(args.length), true)
+  const filenames = args.length ? args : config.pages.concat(['api/check'])
+  const result = await utils.purgeCloudflareCache(filenames, Boolean(args.length))
+  if (result.errors.length)
+    return result.errors.forEach(error => console.error(`CF: ${error}`))
+  else
+    console.log(`URLs:\n${result.files.join('\n')}\n\nSuccess: ${result.success}`)
 }
 
 cfpurge.do()

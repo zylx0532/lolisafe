@@ -2,6 +2,7 @@ const config = require('./config')
 const api = require('./routes/api')
 const album = require('./routes/album')
 const nojs = require('./routes/nojs')
+const utils = require('./controllers/utilsController')
 const express = require('express')
 const bodyParser = require('body-parser')
 const clamd = require('clamdjs')
@@ -51,18 +52,25 @@ safe.use('/api/register/', limiter)
 safe.use(bodyParser.urlencoded({ extended: true }))
 safe.use(bodyParser.json())
 
+// safe.fiery.me-exclusive cache control
 if (config.cacheControl) {
-  safe.use('/', (req, res, next) => {
+  const cacheControls = {
+    // max-age: 30 days
+    default: 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800',
     // s-max-age: 30 days (only cache in proxy server)
     // Obviously we have to purge proxy cache on every update
-    res.set('Cache-Control', 'public, s-max-age=2592000, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800')
+    proxyOnly: 'public, s-max-age=2592000, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800',
+    disable: 'no-store'
+  }
+
+  safe.use('/', (req, res, next) => {
+    res.set('Cache-Control', cacheControls.proxyOnly)
     next()
   })
 
   const setHeaders = res => {
     res.set('Access-Control-Allow-Origin', '*')
-    // max-age: 30 days
-    res.set('Cache-Control', 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800')
+    res.set('Cache-Control', cacheControls.default)
   }
 
   if (config.serveFilesWithNode)
@@ -70,14 +78,20 @@ if (config.cacheControl) {
 
   safe.use('/', express.static('./public', { setHeaders }))
 
-  // Do NOT cache dynamic routes
+  // Do NOT cache these dynamic routes
   safe.use(['/a', '/api', '/nojs'], (req, res, next) => {
-    res.set('Cache-Control', 'no-store')
+    res.set('Cache-Control', cacheControls.disable)
     next()
   })
 
-  // But do cache album ZIPs
-  safe.use('/api/album/zip', (req, res, next) => {
+  // Cache these in proxy server though
+  safe.use(['/api/check'], (req, res, next) => {
+    res.set('Cache-Control', cacheControls.proxyOnly)
+    next()
+  })
+
+  // Cache album ZIPs
+  safe.use(['/api/album/zip'], (req, res, next) => {
     setHeaders(res)
     next()
   })
@@ -183,8 +197,19 @@ const start = async () => {
     process.stdout.write(` ${setSize} OK!\n`)
   }
 
-  safe.listen(config.port, () => {
+  safe.listen(config.port, async () => {
     console.log(`lolisafe started on port ${config.port}`)
+
+    // safe.fiery.me-exclusive cache control
+    if (config.cacheControl) {
+      process.stdout.write('Cache control enabled. Purging Cloudflare\'s cache ...')
+      const routes = config.pages.concat(['api/check'])
+      const result = await utils.purgeCloudflareCache(routes)
+      process.stdout.write(` ${result.errors.length ? 'ERROR' : `${result.files.length} OK`}!\n`)
+      if (result.errors.length)
+        result.errors.forEach(error => console.log(`CF: ${error}`))
+    }
+
     // NODE_ENV=development yarn start
     if (process.env.NODE_ENV === 'development') {
       // Add readline interface to allow evaluating arbitrary JavaScript from console
