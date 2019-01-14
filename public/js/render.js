@@ -60,10 +60,9 @@ page.doRenderSwal = function () {
 
 page.getRenderVersion = function () {
   const renderScript = document.getElementById('renderScript')
-  if (!renderScript) return ''
-  const match = renderScript.src.match(/\?v=\w*$/)
-  if (!match) return ''
-  return match[0]
+  if (renderScript && renderScript.dataset.version)
+    return `?v=${renderScript.dataset.version}`
+  return ''
 }
 
 page.doRender = function () {
