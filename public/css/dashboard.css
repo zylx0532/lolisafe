@@ -100,6 +100,7 @@ ul#albumsContainer li {
 
 .image-container .title {
   font-weight: normal;
+  word-break: break-all;
 }
 
 .image-container .image {
