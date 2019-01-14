@@ -10,11 +10,12 @@ page.getPrettyBytes = function (num, si) {
   if (!Number.isFinite(num)) return num
 
   const neg = num < 0 ? '-' : ''
+  const scale = si ? 1000 : 1024
   if (neg) num = -num
-  if (num < 1) return `${neg}${num} B`
+  if (num < scale) return `${neg}${num} B`
 
   const exponent = Math.min(Math.floor(Math.log10(num) / 3), 8) // 8 is count of KMGTPEZY
-  const numStr = Number((num / Math.pow(si ? 1000 : 1024, exponent)).toPrecision(3))
+  const numStr = Number((num / Math.pow(scale, exponent)).toPrecision(3))
   const pre = (si ? 'kMGTPEZY' : 'KMGTPEZY').charAt(exponent - 1) + (si ? '' : 'i')
   return `${neg}${numStr} ${pre}B`
 }
