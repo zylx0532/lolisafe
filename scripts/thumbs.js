@@ -5,7 +5,9 @@ const utils = require('./../controllers/utilsController')
 
 const thumbs = {
   mode: null,
-  force: null
+  force: null,
+  verbose: null,
+  cfcache: null
 }
 
 thumbs.mayGenerateThumb = extname => {
@@ -39,6 +41,7 @@ thumbs.do = async () => {
   thumbs.mode = parseInt(args[0])
   thumbs.force = parseInt(args[1] || 0)
   thumbs.verbose = parseInt(args[2] || 0)
+  thumbs.cfcache = parseInt(args[3] || 0)
   if (![1, 2, 3].includes(thumbs.mode) ||
     ![0, 1].includes(thumbs.force) ||
     ![0, 1].includes(thumbs.verbose) ||
@@ -47,11 +50,12 @@ thumbs.do = async () => {
     return console.log(stripIndents(`
       Generate thumbnails.
 
-      Usage  :\nnode ${location} <mode=1|2|3> [force=0|1] [verbose=0|1]
+      Usage  :\nnode ${location} <mode=1|2|3> [force=0|1] [verbose=0|1] [cfcache=0|1]
 
       mode   : 1 = images only, 2 = videos only, 3 = both images and videos
       force  : 0 = no force (default), 1 = overwrite existing thumbnails
       verbose: 0 = only print missing thumbs (default), 1 = print all
+      cfcache: 0 = do not clear cloudflare cache (default), 1 = clear cloudflare cache
     `))
 
   const uploadsDir = path.join(__dirname, '..', 'uploads')
@@ -64,7 +68,7 @@ thumbs.do = async () => {
     return _thumb.slice(0, -extname.length)
   })
 
-  let success = 0
+  const succeeded = []
   let error = 0
   let skipped = 0
   await new Promise((resolve, reject) => {
@@ -84,13 +88,22 @@ thumbs.do = async () => {
       } else {
         const generated = await utils.generateThumbs(_upload, thumbs.force)
         console.log(`${_upload}: ${generated ? 'OK' : 'ERROR'}`)
-        generated ? success++ : error++
+        generated ? succeeded.push(_upload) : error++
       }
       return generate(i + 1)
     }
     return generate(0)
   })
-  console.log(`Success: ${success}\nError: ${error}\nSkipped: ${skipped}`)
+  console.log(`Success: ${succeeded.length}\nError: ${error}\nSkipped: ${skipped}`)
+
+  if (thumbs.cfcache && succeeded.length) {
+    console.log('Purging Cloudflare\'s cache...')
+    const result = await utils.purgeCloudflareCache(succeeded.map(n => `thumbs/${n}`), true, false)
+    if (result.errors.length)
+      return result.errors.forEach(error => console.error(`CF: ${error}`))
+    else
+      console.log(`Success: ${result.success}`)
+  }
 }
 
 thumbs.do()

@@ -308,7 +308,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
 
   // Purge Cloudflare's cache if necessary
   if (config.cloudflare.purgeCache)
-    utilsController.purgeCloudflareCache(filtered.map(file => file.name), true)
+    utilsController.purgeCloudflareCache(filtered.map(file => file.name), true, true)
       .then(result => {
         if (!result.errors.length) return
         result.errors.forEach(error => console.error(`CF: ${error}`))
@@ -317,7 +317,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
   return failed
 }
 
-utilsController.purgeCloudflareCache = async (names, uploads) => {
+utilsController.purgeCloudflareCache = async (names, uploads, thumbs) => {
   if (!cloudflareAuth)
     return {
       success: false,
@@ -328,20 +328,20 @@ utilsController.purgeCloudflareCache = async (names, uploads) => {
   let domain = config.domain
   if (!uploads) domain = config.homeDomain
 
-  const thumbs = []
+  const thumbNames = []
   names = names.map(name => {
     if (uploads) {
       const url = `${domain}/${name}`
       const extname = utilsController.extname(name)
-      if (utilsController.mayGenerateThumb(extname))
-        thumbs.push(`${domain}/thumbs/${name.slice(0, -extname.length)}.png`)
+      if (thumbs && utilsController.mayGenerateThumb(extname))
+        thumbNames.push(`${domain}/thumbs/${name.slice(0, -extname.length)}.png`)
       return url
     } else {
       return name === 'home' ? domain : `${domain}/${name}`
     }
   })
 
-  const files = names.concat(thumbs)
+  const files = names.concat(thumbNames)
   let success = false
   let errors = []
   try {
