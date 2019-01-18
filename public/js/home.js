@@ -20,7 +20,7 @@ const page = {
   clipboardJS: null,
   lazyLoad: null,
 
-  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
+  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.svg']
 }
 
 page.checkIfPublic = function () {

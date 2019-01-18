@@ -13,7 +13,7 @@ const thumbsDir = path.join(uploadsDir, 'thumbs')
 const thumbUnavailable = path.join(__dirname, '../public/images/unavailable.png')
 const cloudflareAuth = config.cloudflare.apiKey && config.cloudflare.email && config.cloudflare.zoneId
 
-utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png']
+utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.tiff', '.tif', '.svg']
 utilsController.videoExtensions = ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv']
 
 utilsController.mayGenerateThumb = extname => {
