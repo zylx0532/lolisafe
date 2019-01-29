@@ -86,8 +86,9 @@ thumbs.do = async () => {
         if (thumbs.verbose) console.log(`${_upload}: extension skipped.`)
         skipped++
       } else {
+        const start = Date.now()
         const generated = await utils.generateThumbs(_upload, thumbs.force)
-        console.log(`${_upload}: ${generated ? 'OK' : 'ERROR'}`)
+        console.log(`${_upload}: ${(Date.now() - start) / 1000}s: ${generated ? 'OK' : 'ERROR'}`)
         generated ? succeeded.push(_upload) : error++
       }
       return generate(i + 1)

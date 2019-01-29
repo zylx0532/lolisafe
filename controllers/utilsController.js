@@ -149,73 +149,76 @@ utilsController.generateThumbs = (name, force) => {
       // Only make thumbnail if it does not exist (ENOENT)
       if (!error && !stats.isSymbolicLink() && !force) return resolve(true)
 
-      // If image extension
-      if (utilsController.imageExtensions.includes(extname)) {
-        const resizeOptions = {
-          width: 200,
-          height: 200,
-          fit: 'contain',
-          background: {
-            r: 0,
-            g: 0,
-            b: 0,
-            alpha: 0
-          }
-        }
-        const image = sharp(path.join(__dirname, '..', config.uploads.folder, name))
-        return image
-          .metadata()
-          .then(metadata => {
-            if (metadata.width > resizeOptions.width || metadata.height > resizeOptions.height) {
-              return image
-                .resize(resizeOptions)
-                .toFile(thumbname)
-            } else if (metadata.width === resizeOptions.width && metadata.height === resizeOptions.height) {
-              return image
-                .toFile(thumbname)
-            } else {
-              const x = resizeOptions.width - metadata.width
-              const y = resizeOptions.height - metadata.height
-              return image
-                .extend({
-                  top: Math.floor(y / 2),
-                  bottom: Math.ceil(y / 2),
-                  left: Math.floor(x / 2),
-                  right: Math.ceil(x / 2),
-                  background: resizeOptions.background
-                })
-                .toFile(thumbname)
-            }
-          })
-          .then(() => {
-            resolve(true)
-          })
-          .catch(error => {
-            console.error(`${name}: ${error.toString()}`)
-            fs.symlink(thumbUnavailable, thumbname, error => {
-              if (error) console.error(error)
-              resolve(!error)
-            })
-          })
-      }
+      // Full path to input file
+      const input = path.join(__dirname, '..', config.uploads.folder, name)
 
-      // Otherwise video extension
-      ffmpeg(path.join(__dirname, '..', config.uploads.folder, name))
-        .thumbnail({
-          timestamps: ['20%'],
-          filename: '%b.png',
-          folder: path.join(__dirname, '..', config.uploads.folder, 'thumbs'),
-          size: '200x?'
+      new Promise((resolve, reject) => {
+        // If image extension
+        if (utilsController.imageExtensions.includes(extname)) {
+          const resizeOptions = {
+            width: 200,
+            height: 200,
+            fit: 'contain',
+            background: {
+              r: 0,
+              g: 0,
+              b: 0,
+              alpha: 0
+            }
+          }
+          const image = sharp(input)
+          return image
+            .metadata()
+            .then(metadata => {
+              if (metadata.width > resizeOptions.width || metadata.height > resizeOptions.height) {
+                return image
+                  .resize(resizeOptions)
+                  .toFile(thumbname)
+              } else if (metadata.width === resizeOptions.width && metadata.height === resizeOptions.height) {
+                return image
+                  .toFile(thumbname)
+              } else {
+                const x = resizeOptions.width - metadata.width
+                const y = resizeOptions.height - metadata.height
+                return image
+                  .extend({
+                    top: Math.floor(y / 2),
+                    bottom: Math.ceil(y / 2),
+                    left: Math.floor(x / 2),
+                    right: Math.ceil(x / 2),
+                    background: resizeOptions.background
+                  })
+                  .toFile(thumbname)
+              }
+            })
+            .then(() => resolve(true))
+            .catch(reject)
+        }
+
+        // Otherwise video extension
+        ffmpeg.ffprobe(input, (error, metadata) => {
+          if (error) return reject(error)
+          ffmpeg(input)
+            .inputOptions([
+              `-ss ${parseInt(metadata.format.duration) * 20 / 100}`
+            ])
+            .output(thumbname)
+            .outputOptions([
+              '-vframes 1',
+              '-vf scale=200:200:force_original_aspect_ratio=decrease'
+            ])
+            .on('error', reject)
+            .on('end', () => resolve(true))
+            .run()
         })
-        .on('error', error => {
-          console.log(`${name}: ${error.message}`)
+      })
+        .then(resolve)
+        .catch(error => {
+          console.error(`${name}: ${error.toString()}`)
           fs.symlink(thumbUnavailable, thumbname, error => {
             if (error) console.error(error)
             resolve(!error)
           })
-        })
-        .on('end', () => {
-          resolve(true)
         })
     })
   })
