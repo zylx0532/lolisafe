@@ -208,7 +208,7 @@ const start = async () => {
       let errored = false
       let succeeded = 0
       for (const result of results) {
-        if (!result.errors.length) {
+        if (result.errors.length) {
           if (!errored) {
             errored = true
             process.stdout.write(' ERROR!\n')
