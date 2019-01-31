@@ -99,7 +99,10 @@ thumbs.do = async () => {
 
   if (thumbs.cfcache && succeeded.length) {
     console.log('Purging Cloudflare\'s cache...')
-    const results = await utils.purgeCloudflareCache(succeeded.map(n => `thumbs/${n}`), true, false)
+    const results = await utils.purgeCloudflareCache(succeeded.map(name => {
+      const extname = utils.extname(name)
+      return `thumbs/${name.slice(0, -extname.length)}.png`
+    }), true, false)
     for (let i = 0; i < results.length; i++) {
       if (results[i].errors.length)
         results[i].errors.forEach(error => console.error(`CF: ${error}`))

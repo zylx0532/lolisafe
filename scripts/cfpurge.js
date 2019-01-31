@@ -16,7 +16,7 @@ cfpurge.do = async () => {
       Upload names separated by space (will automatically include their thumbs if available).
     `))
 
-  const results = await utils.purgeCloudflareCache(args, true)
+  const results = await utils.purgeCloudflareCache(args, true, true)
   for (const result of results)
     if (result.errors.length)
       result.errors.forEach(error => console.error(`CF: ${error}`))
