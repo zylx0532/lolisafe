@@ -204,10 +204,22 @@ const start = async () => {
     if (config.cacheControl) {
       process.stdout.write('Cache control enabled. Purging Cloudflare\'s cache ...')
       const routes = config.pages.concat(['api/check'])
-      const result = await utils.purgeCloudflareCache(routes)
-      process.stdout.write(` ${result.errors.length ? 'ERROR' : `${result.files.length} OK`}!\n`)
-      if (result.errors.length)
-        result.errors.forEach(error => console.log(`CF: ${error}`))
+      const results = await utils.purgeCloudflareCache(routes)
+      let errored = false
+      let succeeded = 0
+      for (const result of results) {
+        if (!result.errors.length) {
+          if (!errored) {
+            errored = true
+            process.stdout.write(' ERROR!\n')
+          }
+          result.errors.forEach(error => console.log(`CF: ${error}`))
+          continue
+        }
+        succeeded += result.files.length
+      }
+      if (!errored)
+        process.stdout.write(` ${succeeded} OK!\n`)
     }
 
     // NODE_ENV=development yarn start
