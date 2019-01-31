@@ -360,7 +360,7 @@ utilsController.purgeCloudflareCache = async (names, uploads, thumbs) => {
       const result = {
         success: false,
         files: files[i],
-        errors: null
+        errors: []
       }
 
       try {
