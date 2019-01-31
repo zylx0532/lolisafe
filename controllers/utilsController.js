@@ -312,21 +312,22 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
   // Purge Cloudflare's cache if necessary
   if (config.cloudflare.purgeCache)
     utilsController.purgeCloudflareCache(filtered.map(file => file.name), true, true)
-      .then(result => {
-        if (!result.errors.length) return
-        result.errors.forEach(error => console.error(`CF: ${error}`))
+      .then(results => {
+        for (const result of results)
+          if (result.errors.length)
+            result.errors.forEach(error => console.error(`CF: ${error}`))
       })
 
   return failed
 }
 
 utilsController.purgeCloudflareCache = async (names, uploads, thumbs) => {
-  if (!cloudflareAuth)
-    return {
+  if (!Array.isArray(names) || !names.length || !cloudflareAuth)
+    return [{
       success: false,
       files: [],
-      errors: ['Missing auth.']
-    }
+      errors: ['An unexpected error occured.']
+    }]
 
   let domain = config.domain
   if (!uploads) domain = config.homeDomain
@@ -343,28 +344,55 @@ utilsController.purgeCloudflareCache = async (names, uploads, thumbs) => {
       return name === 'home' ? domain : `${domain}/${name}`
     }
   })
+  names = names.concat(thumbNames)
 
-  const files = names.concat(thumbNames)
-  let success = false
-  let errors = []
-  try {
-    const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`
-    const fetchPurge = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify({ files }),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Email': config.cloudflare.email,
-        'X-Auth-Key': config.cloudflare.apiKey
+  // Split array into multiple arrays with max length of 30 URLs
+  // https://api.cloudflare.com/#zone-purge-files-by-url
+  const MAX_LENGTH = 30
+  const files = []
+  while (names.length)
+    files.push(names.splice(0, MAX_LENGTH))
+
+  const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`
+  const results = []
+  await new Promise(resolve => {
+    const purge = async i => {
+      const result = {
+        success: false,
+        files: files[i],
+        errors: null
       }
-    }).then(res => res.json())
-    success = fetchPurge.success
-    if (Array.isArray(fetchPurge.errors) && fetchPurge.errors.length)
-      errors = fetchPurge.errors.map(error => `${error.code}: ${error.message}`)
-  } catch (error) {
-    errors.push(error.toString())
-  }
-  return { success, files, errors }
+
+      try {
+        const fetchPurge = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify({
+            files: result.files
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Auth-Email': config.cloudflare.email,
+            'X-Auth-Key': config.cloudflare.apiKey
+          }
+        }).then(res => res.json())
+        result.success = fetchPurge.success
+        if (Array.isArray(fetchPurge.errors) && fetchPurge.errors.length)
+          result.errors = fetchPurge.errors.map(error => `${error.code}: ${error.message}`)
+      } catch (error) {
+        result.errors = [error.toString()]
+      }
+
+      results.push(result)
+
+      if (i < files.length - 1)
+        purge(i + 1)
+      else
+        resolve()
+    }
+    purge(0)
+  })
+
+  return results
 }
 
 module.exports = utilsController

@@ -99,11 +99,12 @@ thumbs.do = async () => {
 
   if (thumbs.cfcache && succeeded.length) {
     console.log('Purging Cloudflare\'s cache...')
-    const result = await utils.purgeCloudflareCache(succeeded.map(n => `thumbs/${n}`), true, false)
-    if (result.errors.length)
-      return result.errors.forEach(error => console.error(`CF: ${error}`))
-    else
-      console.log(`Success: ${result.success}`)
+    const results = await utils.purgeCloudflareCache(succeeded.map(n => `thumbs/${n}`), true, false)
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].errors.length)
+        results[i].errors.forEach(error => console.error(`CF: ${error}`))
+      console.log(`Status [${i}]: ${results[i].success ? 'OK' : 'ERROR'}`)
+    }
   }
 }
 

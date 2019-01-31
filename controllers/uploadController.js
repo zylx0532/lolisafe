@@ -16,8 +16,8 @@ const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const chunkedUploads = Boolean(config.uploads.chunkSize)
 const chunksDir = path.join(uploadsDir, 'chunks')
 const maxSize = config.uploads.maxSize
-const maxSizeBytes = parseInt(maxSize) * 1000000
-const urlMaxSizeBytes = parseInt(config.uploads.urlMaxSize) * 1000000
+const maxSizeBytes = parseInt(maxSize) * 1000 * 1000
+const urlMaxSizeBytes = parseInt(config.uploads.urlMaxSize) * 1000 * 1000
 
 const storage = multer.diskStorage({
   destination (req, file, cb) {
