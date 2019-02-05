@@ -22,7 +22,7 @@ Thumbnails will not be automatically generated for existing files that have been
 To generate thumbnails for those files, you can try running `node scripts/thumbs.js`.
 
 ```
-$ node ./scripts/thumbs.js
+$ node scripts/thumbs.js
 
 Generate thumbnails.
 
