@@ -104,7 +104,6 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 - [dmca.gripe](https://dmca.gripe): a dmca-resistant, permanent file hosting service.
 - [safe.succmy.wang](https://safe.succmy.wang): A private clone with a ~~funny~~ bad name
 - [namir.in](https://namir.in): A private clone dedicated to best girl.
-- [wtf.hyper.lol](https://wtf.hyper.lol): My personal clone with some ~~terrible~~ great changes.
 - [discordjs.moe](https://discordjs.moe): A まじ卍 as fuck copy of lolisafe.moe
 - [i.liich.me](https://i.liich.me): Another private clone with a different look.
 - [criminals.host](https://criminals.host): Redesigned, offshore by AZATEJ.
