@@ -32,7 +32,7 @@ albumsController.list = async (req, res, next) => {
 
   let fields = ['id', 'name']
   if (req.params.sidebar === undefined)
-    fields = fields.concat(fields, ['timestamp', 'identifier', 'editedAt', 'download', 'public', 'description'])
+    fields = fields.concat(['timestamp', 'identifier', 'editedAt', 'download', 'public', 'description'])
 
   const albums = await db.table('albums')
     .select(fields)

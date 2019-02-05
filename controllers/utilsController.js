@@ -250,74 +250,81 @@ utilsController.deleteFile = (filename, set) => {
 utilsController.bulkDeleteFiles = async (field, values, user, set) => {
   if (!user || !['id', 'name'].includes(field)) return
 
+  // SQLITE_LIMIT_VARIABLE_NUMBER, which defaults to 999
+  // Read more: https://www.sqlite.org/limits.html
+  const MAX_VARIABLES_CHUNK_SIZE = 999
+  const chunks = []
+  const _values = values.slice() // Make a shallow copy of the array
+  while (_values.length)
+    chunks.push(_values.splice(0, MAX_VARIABLES_CHUNK_SIZE))
+
+  const failed = []
   const ismoderator = perms.is(user, 'moderator')
-  const files = await db.table('files')
-    .whereIn(field, values)
-    .where(function () {
-      if (!ismoderator)
-        this.where('userid', user.id)
-    })
-
-  // an array of file object
-  const deletedFiles = []
-
-  // an array of value of the specified field
-  const failed = values.filter(value => !files.find(file => file[field] === value))
-
-  // Delete all files physically
-  await Promise.all(files.map(file => {
-    return new Promise(async resolve => {
-      await utilsController.deleteFile(file.name)
-        .then(() => deletedFiles.push(file))
-        .catch(error => {
-          failed.push(file[field])
-          console.error(error)
+  await Promise.all(chunks.map((chunk, index) => {
+    return new Promise(async (resolve, reject) => {
+      const files = await db.table('files')
+        .whereIn(field, chunk)
+        .where(function () {
+          if (!ismoderator)
+            this.where('userid', user.id)
         })
-      resolve()
-    })
+        .catch(reject)
+
+      // Push files that could not be found in DB
+      failed.push.apply(failed, chunk.filter(v => !files.find(file => file[field] === v)))
+
+      // Delete all found files physically
+      const deletedFiles = []
+      await Promise.all(files.map(file =>
+        utilsController.deleteFile(file.name)
+          .then(() => deletedFiles.push(file))
+          .catch(error => {
+            failed.push(file[field])
+            console.error(error)
+          })
+      ))
+
+      if (!deletedFiles.length)
+        return resolve()
+
+      // Delete all found files from database
+      const deletedFromDb = await db.table('files')
+        .whereIn('id', deletedFiles.map(file => file.id))
+        .del()
+        .catch(reject)
+
+      if (set)
+        deletedFiles.forEach(file => {
+          const identifier = file.name.split('.')[0]
+          set.delete(identifier)
+          // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
+        })
+
+      // Update albums if necessary
+      if (deletedFromDb) {
+        const albumids = []
+        deletedFiles.forEach(file => {
+          if (file.albumid && !albumids.includes(file.albumid))
+            albumids.push(file.albumid)
+        })
+        await db.table('albums')
+          .whereIn('id', albumids)
+          .update('editedAt', Math.floor(Date.now() / 1000))
+          .catch(console.error)
+      }
+
+      // Purge Cloudflare's cache if necessary
+      if (config.cloudflare.purgeCache)
+        utilsController.purgeCloudflareCache(deletedFiles.map(file => file.name), true, true)
+          .then(results => {
+            for (const result of results)
+              if (result.errors.length)
+                result.errors.forEach(error => console.error(`CF: ${error}`))
+          })
+
+      return resolve()
+    }).catch(console.error)
   }))
-
-  if (!deletedFiles.length) return failed
-
-  // Delete all files from database
-  const deletedIds = deletedFiles.map(file => file.id)
-  const deleteDb = await db.table('files')
-    .whereIn('id', deletedIds)
-    .del()
-    .catch(console.error)
-  if (!deleteDb) return failed
-
-  if (set)
-    deletedFiles.forEach(file => {
-      const identifier = file.name.split('.')[0]
-      set.delete(identifier)
-      // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
-    })
-
-  const filtered = files.filter(file => deletedIds.includes(file.id))
-
-  // Update albums if necessary
-  if (deleteDb) {
-    const albumids = []
-    filtered.forEach(file => {
-      if (file.albumid && !albumids.includes(file.albumid))
-        albumids.push(file.albumid)
-    })
-    await db.table('albums')
-      .whereIn('id', albumids)
-      .update('editedAt', Math.floor(Date.now() / 1000))
-      .catch(console.error)
-  }
-
-  // Purge Cloudflare's cache if necessary
-  if (config.cloudflare.purgeCache)
-    utilsController.purgeCloudflareCache(filtered.map(file => file.name), true, true)
-      .then(results => {
-        for (const result of results)
-          if (result.errors.length)
-            result.errors.forEach(error => console.error(`CF: ${error}`))
-      })
-
   return failed
 }
 
