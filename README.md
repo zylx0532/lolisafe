@@ -13,33 +13,39 @@ This branch is the one being used at [https://safe.fiery.me](https://safe.fiery.
 
 If you want to use an existing lolisafe database with this branch, make sure to run `node database/migration.js` at least once to create some new columns introduced in this branch.
 
-Configuration file of lolisafe, `config.js`, is also not 100% compatible with this branch. There are some options that had been renamed and/or restructured. Please make sure your config matches the sample in `config.sample.js` before starting.
+Configuration file of lolisafe, `config.js`, is also NOT 100% compatible with this branch. There are some options that had been renamed and/or restructured. Please make sure your config matches the sample in `config.sample.js` before starting.
 
 ## Missing thumbnails
 
-Thumbnails will not be automatically generated for files that have been uploaded prior to enabling thumbnails generation in the config file. To generate thumbnails for old files, you can try running `node scripts/thumbs.js` (shortcut: `yarn thumbs`).
+Thumbnails will not be automatically generated for existing files that have been uploaded prior to enabling thumbnails generation in the config file.
+
+To generate thumbnails for those files, you can try running `node scripts/thumbs.js`.
 
 ```
-$ node scripts/thumbs.js --help
+$ node ./scripts/thumbs.js
+
+Generate thumbnails.
+
 Usage  :
-yarn thumbs <mode=1|2|3> [force=0|1] [verbose=0|1]
+node scripts/thumbs.js <mode=1|2|3> [force=0|1] [verbose=0|1] [cfcache=0|1]
 
 mode   : 1 = images only, 2 = videos only, 3 = both images and videos
 force  : 0 = no force (default), 1 = overwrite existing thumbnails
 verbose: 0 = only print missing thumbs (default), 1 = print all
+cfcache: 0 = do not clear cloudflare cache (default), 1 = clear cloudflare cache
 ```
 
-For example, if you only want to generate thumbnails for image files, you can do `node scripts/thumbs.js 1`.
+For example, if you only want to generate thumbnails for image files without overwriting existing ones (e.i. thumbnails of new files), you can run `node scripts/thumbs.js 1`.
 
-## Virus scanning
+## ClamAV support
 
-This fork has a virus scanning support. It will scan new files right after they are uploaded, so when the file is dirty, it will print the error message to the uploader (as in the name of the virus in the database).
+This fork has an optional virus scanning support using [ClamAV](https://www.clamav.net/), through [clamdjs](https://github.com/NingLin-P/clamdjs) library.
 
-On the down side, this will slow down uploads processing, however it's still highly recommended for public use.
+It will scan new files right after they are uploaded. It will then print error messages to the uploaders (as in the virus names in ClamAV's databases) if the files are dirty.
 
-It uses [clamav](https://www.clamav.net/) through [clamdjs](https://github.com/NingLin-P/clamdjs) library.
+On the down side, this will slow down uploads processing (as it has to wait for the scan results before responding the uploader's requests), however it's still highly recommended for public use.
 
-To use, make sure you have ClamAV daemon running, then edit your `config.js` and specify the daemon's IP and port.
+To enable this, make sure you have ClamAV daemon running, then fill in the daemon's IP and port into your config file.
 
 ## Running
 
