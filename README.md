@@ -4,6 +4,8 @@
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://raw.githubusercontent.com/WeebDev/lolisafe/master/LICENSE)
 [![Chat / Support](https://img.shields.io/badge/Chat%20%2F%20Support-discord-7289DA.svg?style=flat-square)](https://discord.gg/5g6vgwn)
+[![Support me](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.herokuapp.com%2Fpitu&style=flat-square)](https://www.patreon.com/pitu)
+[![Support me](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow.svg?style=flat-square)](https://www.buymeacoffee.com/kana)
 
 ## `safe.fiery.me` branch
 
@@ -104,17 +106,7 @@ Here is a tutorial [on how to do this with nginx](https://www.digitalocean.com/c
 
 ## Sites using lolisafe
 
-- [lolisafe.moe](https://lolisafe.moe): A small safe worth protecting.
-- [safe.fiery.me](https://safe.fiery.me): Just another clone.
-- [kayo.moe](https://kayo.moe): File hosting for all~
-- [dmca.gripe](https://dmca.gripe): a dmca-resistant, permanent file hosting service.
-- [safe.succmy.wang](https://safe.succmy.wang): A private clone with a ~~funny~~ bad name
-- [namir.in](https://namir.in): A private clone dedicated to best girl.
-- [discordjs.moe](https://discordjs.moe): A まじ卍 as fuck copy of lolisafe.moe
-- [i.liich.me](https://i.liich.me): Another private clone with a different look.
-- [criminals.host](https://criminals.host): Redesigned, offshore by AZATEJ.
-- [u.kawaaii.moe](https://u.kawaaii.moe/): Yet another clone with different & kawaii looks (10mb limit)
-- Feel free to add yours here.
+Refer to the [wiki](https://github.com/WeebDev/lolisafe/wiki/Sites-using-lolisafe)
 
 ## Author
 
