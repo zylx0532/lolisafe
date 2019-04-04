@@ -16,6 +16,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node ./lolisafe.js",
+    "startdev": "env NODE_ENV=development node ./lolisafe.js",
     "pm2": "pm2 start --name safe ./lolisafe.js",
     "thumbs": "node ./scripts/thumbs.js",
     "cfpurge": "node ./scripts/cfpurge.js",
