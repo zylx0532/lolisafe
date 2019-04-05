@@ -9,11 +9,7 @@ const path = require('path')
 const perms = require('./permissionController')
 const sharp = require('sharp')
 
-const utilsController = {
-  lastUpload: Date.now(),
-  lastStatsBuilt: 0,
-  cachedStats: {}
-}
+const utilsController = {}
 
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
@@ -459,10 +455,6 @@ utilsController.stats = async (req, res, next) => {
   if (platform !== 'win32')
     system.loadavg = `${os.loadavg().map(load => load.toFixed(2)).join(', ')}`
 
-  // Return cached stats
-  if (utilsController.lastStatsBuilt > utilsController.lastUpload)
-    return res.json({ success: true, system, stats: utilsController.cachedStats })
-
   const stats = {
     uploads: {
       count: 0,
@@ -506,8 +498,6 @@ utilsController.stats = async (req, res, next) => {
       if (user.permission === perms.permissions[p]) stats.users.permissions[p]++
   }
 
-  utilsController.cachedStats = stats
-  utilsController.lastStatsBuilt = Date.now()
   return res.json({ success: true, system, stats })
 }
 
