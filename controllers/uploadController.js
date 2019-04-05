@@ -564,6 +564,9 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
             userid: user !== undefined ? user.id : null,
             timestamp: Math.floor(Date.now() / 1000)
           })
+
+          // Update last upload timestamp
+          utils.lastUpload = Date.now()
         } else {
           utils.deleteFile(info.data.filename, req.app.get('uploads-set')).catch(console.error)
           existingFiles.push(dbFile)

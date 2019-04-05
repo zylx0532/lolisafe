@@ -233,6 +233,10 @@ ul#albumsContainer li {
   height: 2.25em;
 }
 
+.table .cell-indent {
+  padding-left: 2.25em;
+}
+
 .is-linethrough {
   text-decoration: line-through
 }

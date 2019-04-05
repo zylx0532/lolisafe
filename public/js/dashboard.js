@@ -131,6 +131,13 @@ page.prepareDashboard = function () {
   }
 
   if (page.permissions.admin) {
+    const itemServerStats = document.getElementById('itemServerStats')
+    itemServerStats.removeAttribute('disabled')
+    itemServerStats.addEventListener('click', function () {
+      page.setActiveMenu(this)
+      page.getServerStats()
+    })
+
     const itemManageUsers = document.getElementById('itemManageUsers')
     itemManageUsers.removeAttribute('disabled')
     itemManageUsers.addEventListener('click', function () {
@@ -1966,6 +1973,96 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
       <ul class="pagination-list">${template}</ul>
     </nav>
   `
+}
+
+page.getServerStats = function (element) {
+  if (!page.permissions.admin)
+    return swal('An error occurred!', 'You can not do this!', 'error')
+
+  const url = 'api/stats'
+  axios.get(url).then(function (response) {
+    if (response.data.success === false)
+      if (response.data.description === 'No token provided') {
+        return page.verifyToken(page.token)
+      } else {
+        return swal('An error occurred!', response.data.description, 'error')
+      }
+
+    const system = response.data.system
+    let systemRows = ''
+    for (const s of Object.keys(system)) {
+      let value
+      if (s === 'memory') {
+        const mem = system[s]
+        value = `${page.getPrettyBytes(mem.used)} / ${page.getPrettyBytes(mem.total)} (${Math.round((mem.used / mem.total) * 100)}%)`
+      } else if (s === 'memory usage') {
+        value = page.getPrettyBytes(system[s])
+      } else {
+        value = system[s].toLocaleString()
+      }
+      systemRows += `
+        <tr>
+          <th>${s.toUpperCase()}</th>
+          <td>${value}</td>
+        </tr>
+      `
+    }
+
+    const types = response.data.stats.uploads.types
+    let typesRows = ''
+    for (const t of Object.keys(types))
+      typesRows += `
+        <tr>
+          <th class="cell-indent">${t.toUpperCase()}</th>
+          <td>${types[t].toLocaleString()}</td>
+        </tr>
+      `
+
+    const permissions = response.data.stats.users.permissions
+    let permissionsRows = ''
+    for (const p of Object.keys(permissions))
+      permissionsRows += `
+        <tr>
+          <th class="cell-indent">${p.toUpperCase()}</th>
+          <td>${permissions[p].toLocaleString()}</td>
+        </tr>
+      `
+
+    page.dom.innerHTML = `
+      <h2 class="subtitle">Statistics</h2>
+      <div class="table-container">
+        <table class="table is-fullwidth is-hoverable">
+          <tbody>
+            ${systemRows}
+            <tr>
+              <th>DISK USAGE</th>
+              <td>${page.getPrettyBytes(response.data.stats.uploads.size)}</td>
+            </tr>
+            <tr>
+              <th class="cell-indent">IN BYTES</th>
+              <td>${response.data.stats.uploads.size.toLocaleString()} B</td>
+            </tr>
+            <tr>
+              <th>TOTAL UPLOADS</th>
+              <td>${response.data.stats.uploads.count.toLocaleString()}</td>
+            </tr>
+            ${typesRows}
+            <tr>
+              <th>TOTAL USERS</th>
+              <td>${response.data.stats.users.count.toLocaleString()}</td>
+            </tr>
+            ${permissionsRows}
+            <tr>
+              <th class="cell-indent">DISABLED</th>
+              <td>${response.data.stats.users.disabled.toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `
+
+    page.fadeIn()
+  })
 }
 
 page.getPrettyDate = function (date) {

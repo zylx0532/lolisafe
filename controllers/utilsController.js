@@ -1,13 +1,20 @@
+const { spawn } = require('child_process')
 const config = require('./../config')
 const db = require('knex')(config.database)
 const fetch = require('node-fetch')
 const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
 const perms = require('./permissionController')
 const sharp = require('sharp')
 
-const utilsController = {}
+const utilsController = {
+  lastUpload: Date.now(),
+  lastStatsBuilt: 0,
+  cachedStats: {}
+}
+
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
 const thumbUnavailable = path.join(__dirname, '../public/images/unavailable.png')
@@ -400,6 +407,108 @@ utilsController.purgeCloudflareCache = async (names, uploads, thumbs) => {
   })
 
   return results
+}
+
+utilsController.getLinuxMemoryUsage = () => {
+  return new Promise((resolve, reject) => {
+    const prc = spawn('free', ['-b'])
+    prc.stdout.setEncoding('utf8')
+    prc.stdout.on('data', data => {
+      const parsed = {}
+      const str = data.toString()
+      const lines = str.split(/\n/g)
+      for (let i = 0; i < lines.length; i++) {
+        lines[i] = lines[i].split(/\s+/)
+        if (i === 0) continue
+        const id = lines[i][0].toLowerCase().slice(0, -1)
+        if (!id) continue
+        if (!parsed[id]) parsed[id] = {}
+        for (let j = 1; j < lines[i].length; j++) {
+          const bytes = parseInt(lines[i][j])
+          parsed[id][lines[0][j]] = isNaN(bytes) ? null : bytes
+        }
+      }
+      resolve(parsed)
+    })
+    prc.on('close', code => {
+      reject(new Error(`Process exited with code ${code}.`))
+    })
+  })
+}
+
+utilsController.stats = async (req, res, next) => {
+  const user = await utilsController.authorize(req, res)
+  if (!user) return
+
+  const isadmin = perms.is(user, 'admin')
+  if (!isadmin) return res.status(403).end()
+
+  const platform = os.platform()
+  const system = { platform: `${platform}-${os.arch()}` }
+  if (platform === 'linux') {
+    const memoryUsage = await utilsController.getLinuxMemoryUsage()
+    system.memory = {
+      used: memoryUsage.mem.used,
+      total: memoryUsage.mem.total
+    }
+  }
+
+  system['node.js'] = `${process.versions.node}`
+  system['memory usage'] = process.memoryUsage().rss
+
+  if (platform !== 'win32')
+    system.loadavg = `${os.loadavg().map(load => load.toFixed(2)).join(', ')}`
+
+  // Return cached stats
+  if (utilsController.lastStatsBuilt > utilsController.lastUpload)
+    return res.json({ success: true, system, stats: utilsController.cachedStats })
+
+  const stats = {
+    uploads: {
+      count: 0,
+      size: 0,
+      types: {
+        images: 0,
+        videos: 0,
+        others: 0
+      }
+    },
+    users: {
+      count: 0,
+      disabled: 0,
+      permissions: {}
+    }
+  }
+
+  Object.keys(perms.permissions).forEach(p => {
+    stats.users.permissions[p] = 0
+  })
+
+  const uploads = await db.table('files')
+  stats.uploads.count = uploads.length
+  for (const upload of uploads) {
+    stats.uploads.size += parseInt(upload.size)
+    const extname = utilsController.extname(upload.name)
+    if (utilsController.imageExtensions.includes(extname))
+      stats.uploads.types.images++
+    else if (utilsController.videoExtensions.includes(extname))
+      stats.uploads.types.videos++
+    else
+      stats.uploads.types.others++
+  }
+
+  const users = await db.table('users')
+  stats.users.count = users.length
+  for (const user of users) {
+    if (user.enabled === false || user.enabled === 0) stats.users.disabled++
+    user.permission = user.permission || 0
+    for (const p of Object.keys(stats.users.permissions))
+      if (user.permission === perms.permissions[p]) stats.users.permissions[p]++
+  }
+
+  utilsController.cachedStats = stats
+  utilsController.lastStatsBuilt = Date.now()
+  return res.json({ success: true, system, stats })
 }
 
 module.exports = utilsController

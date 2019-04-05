@@ -4,6 +4,7 @@ const uploadController = require('./../controllers/uploadController')
 const albumsController = require('./../controllers/albumsController')
 const tokenController = require('./../controllers/tokenController')
 const authController = require('./../controllers/authController')
+const utilsController = require('./../controllers/utilsController')
 
 routes.get('/check', (req, res, next) => {
   return res.json({
@@ -45,5 +46,6 @@ routes.get('/users', (req, res, next) => authController.listUsers(req, res, next
 routes.get('/users/:page', (req, res, next) => authController.listUsers(req, res, next))
 routes.post('/users/edit', (req, res, next) => authController.editUser(req, res, next))
 routes.post('/users/disable', (req, res, next) => authController.disableUser(req, res, next))
+routes.get('/stats', (req, res, next) => utilsController.stats(req, res, next))
 
 module.exports = routes
