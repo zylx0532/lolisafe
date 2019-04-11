@@ -264,26 +264,12 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
         .replace(/{url-noprot}/g, encodeURIComponent(url.replace(/^https?:\/\//, '')))
 
     try {
-      const fetchHead = await fetch(url, { method: 'HEAD' })
-      if (fetchHead.status !== 200)
-        return erred(`${fetchHead.status} ${fetchHead.statusText}`)
-
-      const headers = fetchHead.headers
-      const size = parseInt(headers.get('content-length'))
-      if (isNaN(size))
-        return erred('URLs with missing Content-Length HTTP header are not supported.')
-
-      if (size > urlMaxSizeBytes)
-        return erred('File too large.')
-
-      if (config.filterEmptyFile && size === 0)
-        return erred('Empty files are not allowed.')
-
-      // Limit max response body size with the size reported by Content-Length
-      const fetchFile = await fetch(url, { size })
+      // Limit max response body size with maximum allowed size
+      const fetchFile = await fetch(url, { size: urlMaxSizeBytes })
       if (fetchFile.status !== 200)
-        return erred(`${fetchHead.status} ${fetchHead.statusText}`)
+        return erred(`${fetchFile.status} ${fetchFile.statusText}`)
 
+      const headers = fetchFile.headers
       const file = await fetchFile.buffer()
 
       const length = uploadsController.getFileNameLength(req)
@@ -297,7 +283,7 @@ uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
           filename: name,
           originalname: original,
           mimetype: headers.get('content-type').split(';')[0] || '',
-          size,
+          size: file.byteLength,
           albumid
         }
 

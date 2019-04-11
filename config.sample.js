@@ -139,41 +139,33 @@ module.exports = {
       Example:
       https://images.weserv.nl/?url={url-noprot}
       will become:
-      https://images.weserv.nl/?url=example.com/assets/image.png
+      https://images.weserv.nl/?url=example.com%2Fassets%2Fimage.png
     */
-    urlProxy: 'https://images.weserv.nl/?url={url-noprot}',
+    urlProxy: 'https://proxy.duckduckgo.com/iu/?u={url}',
 
     /*
-      Disclaimer message that will be printed underneath the URL uploads form.
-      Supports HTML. Be safe though.
+     Disclaimer message that will be printed underneath the URL uploads form.
+     Supports HTML. Be safe though.
     */
-    urlDisclaimerMessage: 'URL uploads are being proxied and compressed by <a href="https://images.weserv.nl/" target="_blank" rel="noopener">images.weserv.nl</a>. By using this feature, you agree to their <a href="https://github.com/weserv/images/blob/4.x/Privacy-Policy.md" target="_blank" rel="noopener">Privacy Policy</a>.',
+    urlDisclaimerMessage: 'URL uploads are being proxied by <a href="https://duckduckgo.com/" target="_blank" rel="noopener">DuckDuckGo</a>. The proxy can only process direct links, and generally it can only proxy images.',
 
     /*
-      Filter mode for URL uploads.
-      Can be 'blacklist', 'whitelist', or 'inherit'.
-      'inherit' => inherit primary extensions filter (extensionsFilter option).
-      The rest are paired with urlExtensionsFilter option below and should be self-explanatory.
-      When this is not set to any of the 3 values, this will fallback to 'inherit'.
+     Filter mode for URL uploads.
+     Can be 'blacklist', 'whitelist', or 'inherit'.
+     'inherit' => inherit primary extensions filter (extensionsFilter option).
+     The rest are paired with urlExtensionsFilter option below and should be self-explanatory.
+     When this is not set to any of the 3 values, this will fallback to 'inherit'.
     */
-    urlExtensionsFilterMode: 'whitelist',
+    urlExtensionsFilterMode: 'inherit',
 
     /*
-      Mainly intended for URL proxies that only support certain extensions.
-      This will parse the extensions from the URLs, so URLs that do not end with
-      the file's extensions will always be rejected.
-      Queries and segments in the URLs will be bypassed.
-      NOTE: Can not be empty when using either 'blacklist' or 'whitelist' mode.
+     Mainly intended for URL proxies that only support certain extensions.
+     This will parse the extensions from the URLs, so URLs that do not end with
+     the file's extensions will always be rejected.
+     Queries and segments in the URLs will be bypassed.
+     NOTE: Can not be empty when using either 'blacklist' or 'whitelist' mode.
     */
-    urlExtensionsFilter: [
-      '.gif',
-      '.jpg',
-      '.jpeg',
-      '.png',
-      '.bmp',
-      '.xbm',
-      '.webp'
-    ],
+    urlExtensionsFilter: [],
 
     /*
       Scan files using ClamAV through clamd.
