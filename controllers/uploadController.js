@@ -550,6 +550,7 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
             userid: user !== undefined ? user.id : null,
             timestamp: Math.floor(Date.now() / 1000)
           })
+          utils.invalidateStatsCache('uploads')
         } else {
           utils.deleteFile(info.data.filename, req.app.get('uploads-set')).catch(console.error)
           existingFiles.push(dbFile)
@@ -669,6 +670,7 @@ uploadsController.bulkDelete = async (req, res) => {
     return res.json({ success: false, description: 'No array of files specified.' })
 
   const failed = await utils.bulkDeleteFiles(field, values, user, req.app.get('uploads-set'))
+  utils.invalidateStatsCache('uploads')
   if (failed.length < values.length)
     return res.json({ success: true, failed })
 

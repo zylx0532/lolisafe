@@ -101,6 +101,7 @@ albumsController.create = async (req, res, next) => {
     public: (req.body.public === false || req.body.public === 0) ? 0 : 1,
     description: utils.escape(req.body.description) || ''
   })
+  utils.invalidateStatsCache('albums')
 
   return res.json({ success: true, id: ids[0] })
 }
@@ -156,6 +157,7 @@ albumsController.delete = async (req, res, next) => {
       userid: user.id
     })
     .update('enabled', 0)
+  utils.invalidateStatsCache('albums')
 
   const identifier = await db.table('albums')
     .select('identifier')
@@ -216,6 +218,7 @@ albumsController.edit = async (req, res, next) => {
       public: Boolean(req.body.public),
       description: utils.escape(req.body.description) || ''
     })
+  utils.invalidateStatsCache('albums')
 
   if (req.body.requestLink) {
     const oldIdentifier = await db.table('albums')
@@ -416,6 +419,7 @@ albumsController.generateZip = async (req, res, next) => {
             const fileName = `${album.name}.zip`
 
             albumsController.zipEmitters.get(identifier).emit('done', filePath, fileName)
+            utils.invalidateStatsCache('albums')
             return download(filePath, fileName)
           })
     })

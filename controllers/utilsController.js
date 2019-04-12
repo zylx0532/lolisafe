@@ -10,6 +10,24 @@ const perms = require('./permissionController')
 const sharp = require('sharp')
 
 const utilsController = {}
+const _stats = {
+  system: {
+    cache: null,
+    timestamp: 0
+  },
+  albums: {
+    cache: null,
+    valid: false
+  },
+  users: {
+    cache: null,
+    valid: false
+  },
+  uploads: {
+    cache: null,
+    valid: false
+  }
+}
 
 const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
@@ -405,7 +423,8 @@ utilsController.purgeCloudflareCache = async (names, uploads, thumbs) => {
   return results
 }
 
-utilsController.getLinuxMemoryUsage = () => {
+utilsController.getMemoryUsage = () => {
+  // For now this is linux-only. Not sure if darwin has this too.
   return new Promise((resolve, reject) => {
     const prc = spawn('free', ['-b'])
     prc.stdout.setEncoding('utf8')
@@ -432,6 +451,12 @@ utilsController.getLinuxMemoryUsage = () => {
   })
 }
 
+utilsController.invalidateStatsCache = type => {
+  if (!['albums', 'users', 'uploads'].includes(type)) return
+  _stats[type].cache = null
+  _stats[type].valid = false
+}
+
 utilsController.stats = async (req, res, next) => {
   const user = await utilsController.authorize(req, res)
   if (!user) return
@@ -439,66 +464,149 @@ utilsController.stats = async (req, res, next) => {
   const isadmin = perms.is(user, 'admin')
   if (!isadmin) return res.status(403).end()
 
-  const platform = os.platform()
-  const system = { platform: `${platform}-${os.arch()}` }
-  if (platform === 'linux') {
-    const memoryUsage = await utilsController.getLinuxMemoryUsage()
-    system.memory = {
-      used: memoryUsage.mem.used,
-      total: memoryUsage.mem.total
+  const stats = {}
+
+  // Re-use system cache for only 1000ms
+  if (Date.now() - _stats.system.timestamp <= 1000) {
+    stats.system = _stats.system.cache
+  } else {
+    const platform = os.platform()
+    stats.system = {
+      platform: `${platform}-${os.arch()}`,
+      systemMemory: null,
+      nodeVersion: `${process.versions.node}`,
+      memoryUsage: process.memoryUsage().rss
     }
-  }
 
-  system['node.js'] = `${process.versions.node}`
-  system['memory usage'] = process.memoryUsage().rss
-
-  if (platform !== 'win32')
-    system.loadavg = `${os.loadavg().map(load => load.toFixed(2)).join(', ')}`
-
-  const stats = {
-    uploads: {
-      count: 0,
-      size: 0,
-      types: {
-        images: 0,
-        videos: 0,
-        others: 0
+    if (platform === 'linux') {
+      const memoryUsage = await utilsController.getMemoryUsage()
+      stats.system.systemMemory = {
+        used: memoryUsage.mem.used,
+        total: memoryUsage.mem.total
       }
-    },
-    users: {
-      count: 0,
-      disabled: 0,
-      permissions: {}
+    } else {
+      delete stats.system.systemMemory
+    }
+
+    if (platform !== 'win32')
+      stats.system.loadAverage = `${os.loadavg().map(load => load.toFixed(2)).join(', ')}`
+
+    // Cache
+    _stats.system = {
+      cache: stats.system,
+      timestamp: Date.now()
     }
   }
 
-  Object.keys(perms.permissions).forEach(p => {
-    stats.users.permissions[p] = 0
-  })
+  // Re-use albums, users, and uploads caches as long as they are still valid
 
-  const uploads = await db.table('files')
-  stats.uploads.count = uploads.length
-  for (const upload of uploads) {
-    stats.uploads.size += parseInt(upload.size)
-    const extname = utilsController.extname(upload.name)
-    if (utilsController.imageExtensions.includes(extname))
-      stats.uploads.types.images++
-    else if (utilsController.videoExtensions.includes(extname))
-      stats.uploads.types.videos++
-    else
-      stats.uploads.types.others++
+  if (_stats.albums.valid) {
+    stats.albums = _stats.albums.cache
+  } else {
+    stats.albums = {
+      total: 0,
+      active: 0,
+      downloadable: 0,
+      public: 0,
+      zips: 0
+    }
+
+    const albums = await db.table('albums')
+    stats.albums.total = albums.length
+    const identifiers = []
+    for (const album of albums)
+      if (album.enabled) {
+        stats.albums.active++
+        if (album.download) stats.albums.downloadable++
+        if (album.public) stats.albums.public++
+        if (album.zipGeneratedAt) identifiers.push(album.identifier)
+      }
+
+    const zipsDir = path.join(uploadsDir, 'zips')
+    await Promise.all(identifiers.map(identifier => {
+      return new Promise(resolve => {
+        const filePath = path.join(zipsDir, `${identifier}.zip`)
+        fs.access(filePath, error => {
+          if (!error) stats.albums.zips++
+          resolve(true)
+        })
+      })
+    }))
+
+    // Cache
+    _stats.albums = {
+      cache: stats.albums,
+      valid: true
+    }
   }
 
-  const users = await db.table('users')
-  stats.users.count = users.length
-  for (const user of users) {
-    if (user.enabled === false || user.enabled === 0) stats.users.disabled++
-    user.permission = user.permission || 0
-    for (const p of Object.keys(stats.users.permissions))
-      if (user.permission === perms.permissions[p]) stats.users.permissions[p]++
+  if (_stats.users.valid) {
+    stats.users = _stats.users.cache
+  } else {
+    stats.users = {
+      total: 0,
+      disabled: 0
+    }
+
+    const permissionKeys = Object.keys(perms.permissions)
+    permissionKeys.forEach(p => {
+      stats.users[p] = 0
+    })
+
+    const users = await db.table('users')
+    stats.users.total = users.length
+    for (const user of users) {
+      if (user.enabled === false || user.enabled === 0)
+        stats.users.disabled++
+
+      // This may be inaccurate on installations with customized permissions
+      user.permission = user.permission || 0
+      for (const p of permissionKeys)
+        if (user.permission === perms.permissions[p]) {
+          stats.users[p]++
+          break
+        }
+    }
+
+    // Cache
+    _stats.users = {
+      cache: stats.users,
+      valid: true
+    }
   }
 
-  return res.json({ success: true, system, stats })
+  if (_stats.uploads.valid) {
+    stats.uploads = _stats.uploads.cache
+  } else {
+    stats.uploads = {
+      total: 0,
+      size: 0,
+      images: 0,
+      videos: 0,
+      others: 0
+    }
+
+    const uploads = await db.table('files')
+    stats.uploads.total = uploads.length
+    for (const upload of uploads) {
+      stats.uploads.size += parseInt(upload.size)
+      const extname = utilsController.extname(upload.name)
+      if (utilsController.imageExtensions.includes(extname))
+        stats.uploads.images++
+      else if (utilsController.videoExtensions.includes(extname))
+        stats.uploads.videos++
+      else
+        stats.uploads.others++
+    }
+
+    // Cache
+    _stats.uploads = {
+      cache: stats.uploads,
+      valid: true
+    }
+  }
+
+  return res.json({ success: true, stats })
 }
 
 module.exports = utilsController

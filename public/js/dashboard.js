@@ -1988,77 +1988,45 @@ page.getServerStats = function (element) {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    const system = response.data.system
-    let systemRows = ''
-    for (const s of Object.keys(system)) {
-      let value
-      if (s === 'memory') {
-        const mem = system[s]
-        value = `${page.getPrettyBytes(mem.used)} / ${page.getPrettyBytes(mem.total)} (${Math.round((mem.used / mem.total) * 100)}%)`
-      } else if (s === 'memory usage') {
-        value = page.getPrettyBytes(system[s])
-      } else {
-        value = system[s].toLocaleString()
+    let content = ''
+
+    for (const key of Object.keys(response.data.stats)) {
+      let rows = ''
+      for (const valKey of Object.keys(response.data.stats[key])) {
+        let value = response.data.stats[key][valKey]
+        if (['albums', 'users'].includes(key))
+          value = value.toLocaleString()
+        if (['memoryUsage', 'size'].includes(valKey))
+          value = page.getPrettyBytes(value)
+        if (valKey === 'systemMemory')
+          value = `${page.getPrettyBytes(value.used)} / ${page.getPrettyBytes(value.total)} (${Math.round(value.used / value.total * 100)}%)`
+        rows += `
+          <tr>
+            <th>${valKey.replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
+            <td>${value}</td>
+          </tr>
+        `
       }
-      systemRows += `
-        <tr>
-          <th>${s.toUpperCase()}</th>
-          <td>${value}</td>
-        </tr>
+      content += `
+        <div class="table-container">
+          <table class="table is-fullwidth is-hoverable">
+            <thead>
+              <tr>
+                <th>${key.toUpperCase()}</th>
+                <td style="width: 50%"></td>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
       `
     }
 
-    const types = response.data.stats.uploads.types
-    let typesRows = ''
-    for (const t of Object.keys(types))
-      typesRows += `
-        <tr>
-          <th class="cell-indent">${t.toUpperCase()}</th>
-          <td>${types[t].toLocaleString()}</td>
-        </tr>
-      `
-
-    const permissions = response.data.stats.users.permissions
-    let permissionsRows = ''
-    for (const p of Object.keys(permissions))
-      permissionsRows += `
-        <tr>
-          <th class="cell-indent">${p.toUpperCase()}</th>
-          <td>${permissions[p].toLocaleString()}</td>
-        </tr>
-      `
-
     page.dom.innerHTML = `
       <h2 class="subtitle">Statistics</h2>
-      <div class="table-container">
-        <table class="table is-fullwidth is-hoverable">
-          <tbody>
-            ${systemRows}
-            <tr>
-              <th>DISK USAGE</th>
-              <td>${page.getPrettyBytes(response.data.stats.uploads.size)}</td>
-            </tr>
-            <tr>
-              <th class="cell-indent">IN BYTES</th>
-              <td>${response.data.stats.uploads.size.toLocaleString()} B</td>
-            </tr>
-            <tr>
-              <th>TOTAL UPLOADS</th>
-              <td>${response.data.stats.uploads.count.toLocaleString()}</td>
-            </tr>
-            ${typesRows}
-            <tr>
-              <th>TOTAL USERS</th>
-              <td>${response.data.stats.users.count.toLocaleString()}</td>
-            </tr>
-            ${permissionsRows}
-            <tr>
-              <th class="cell-indent">DISABLED</th>
-              <td>${response.data.stats.users.disabled.toLocaleString()}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      ${content}
     `
 
     page.fadeIn()

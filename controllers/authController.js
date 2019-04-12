@@ -63,6 +63,7 @@ authController.register = async (req, res, next) => {
       enabled: 1,
       permission: perms.permissions.user
     })
+    utils.invalidateStatsCache('users')
     return res.json({ success: true, token })
   })
 }
@@ -179,6 +180,7 @@ authController.editUser = async (req, res, next) => {
   await db.table('users')
     .where('id', id)
     .update(update)
+  utils.invalidateStatsCache('users')
 
   if (!req.body.resetPassword)
     return res.json({ success: true, update })
