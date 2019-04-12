@@ -1989,17 +1989,17 @@ page.getServerStats = function (element) {
       }
 
     let content = ''
-
     for (const key of Object.keys(response.data.stats)) {
       let rows = ''
       for (const valKey of Object.keys(response.data.stats[key])) {
-        let value = response.data.stats[key][valKey]
-        if (['albums', 'users'].includes(key))
-          value = value.toLocaleString()
+        const _value = response.data.stats[key][valKey]
+        let value = _value
+        if (['albums', 'users', 'uploads'].includes(key))
+          value = _value.toLocaleString()
         if (['memoryUsage', 'size'].includes(valKey))
-          value = page.getPrettyBytes(value)
+          value = page.getPrettyBytes(_value)
         if (valKey === 'systemMemory')
-          value = `${page.getPrettyBytes(value.used)} / ${page.getPrettyBytes(value.total)} (${Math.round(value.used / value.total * 100)}%)`
+          value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
         rows += `
           <tr>
             <th>${valKey.replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
