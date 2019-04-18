@@ -272,6 +272,7 @@ page.prepareDropzone = function () {
   })
 
   page.dropzone.on('error', function (file, error) {
+    page.updateTemplateIcon(file.previewElement, 'icon-block')
     file.previewElement.querySelector('.progress').style.display = 'none'
     file.previewElement.querySelector('.name').innerHTML = file.name
     file.previewElement.querySelector('.error').innerHTML = error.description || error
@@ -312,6 +313,7 @@ page.uploadUrls = function (button) {
       previewTemplate.innerHTML = page.previewTemplate.trim()
       const previewElement = previewTemplate.content.firstChild
       previewElement.querySelector('.name').innerHTML = url
+      previewElement.querySelector('.progress').removeAttribute('value')
       previewsContainer.appendChild(previewElement)
       return {
         url,
@@ -326,11 +328,12 @@ page.uploadUrls = function (button) {
 
       function posted (result) {
         file.previewElement.querySelector('.progress').style.display = 'none'
-        if (result.success)
+        if (result.success) {
           page.updateTemplate(file, result.files[0])
-        else
+        } else {
+          page.updateTemplateIcon(file.previewElement, 'icon-block')
           file.previewElement.querySelector('.error').innerHTML = result.description
-
+        }
         return post(i + 1)
       }
 
@@ -355,6 +358,13 @@ page.uploadUrls = function (button) {
   return run()
 }
 
+page.updateTemplateIcon = function (templateElement, iconClass) {
+  const iconElement = templateElement.querySelector('.icon')
+  if (!iconElement) return
+  iconElement.classList.add(iconClass)
+  iconElement.style.display = ''
+}
+
 page.updateTemplate = function (file, response) {
   if (!response.url) return
 
@@ -368,12 +378,16 @@ page.updateTemplate = function (file, response) {
     const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
     img.dataset['src'] = response.url
+    img.style.display = ''
     img.onerror = function () {
-      // Hide images that failed to load
-      // Consequently also WEBP in browsers that do not have WEBP support (Firefox/IE)
+      // Hide image elements that fail to load
+      // Consequently include WEBP in browsers that do not have WEBP support (Firefox/IE)
       this.style.display = 'none'
+      file.previewElement.querySelector('.icon').style.display = ''
     }
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
+  } else {
+    page.updateTemplateIcon(file.previewElement, 'icon-doc-inv')
   }
 }
 

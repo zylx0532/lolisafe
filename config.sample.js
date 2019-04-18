@@ -173,7 +173,9 @@ module.exports = {
     scan: {
       enabled: false,
       ip: '127.0.0.1',
-      port: 3310
+      port: 3310,
+      timeout: 180 * 1000,
+      chunkSize: 64 * 1024
     },
 
     /*

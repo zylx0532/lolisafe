@@ -567,22 +567,23 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
 uploadsController.scanFiles = (req, infoMap) => {
   return new Promise(async (resolve, reject) => {
     const scanner = req.app.get('clam-scanner')
+    const timeout = config.uploads.scan.timeout || 5000
+    const chunkSize = config.uploads.scan.chunkSize || 64 * 1024
     let iteration = 0
     for (const info of infoMap)
-      scanner.scanFile(info.path).then(reply => {
+      scanner.scanFile(info.path, timeout, chunkSize).then(reply => {
+        iteration++
+        const lastIteration = iteration === infoMap.length
         if (!reply.includes('OK') || reply.includes('FOUND')) {
           // eslint-disable-next-line no-control-regex
           const virus = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
           console.log(`ClamAV: ${info.data.filename}: ${virus} FOUND.`)
-          return resolve(virus)
+          return resolve({ virus, lastIteration })
         }
-
-        iteration++
-        if (iteration === infoMap.length)
-          resolve(null)
+        if (lastIteration) resolve(null)
       }).catch(reject)
-  }).then(virus => {
-    if (!virus) return false
+  }).then(result => {
+    if (!result) return false
     // If there is at least one dirty file, then delete all files
     const set = req.app.get('uploads-set')
     infoMap.forEach(info => {
@@ -595,10 +596,10 @@ uploadsController.scanFiles = (req, infoMap) => {
     })
     // Unfortunately, we will only be returning name of the first virus
     // even if the current session was made up by multiple virus types
-    return `Virus detected: ${virus}.`
+    return `Threat found: ${result.virus}${result.lastIteration ? '' : ', and maybe more'}.`
   }).catch(error => {
     console.error(`ClamAV: ${error.toString()}.`)
-    return `ClamAV: ${error.code}, please contact site owner.`
+    return `ClamAV: ${error.code !== undefined ? `${error.code} , p` : 'P'}lease contact the site owner.`
   })
 }
 
