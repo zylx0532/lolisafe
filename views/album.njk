@@ -42,7 +42,7 @@
         </div>
         <div class="level-item">
           <h1 id="count" class="subtitle">
-            {{ count }} files (<span class="file-size">{{ totalSize }}</span>)
+            {{ count }} files (<span class="file-size">{{ totalSize }} B</span>)
           </h1>
         </div>
       </div>
@@ -84,7 +84,7 @@
           </a>
           <div class="details">
             <p><span class="name" title="{{ file.file }}">{{ file.name }}</span></p>
-            <p class="file-size">{{ file.size }}</p>
+            <p class="file-size">{{ file.size }} B</p>
           </div>
         </div>
       {% endfor %}
