@@ -23,29 +23,29 @@
     "pull": "git stash; git pull; yarn; git stash pop"
   },
   "dependencies": {
-    "bcrypt": "^3.0.5",
-    "body-parser": "^1.18.3",
+    "bcrypt": "^3.0.6",
+    "body-parser": "^1.19.0",
     "clamdjs": "^1.0.2",
     "express": "^4.16.4",
-    "express-rate-limit": "^3.4.0",
+    "express-rate-limit": "^3.5.0",
     "fluent-ffmpeg": "^2.1.2",
-    "helmet": "^3.16.0",
+    "helmet": "^3.18.0",
     "jszip": "^3.2.1",
-    "knex": "^0.16.3",
+    "knex": "^0.16.5",
     "multer": "^1.4.1",
-    "node-fetch": "^2.3.0",
+    "node-fetch": "^2.5.0",
     "nunjucks": "^3.2.0",
     "os": "^0.1.1",
     "randomstring": "^1.1.5",
     "readline": "^1.3.0",
-    "sharp": "^0.22.0",
+    "sharp": "^0.22.1",
     "sqlite3": "^4.0.6"
   },
   "devDependencies": {
     "eslint": "^5.16.0",
     "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.16.0",
-    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-node": "^9.0.1",
     "eslint-plugin-promise": "^4.1.1",
     "eslint-plugin-standard": "^4.0.0"
   }
