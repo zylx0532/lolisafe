@@ -2,44 +2,27 @@
 
 page.renderRoot = 'render/al/'
 page.renderArray = [
-  'admiral_graf_spee_1.png',
-  'admiral_hipper_1.png',
-  'akagi_1.png',
-  'akashi_1.png',
-  'akashi_2.png',
   'atago_1.png',
-  'atago_3.png',
-  'atago_4.png',
-  'atago_5.png',
+  'atago_2.png',
+  'belfast_1.png',
   'belfast_2.png',
-  'choukai_1.png',
-  'deutschland_1.png',
-  'enterprise_1.png',
-  'glorious_1.png',
+  'belfast_3.png',
+  'eldridge_1.png',
   'hammann_1.png',
   'hammann_2.png',
-  'hammann_3.png',
-  'hatsuharu_1.png',
+  'javelin_1.png',
   'kaga_1.png',
-  'kaga_2.png',
-  'kaga_3.png',
   'laffey_1.png',
-  'laffey_2.png',
-  'laffey_3.png',
-  'prinz_eugen_3.png',
-  'san_diego_1.png',
-  'takao_3.png',
+  'prinz_eugen_1.png',
+  'prinz_eugen_2.png',
+  'takao_1.png',
+  'takao_2.png',
   'unicorn_1.png',
   'unicorn_2.png',
   'unicorn_3.png',
   'unicorn_4.png',
-  'unicorn_6.png',
-  'unicorn_7.png',
-  'unicorn_8.png',
-  'yamashiro_1.png',
-  'yamashiro_2.png',
-  'yamashiro_3.png',
-  'yukikaze_1.png'
+  'unicorn_5.png',
+  'yamashiro_1.png'
 ]
 page.render = null
 
@@ -50,10 +33,10 @@ page.doRenderSwal = function () {
       <div class="control">
         <label class="checkbox">
           <input id="swalRender" type="checkbox" ${localStorage.render === '0' ? '' : 'checked'}>
-          Enable random render of ship waifu~
+          启用随机出现在右下角的嫁舰~
         </label>
       </div>
-      <p class="help">If disabled, you will still be able to see a small button on the bottom right corner of the screen to re-enable it.</p>
+      <p class="help">如果禁用，您仍然可以在屏幕右下角看到一个小按钮以重新启用它。</p>
     </div>
   `
 
@@ -67,7 +50,7 @@ page.doRenderSwal = function () {
     const newValue = div.querySelector('#swalRender').checked ? undefined : '0'
     if (newValue !== localStorage.render) {
       newValue ? localStorage.render = newValue : localStorage.removeItem('render')
-      swal('Success!', `Render is now ${newValue ? 'disabled' : 'enabled'}.`, 'success')
+      swal('成功！', `现在出现的嫁舰是 ${newValue ? 'disabled' : 'enabled'}.`, 'success')
       const element = document.querySelector('body > .render')
       element.remove()
       page.doRender()
@@ -89,13 +72,13 @@ page.doRender = function () {
   if (localStorage.render === '0') {
     element = document.createElement('a')
     element.className = 'button is-breeze is-hidden-mobile'
-    element.title = 'ship waifu~'
+    element.title = '嫁舰~'
     element.innerHTML = '<i class="icon-picture-1"></i>'
   } else {
     // Let us just allow people to get new render when toggling the option
     page.render = page.renderArray[Math.floor(Math.random() * page.renderArray.length)]
     element = document.createElement('img')
-    element.alt = element.title = 'ship waifu~'
+    element.alt = element.title = '嫁舰~'
     element.className = 'is-hidden-mobile'
     element.src = `${page.renderRoot}${page.render}${page.getRenderVersion()}`
   }

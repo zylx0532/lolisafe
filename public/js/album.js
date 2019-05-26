@@ -23,7 +23,7 @@ page.getPrettyBytes = function (num, si) {
 window.onload = function () {
   const elements = document.getElementsByClassName('file-size')
   for (let i = 0; i < elements.length; i++)
-    elements[i].innerHTML = page.getPrettyBytes(parseInt(elements[i].innerHTML.replace(/\s*B$/i, '')))
+    elements[i].innerHTML = page.getPrettyBytes(parseInt(elements[i].innerHTML))
 
   page.lazyLoad = new LazyLoad()
 }

@@ -93,7 +93,7 @@ page.verifyToken = function (token, reloadOnError) {
   axios.post('api/tokens/verify', { token }).then(function (response) {
     if (response.data.success === false)
       return swal({
-        title: 'An error occurred!',
+        title: '发生错误！',
         text: response.data.description,
         icon: 'error'
       }).then(function () {
@@ -110,7 +110,7 @@ page.verifyToken = function (token, reloadOnError) {
     page.prepareDashboard()
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -131,13 +131,6 @@ page.prepareDashboard = function () {
   }
 
   if (page.permissions.admin) {
-    const itemServerStats = document.getElementById('itemServerStats')
-    itemServerStats.removeAttribute('disabled')
-    itemServerStats.addEventListener('click', function () {
-      page.setActiveMenu(this)
-      page.getServerStats()
-    })
-
     const itemManageUsers = document.getElementById('itemManageUsers')
     itemManageUsers.removeAttribute('disabled')
     itemManageUsers.addEventListener('click', function () {
@@ -180,7 +173,7 @@ page.prepareDashboard = function () {
   logoutBtn.addEventListener('click', function () {
     page.logout()
   })
-  logoutBtn.innerHTML = `Logout ( ${page.username} )`
+  logoutBtn.innerHTML = `登出 ( ${page.username} )`
 
   page.getAlbumsSidebar()
 
@@ -299,7 +292,7 @@ page.switchPage = function (action, element) {
     case 'page-prev':
       views.pageNum = page.views[page.currentView].pageNum - 1
       if (views.pageNum < 0)
-        return swal('An error occurred!', 'This is already the first page.', 'error')
+        return swal('发生错误！', '这已经是第一页了。', 'error')
       return func(views, element)
     case 'page-next':
       views.pageNum = page.views[page.currentView].pageNum + 1
@@ -319,7 +312,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
   if (element) page.isLoading(element, true)
 
   if ((all || uploader) && !page.permissions.moderator)
-    return swal('An error occurred!', 'You can not do this!', 'error')
+    return swal('发生错误！', '你不能做这个！', 'error')
 
   if (typeof pageNum !== 'number' || pageNum < 0)
     pageNum = 0
@@ -336,13 +329,13 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     if (pageNum && (response.data.files.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
       if (element) page.isLoading(element, false)
-      return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
+      return swal('发生错误！', `没有更多上传来填充页面 ${pageNum + 1}.`, 'error')
     }
 
     page.currentView = all ? 'uploadsAll' : 'uploads'
@@ -356,10 +349,10 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
         <div class="column is-one-quarter">
           <div class="field has-addons">
             <div class="control is-expanded">
-              <input id="uploader" class="input is-small" type="text" placeholder="Username" value="${uploader || ''}">
+              <input id="uploader" class="input is-small" type="text" placeholder="用户名" value="${uploader || ''}">
             </div>
             <div class="control">
-              <a class="button is-small is-breeze" title="Filter by uploader" data-action="filter-by-uploader">
+              <a class="button is-small is-breeze" title="按上传者过滤" data-action="filter-by-uploader">
                 <span class="icon">
                   <i class="icon-filter"></i>
                 </span>
@@ -378,7 +371,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
               <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
             </div>
             <div class="control">
-              <a class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+              <a class="button is-small is-breeze" title="跳转到页面" data-action="jump-to-page">
                 <span class="icon">
                   <i class="icon-paper-plane-empty"></i>
                 </span>
@@ -393,34 +386,34 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
         <div class="column" style="text-align: center">
-          <a class="button is-small is-danger" title="List view" data-action="view-list">
+          <a class="button is-small is-danger" title="列表查看" data-action="view-list">
             <span class="icon">
               <i class="icon-th-list"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Thumbs view" data-action="view-thumbs">
+          <a class="button is-small is-danger" title="缩略图查看" data-action="view-thumbs">
             <span class="icon">
               <i class="icon-th-large"></i>
             </span>
           </a>
         </div>
         <div class="column" style="text-align: right">
-          <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
+          <a class="button is-small is-info" title="清除选择" data-action="clear-selection">
             <span class="icon">
               <i class="icon-cancel"></i>
             </span>
           </a>
           ${all ? '' : `
-          <a class="button is-small is-warning" title="Add selected uploads to album" data-action="add-selected-files-to-album">
+          <a class="button is-small is-warning" title="添加所选图片到相册" data-action="add-selected-files-to-album">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
           </a>`}
-          <a class="button is-small is-danger" title="Bulk delete" data-action="bulk-delete">
+          <a class="button is-small is-danger" title="批量删除" data-action="bulk-delete">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
-            <span>Bulk delete</span>
+            <span>批量删除</span>
           </a>
         </div>
       </div>
@@ -468,24 +461,24 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><h1 class="title">${upload.extname || 'N/A'}</h1></a>`
 
         div.innerHTML += `
-          <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}>
+          <input type="checkbox" class="checkbox" title="选择此文件" data-action="select"${selected ? ' checked' : ''}>
           <div class="controls">
-            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+            <a class="button is-small is-primary" title="查看缩略图" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
                 <i class="icon-picture-1"></i>
               </span>
             </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
+            <a class="button is-small is-info clipboard-js" title="复制链接到剪贴板" data-clipboard-text="${upload.file}">
               <span class="icon">
                 <i class="icon-clipboard-1"></i>
               </span>
             </a>
-            <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
+            <a class="button is-small is-warning" title="添加到相册" data-action="add-to-album">
               <span class="icon">
                 <i class="icon-plus"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete file" data-action="delete-file">
+            <a class="button is-small is-danger" title="删除文件" data-action="delete-file">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -502,8 +495,8 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
         page.lazyLoad.update()
       }
     } else {
-      let albumOrUser = 'Album'
-      if (all) albumOrUser = 'User'
+      let albumOrUser = '相册'
+      if (all) albumOrUser = '用户'
 
       page.dom.innerHTML = `
         ${pagination}
@@ -513,11 +506,11 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
           <table class="table is-narrow is-fullwidth is-hoverable">
             <thead>
               <tr>
-                <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all uploads" data-action="select-all"></th>
-                <th style="width: 25%">File</th>
+                <th><input id="selectAll" class="checkbox" type="checkbox" title="全选" data-action="select-all"></th>
+                <th style="width: 25%">文件</th>
                 <th>${albumOrUser}</th>
-                <th>Size</th>
-                <th>Date</th>
+                <th>文件大小</th>
+                <th>日期</th>
                 <th></th>
               </tr>
             </thead>
@@ -559,23 +552,23 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
           <td>${upload.prettyBytes}</td>
           <td>${upload.prettyDate}</td>
           <td class="controls" style="text-align: right">
-            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+            <a class="button is-small is-primary" title="查看缩略图" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
                 <i class="icon-picture-1"></i>
               </span>
             </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
+            <a class="button is-small is-info clipboard-js" title="复制链接到剪贴板" data-clipboard-text="${upload.file}">
               <span class="icon">
                 <i class="icon-clipboard-1"></i>
               </span>
             </a>
             ${all ? '' : `
-            <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
+            <a class="button is-small is-warning" title="添加到相册" data-action="add-to-album">
               <span class="icon">
                 <i class="icon-plus"></i>
               </span>
             </a>`}
-            <a class="button is-small is-danger" title="Delete file" data-action="delete-file">
+            <a class="button is-small is-danger" title="删除文件" data-action="delete-file">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -599,7 +592,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -626,7 +619,7 @@ page.displayThumbnail = function (id) {
     div.innerHTML += `
       <div class="field has-text-centered">
         <div class="controls">
-          <a id="swalOriginal" type="button" class="button is-breeze" data-original="${file.original}">Load original</a>
+          <a id="swalOriginal" type="button" class="button is-breeze" data-original="${file.original}">加载原图</a>
         </div>
       </div>
     `
@@ -647,7 +640,7 @@ page.displayThumbnail = function (id) {
         }
         thumb.onerror = function () {
           button.className = 'button is-danger'
-          button.innerHTML = 'Unable to load original'
+          button.innerHTML = '无法加载原图'
         }
       } else {
         thumb.style.display = 'none'
@@ -693,7 +686,7 @@ page.selectAll = function (element) {
 
   localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(selected)
   page.selected[page.currentView] = selected
-  element.title = element.checked ? 'Unselect all uploads' : 'Select all uploads'
+  element.title = element.checked ? '取消全选' : '全选'
 }
 
 page.selectInBetween = function (element, lastElement) {
@@ -745,12 +738,12 @@ page.clearSelection = function () {
   const type = page.currentView === 'users' ? 'users' : 'uploads'
   const count = selected.length
   if (!count)
-    return swal('An error occurred!', `You have not selected any ${type}.`, 'error')
+    return swal('发生错误！', `你没有选择任何 ${type}.`, 'error')
 
   const suffix = count === 1 ? type.substring(0, type.length - 1) : type
   return swal({
-    title: 'Are you sure?',
-    text: `You are going to unselect ${count} ${suffix}.`,
+    title: '你确定吗？',
+    text: `你要取消选择 ${count} ${suffix}.`,
     buttons: true
   }).then(function (proceed) {
     if (!proceed) return
@@ -766,7 +759,7 @@ page.clearSelection = function () {
     const selectAll = document.getElementById('selectAll')
     if (selectAll) selectAll.checked = false
 
-    return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
+    return swal('清除选择！', `Unselected ${count} ${suffix}.`, 'success')
   })
 }
 
@@ -785,14 +778,14 @@ page.viewUserUploads = function (id) {
 page.deleteFile = function (id) {
   // TODO: Share function with bulk delete, just like 'add selected uploads to album' and 'add single file to album'
   swal({
-    title: 'Are you sure?',
-    text: 'You won\'t be able to recover the file!',
+    title: '你确定吗？',
+    text: '你将不能恢复文件！',
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: 'Yes, delete it!',
+        text: '是的，删除它！',
         closeModal: false
       }
     }
@@ -806,14 +799,14 @@ page.deleteFile = function (id) {
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', response.data.description, 'error')
+          return swal('发生错误！', response.data.description, 'error')
         }
 
-      swal('Deleted!', 'The file has been deleted.', 'success')
+      swal('删除！', '该文件已被删除。', 'success')
       page.getUploads(page.views[page.currentView])
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
@@ -821,22 +814,22 @@ page.deleteFile = function (id) {
 page.deleteSelectedFiles = function () {
   const count = page.selected[page.currentView].length
   if (!count)
-    return swal('An error occurred!', 'You have not selected any uploads.', 'error')
+    return swal('发生错误！', '您尚未选择任何上传。', 'error')
 
   const suffix = `upload${count === 1 ? '' : 's'}`
-  let text = `You won't be able to recover ${count} ${suffix}!`
+  let text = `你将无法恢复 ${count} ${suffix}!`
   if (page.currentView === 'uploadsAll')
-    text += '\nBe aware, you may be nuking uploads by other users!'
+    text += '\nBe 知道，您可能正在努力上传其他用户！'
 
   swal({
-    title: 'Are you sure?',
+    title: '你确定吗？',
     text,
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: `Yes, nuke the ${suffix}!`,
+        text: `是的，核对 ${suffix}!`,
         closeModal: false
       }
     }
@@ -853,7 +846,7 @@ page.deleteSelectedFiles = function () {
         if (bulkdelete.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', bulkdelete.data.description, 'error')
+          return swal('发生错误！', bulkdelete.data.description, 'error')
         }
 
       let deleted = count
@@ -868,24 +861,24 @@ page.deleteSelectedFiles = function () {
 
       localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
 
-      swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
+      swal('已删除！', `${deleted} 个文件被删除。`, 'success')
       return page.getUploads(page.views[page.currentView])
     }).catch(function (error) {
       console.log(error)
-      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
 
 page.deleteByNames = function () {
   page.dom.innerHTML = `
-    <h2 class="subtitle">Delete by names</h2>
+    <h2 class="subtitle">按名称删除</h2>
     <div class="field">
-      <label class="label">File names:</label>
+      <label class="label">文件名:</label>
       <div class="control">
         <textarea id="names" class="textarea"></textarea>
       </div>
-      <p class="help">Separate each entry with a new line.</p>
+      <p class="help">每一行代表一个文件，以分行分隔。</p>
     </div>
     <div class="field">
       <div class="control">
@@ -893,7 +886,7 @@ page.deleteByNames = function () {
           <span class="icon">
             <i class="icon-trash"></i>
           </span>
-          <span>Bulk delete</span>
+          <span>批量删除</span>
         </a>
       </div>
     </div>
@@ -909,18 +902,18 @@ page.deleteFileByNames = function () {
     })
   const count = names.length
   if (!count)
-    return swal('An error occurred!', 'You have not entered any file names.', 'error')
+    return swal('发生错误！', '您尚未输入任何文件名。', 'error')
 
   const suffix = `file${count === 1 ? '' : 's'}`
   swal({
-    title: 'Are you sure?',
-    text: `You won't be able to recover ${count} ${suffix}!`,
+    title: '你确定吗？',
+    text: `你将无法恢复 ${count} 个文件!`,
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: `Yes, nuke the ${suffix}!`,
+        text: `是的，核对文件!`,
         closeModal: false
       }
     }
@@ -937,7 +930,7 @@ page.deleteFileByNames = function () {
         if (bulkdelete.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', bulkdelete.data.description, 'error')
+          return swal('发生错误！', bulkdelete.data.description, 'error')
         }
 
       let deleted = count
@@ -948,7 +941,7 @@ page.deleteFileByNames = function () {
       swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
     }).catch(function (error) {
       console.log(error)
-      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
@@ -959,7 +952,7 @@ page.addSelectedFilesToAlbum = function () {
 
   const count = page.selected[page.currentView].length
   if (!count)
-    return swal('An error occurred!', 'You have not selected any uploads.', 'error')
+    return swal('发生错误！', '您尚未选择任何上传。', 'error')
 
   page.addFilesToAlbum(page.selected[page.currentView], function (failed) {
     if (!failed) return
@@ -988,15 +981,15 @@ page.addFilesToAlbum = function (ids, callback) {
   const content = document.createElement('div')
   content.innerHTML = `
     <div class="field has-text-centered">
-      <p>You are about to add <b>${count}</b> file${count === 1 ? '' : 's'} to an album.</p>
-      <p><b>If a file is already in an album, it will be moved.</b></p>
+      <p>你即将添加 <b>${count}</b> 个文件到相册。</p>
+      <p><b>如果某个文件已在相册中，则会移动该文件。</b></p>
     </div>
     <div class="field">
       <div class="control">
         <div class="select is-fullwidth">
           <select id="swalAlbum" disabled>
-            <option value="-1">Remove from album</option>
-            <option value="" selected disabled>Fetching albums list\u2026</option>
+            <option value="-1">从相册中删除</option>
+            <option value="" selected disabled>获取相册列表\u2026</option>
           </select>
         </div>
       </div>
@@ -1018,7 +1011,7 @@ page.addFilesToAlbum = function (ids, callback) {
 
     const albumid = parseInt(document.getElementById('swalAlbum').value)
     if (isNaN(albumid))
-      return swal('An error occurred!', 'You did not choose an album.', 'error')
+      return swal('发生错误！', '你没有选择专辑。', 'error')
 
     axios.post('api/albums/addfiles', {
       ids,
@@ -1030,7 +1023,7 @@ page.addFilesToAlbum = function (ids, callback) {
         if (add.data.description === 'No token provided')
           page.verifyToken(page.token)
         else
-          swal('An error occurred!', add.data.description, 'error')
+          swal('发生错误！', add.data.description, 'error')
 
         return
       }
@@ -1041,17 +1034,17 @@ page.addFilesToAlbum = function (ids, callback) {
 
       const suffix = `file${ids.length === 1 ? '' : 's'}`
       if (!added)
-        return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
+        return swal('发生错误！', `无法添加 ${suffix} 到相册.`, 'error')
 
-      swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
+      swal('哇噢！', `成功 ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} 相册.`, 'success')
       return callback(add.data.failed)
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 
   // Get albums list then update content of swal
@@ -1060,7 +1053,7 @@ page.addFilesToAlbum = function (ids, callback) {
       if (list.data.description === 'No token provided')
         page.verifyToken(page.token)
       else
-        swal('An error occurred!', list.data.description, 'error')
+        swal('发生错误！', list.data.description, 'error')
 
       return
     }
@@ -1077,7 +1070,7 @@ page.addFilesToAlbum = function (ids, callback) {
     select.removeAttribute('disabled')
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1089,21 +1082,21 @@ page.getAlbums = function () {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     page.cache.albums = {}
 
     page.dom.innerHTML = `
-      <h2 class="subtitle">Create new album</h2>
+      <h2 class="subtitle">新建相册</h2>
       <div class="field">
         <div class="control">
-          <input id="albumName" class="input" type="text" placeholder="Name">
+          <input id="albumName" class="input" type="text" placeholder="名称">
         </div>
       </div>
       <div class="field">
         <div class="control">
-          <textarea id="albumDescription" class="textarea" placeholder="Description" rows="1"></textarea>
+          <textarea id="albumDescription" class="textarea" placeholder="描述" rows="1"></textarea>
         </div>
       </div>
       <div class="field">
@@ -1112,21 +1105,21 @@ page.getAlbums = function () {
             <span class="icon">
               <i class="icon-paper-plane-empty"></i>
             </span>
-            <span>Create</span>
+            <span>创建</span>
           </a>
         </div>
       </div>
       <hr>
-      <h2 class="subtitle">List of albums</h2>
+      <h2 class="subtitle">相册列表</h2>
       <div class="table-container">
         <table class="table is-fullwidth is-hoverable">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
-              <th>Files</th>
-              <th>Created at</th>
-              <th>Public link</th>
+              <th>名称</th>
+              <th>文件</th>
+              <th>创建时间</th>
+              <th>公共链接</th>
               <th></th>
             </tr>
           </thead>
@@ -1162,22 +1155,22 @@ page.getAlbums = function () {
         <td>${album.prettyDate}</td>
         <td><a ${album.public ? `href="${albumUrl}"` : 'class="is-linethrough"'} target="_blank" rel="noopener">${albumUrl}</a></td>
         <td style="text-align: right" data-id="${album.id}">
-          <a class="button is-small is-primary" title="Edit album" data-action="edit-album">
+          <a class="button is-small is-primary" title="编辑相册" data-action="edit-album">
             <span class="icon is-small">
               <i class="icon-pencil-1"></i>
             </span>
           </a>
-          <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
+          <a class="button is-small is-info clipboard-js" title="复制链接到剪贴板" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
             <span class="icon is-small">
               <i class="icon-clipboard-1"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
+          <a class="button is-small is-warning" title="下载相册" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
             <span class="icon is-small">
               <i class="icon-download"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Delete album" data-action="delete-album">
+          <a class="button is-small is-danger" title="删除相册" data-action="delete-album">
             <span class="icon is-small">
               <i class="icon-trash"></i>
             </span>
@@ -1189,7 +1182,7 @@ page.getAlbums = function () {
     }
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1213,7 +1206,7 @@ page.editAlbum = function (id) {
       <div class="control">
         <label class="checkbox">
           <input id="swalDownload" type="checkbox" ${album.download ? 'checked' : ''}>
-          Enable download
+          启用下载
         </label>
       </div>
     </div>
@@ -1221,7 +1214,7 @@ page.editAlbum = function (id) {
       <div class="control">
         <label class="checkbox">
           <input id="swalPublic" type="checkbox" ${album.public ? 'checked' : ''}>
-          Enable public link
+          启用公共链接
         </label>
       </div>
     </div>
@@ -1229,14 +1222,14 @@ page.editAlbum = function (id) {
       <div class="control">
         <label class="checkbox">
           <input id="swalRequestLink" type="checkbox">
-          Request new public link
+          请求新的公共链接
         </label>
       </div>
     </div>
   `
 
   swal({
-    title: 'Edit album',
+    title: '编辑相册',
     icon: 'info',
     content: div,
     buttons: {
@@ -1262,39 +1255,39 @@ page.editAlbum = function (id) {
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', response.data.description, 'error')
+          return swal('发生错误！', response.data.description, 'error')
         }
 
       if (response.data.identifier)
-        swal('Success!', `Your album's new identifier is: ${response.data.identifier}.`, 'success')
+        swal('成功！', `您相册的新标识符是: ${response.data.identifier}.`, 'success')
       else if (response.data.name !== album.name)
-        swal('Success!', `Your album was renamed to: ${response.data.name}.`, 'success')
+        swal('成功！', `您的相册已重命名为: ${response.data.name}.`, 'success')
       else
-        swal('Success!', 'Your album was edited!', 'success')
+        swal('成功！', '你的相册已更新！', 'success')
 
       page.getAlbumsSidebar()
       page.getAlbums()
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
 
 page.deleteAlbum = function (id) {
   swal({
-    title: 'Are you sure?',
-    text: 'This won\'t delete your uploads, only the album!',
+    title: '你确定吗？',
+    text: '这将不会删除您上传的内容，只会删除相册！',
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: 'Yes, delete it!',
+        text: '是的，删除它！',
         closeModal: false
       },
       purge: {
-        text: 'Umm, delete the uploads too please?',
+        text: '删除它，并删除已上传文件！',
         value: 'purge',
         className: 'swal-button--danger',
         closeModal: false
@@ -1311,15 +1304,15 @@ page.deleteAlbum = function (id) {
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', response.data.description, 'error')
+          return swal('发生错误！', response.data.description, 'error')
         }
 
-      swal('Deleted!', 'Your album has been deleted.', 'success')
+      swal('删除！', '您的相册已被删除。', 'success')
       page.getAlbumsSidebar()
       page.getAlbums()
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
@@ -1339,16 +1332,16 @@ page.submitAlbum = function (element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
-    swal('Woohoo!', 'Album was created successfully', 'success')
+    swal('哇噢！', '专辑已成功创建', 'success')
     page.getAlbumsSidebar()
     page.getAlbums()
   }).catch(function (error) {
     console.log(error)
     page.isLoading(element, false)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1360,7 +1353,7 @@ page.getAlbumsSidebar = function () {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     const albumsContainer = document.getElementById('albumsContainer')
@@ -1384,7 +1377,7 @@ page.getAlbumsSidebar = function () {
     }
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1399,7 +1392,7 @@ page.changeFileLength = function () {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     // Shorter vars
@@ -1408,14 +1401,14 @@ page.changeFileLength = function () {
     const len = response.data.fileLength
 
     page.dom.innerHTML = `
-      <h2 class="subtitle">File name length</h2>
+      <h2 class="subtitle">文件名长度</h2>
       <div class="field">
         <div class="field">
-          <label class="label">Your current file name length:</label>
+          <label class="label">您当前的文件名长度：</label>
           <div class="control">
-            <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${len ? Math.min(Math.max(len, min), max) : def}">
+            <input id="fileLength" class="input" type="text" placeholder="你的文件长度" value="${len ? Math.min(Math.max(len, min), max) : def}">
           </div>
-          <p class="help">Default file name length is <b>${def}</b> characters. ${(chg ? `Range allowed for user is <b>${min}</b> to <b>${max}</b> characters.` : 'Changing file name length is disabled at the moment.')}</p>
+          <p class="help">默认文件名长度为 <b>${def}</b> 个字符。 ${(chg ? `用户允许的范围是 <b>${min}</b> 至 <b>${max}</b> 个字符。` : '目前已禁止更改文件名长度。')}</p>
         </div>
         <div class="field">
           <div class="control">
@@ -1423,7 +1416,7 @@ page.changeFileLength = function () {
               <span class="icon">
                 <i class="icon-paper-plane-empty"></i>
               </span>
-              <span>Set file name length</span>
+              <span>设置文件名长度</span>
             </a>
           </div>
         <div>
@@ -1436,7 +1429,7 @@ page.changeFileLength = function () {
     })
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1450,12 +1443,12 @@ page.setFileLength = function (fileLength, element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     swal({
-      title: 'Woohoo!',
-      text: 'Your file length was successfully changed.',
+      title: '哇噢！',
+      text: '您的文件长度已成功更改。',
       icon: 'success'
     }).then(function () {
       page.changeFileLength()
@@ -1463,7 +1456,7 @@ page.setFileLength = function (fileLength, element) {
   }).catch(function (error) {
     console.log(error)
     page.isLoading(element, false)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1473,16 +1466,16 @@ page.changeToken = function () {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     page.dom.innerHTML = `
-      <h2 class="subtitle">Manage your token</h2>
+      <h2 class="subtitle">管理您的token令牌</h2>
       <div class="field">
-        <label class="label">Your current token:</label>
+        <label class="label">你当前的令牌:</label>
         <div class="field">
           <div class="control">
-            <input id="token" readonly class="input" type="text" placeholder="Your token" value="${response.data.token}">
+            <input id="token" readonly class="input" type="text" placeholder="你的令牌" value="${response.data.token}">
           </div>
         </div>
       </div>
@@ -1492,7 +1485,7 @@ page.changeToken = function () {
             <span class="icon">
               <i class="icon-arrows-cw"></i>
             </span>
-            <span>Request new token</span>
+            <span>请求新令牌</span>
           </a>
         </div>
       </div>
@@ -1500,7 +1493,7 @@ page.changeToken = function () {
     page.fadeIn()
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1514,12 +1507,12 @@ page.getNewToken = function (element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     swal({
-      title: 'Woohoo!',
-      text: 'Your token was successfully changed.',
+      title: '哇噢！',
+      text: '您的令牌已成功更改。',
       icon: 'success'
     }).then(function () {
       axios.defaults.headers.common.token = response.data.token
@@ -1530,21 +1523,21 @@ page.getNewToken = function (element) {
   }).catch(function (error) {
     console.log(error)
     page.isLoading(element, false)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
 page.changePassword = function () {
   page.dom.innerHTML = `
-    <h2 class="subtitle">Change your password</h2>
+    <h2 class="subtitle">更改您的密码</h2>
     <div class="field">
-      <label class="label">New password:</label>
+      <label class="label">新密码:</label>
       <div class="control">
         <input id="password" class="input" type="password">
       </div>
     </div>
     <div class="field">
-      <label class="label">Re-type new password:</label>
+      <label class="label">再次输入新密码:</label>
       <div class="control">
         <input id="passwordConfirm" class="input" type="password">
       </div>
@@ -1555,7 +1548,7 @@ page.changePassword = function () {
           <span class="icon">
             <i class="icon-paper-plane-empty"></i>
           </span>
-          <span>Set new password</span>
+          <span>设置新密码</span>
         </a>
       </div>
     </div>
@@ -1567,8 +1560,8 @@ page.changePassword = function () {
       page.sendNewPassword(document.getElementById('password').value, this)
     else
       swal({
-        title: 'Password mismatch!',
-        text: 'Your passwords do not match, please try again.',
+        title: '密码有误！',
+        text: '您的密码不匹配，请重试。',
         icon: 'error'
       })
   })
@@ -1584,12 +1577,12 @@ page.sendNewPassword = function (pass, element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     swal({
-      title: 'Woohoo!',
-      text: 'Your password was successfully changed.',
+      title: '哇噢！',
+      text: '您的密码已成功更改。',
       icon: 'success'
     }).then(function () {
       page.changePassword()
@@ -1597,7 +1590,7 @@ page.sendNewPassword = function (pass, element) {
   }).catch(function (error) {
     console.log(error)
     page.isLoading(element, false)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1615,7 +1608,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
   if (pageNum === undefined) pageNum = 0
 
   if (!page.permissions.admin)
-    return swal('An error occurred!', 'You can not do this!', 'error')
+    return swal('发生错误！', '你不能做这个！', 'error')
 
   const url = `api/users/${pageNum}`
   axios.get(url).then(function (response) {
@@ -1623,13 +1616,13 @@ page.getUsers = function ({ pageNum } = {}, element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
       }
 
     if (pageNum && (response.data.users.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
       if (element) page.isLoading(element, false)
-      return swal('An error occurred!', `There are no more users to populate page ${pageNum + 1}.`, 'error')
+      return swal('发生错误！', `没有更多用户填充页面 ${pageNum + 1}.`, 'error')
     }
 
     page.currentView = 'users'
@@ -1646,7 +1639,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
               <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
             </div>
             <div class="control">
-              <a class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+              <a class="button is-small is-breeze" title="跳转到页面" data-action="jump-to-page">
                 <span class="icon">
                   <i class="icon-paper-plane-empty"></i>
                 </span>
@@ -1661,22 +1654,22 @@ page.getUsers = function ({ pageNum } = {}, element) {
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
         <div class="column" style="text-align: right">
-          <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
+          <a class="button is-small is-info" title="清空选项" data-action="clear-selection">
             <span class="icon">
               <i class="icon-cancel"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Bulk disable (WIP)" data-action="bulk-disable-users" disabled>
+          <a class="button is-small is-warning" title="批量禁用（WIP）" data-action="bulk-disable-users" disabled>
             <span class="icon">
               <i class="icon-hammer"></i>
             </span>
-            <span>Bulk disable</span>
+            <span>批量禁用</span>
           </a>
-          <a class="button is-small is-danger" title="Bulk delete (WIP)" data-action="bulk-delete-users" disabled>
+          <a class="button is-small is-danger" title="批量删除（WIP）" data-action="bulk-delete-users" disabled>
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
-            <span>Bulk delete</span>
+            <span>批量删除</span>
           </a>
         </div>
       </div>
@@ -1692,13 +1685,13 @@ page.getUsers = function ({ pageNum } = {}, element) {
         <table class="table is-narrow is-fullwidth is-hoverable">
           <thead>
             <tr>
-              <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all users" data-action="select-all"></th>
+              <th><input id="selectAll" class="checkbox" type="checkbox" title="选择所有用户" data-action="select-all"></th>
               <th>ID</th>
-              <th style="width: 25%">Username</th>
-              <th>Uploads</th>
-              <th>Usage</th>
-              <th>File length</th>
-              <th>Group</th>
+              <th style="width: 25%">用户名</th>
+              <th>已上传</th>
+              <th>占用大小</th>
+              <th>文件长度</th>
+              <th>组</th>
               <th></th>
             </tr>
           </thead>
@@ -1736,7 +1729,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
       const tr = document.createElement('tr')
       tr.dataset.id = user.id
       tr.innerHTML = `
-        <td class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></td>
+        <td class="controls"><input type="checkbox" class="checkbox" title="选择此用户" data-action="select"${selected ? ' checked' : ''}></td>
         <th>${user.id}</th>
         <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</td>
         <th>${user.uploadsCount}</th>
@@ -1744,22 +1737,22 @@ page.getUsers = function ({ pageNum } = {}, element) {
         <td>${user.fileLength || 'default'}</td>
         <td>${displayGroup}</td>
         <td class="controls" style="text-align: right">
-          <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
+          <a class="button is-small is-primary" title="编辑用户" data-action="edit-user">
             <span class="icon">
               <i class="icon-pencil-1"></i>
             </span>
           </a>
-          <a class="button is-small is-info" title="View uploads" data-action="view-user-uploads" ${user.uploadsCount ? '' : 'disabled'}>
+          <a class="button is-small is-info" title="查看已上传文件" data-action="view-user-uploads" ${user.uploadsCount ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-docs"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Disable user" data-action="disable-user" ${enabled ? '' : 'disabled'}>
+          <a class="button is-small is-warning" title="禁用该用户" data-action="disable-user" ${enabled ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-hammer"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Delete user (WIP)" data-action="delete-user" disabled>
+          <a class="button is-small is-danger" title="删除用户（WIP）" data-action="delete-user" disabled>
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -1781,7 +1774,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -1798,13 +1791,13 @@ page.editUser = function (id) {
   const div = document.createElement('div')
   div.innerHTML = `
     <div class="field">
-      <label class="label">Username</label>
+      <label class="label">用户名</label>
       <div class="controls">
         <input id="swalUsername" class="input" type="text" value="${user.username || ''}">
       </div>
     </div>
     <div class="field">
-      <label class="label">User group</label>
+      <label class="label">用户组</label>
       <div class="control">
         <div class="select is-fullwidth">
           <select id="swalGroup">
@@ -1817,7 +1810,7 @@ page.editUser = function (id) {
       <div class="control">
         <label class="checkbox">
           <input id="swalEnabled" type="checkbox" ${user.enabled ? 'checked' : ''}>
-          Enabled
+          启用
         </label>
       </div>
     </div>
@@ -1825,14 +1818,14 @@ page.editUser = function (id) {
       <div class="control">
         <label class="checkbox">
           <input id="swalResetPassword" type="checkbox">
-          Reset password
+          重置密码
         </label>
       </div>
     </div>
   `
 
   swal({
-    title: 'Edit user',
+    title: '编辑用户',
     icon: 'info',
     content: div,
     buttons: {
@@ -1857,30 +1850,30 @@ page.editUser = function (id) {
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', response.data.description, 'error')
+          return swal('发生错误！', response.data.description, 'error')
         }
 
       if (response.data.password) {
         const div = document.createElement('div')
         div.innerHTML = `
-          <p>${user.username}'s new password is:</p>
+          <p>${user.username}'s 新密码是:</p>
           <p class="is-code">${response.data.password}</p>
         `
         swal({
-          title: 'Success!',
+          title: '成功！',
           icon: 'success',
           content: div
         })
       } else if (response.data.update && response.data.update.username !== user.username) {
-        swal('Success!', `${user.username} was renamed into: ${response.data.update.name}.`, 'success')
+        swal('成功！', `${user.username} was renamed into: ${response.data.update.name}.`, 'success')
       } else {
-        swal('Success!', 'The user was edited!', 'success')
+        swal('成功！', '用户已被编辑！', 'success')
       }
 
       page.getUsers(page.views.users)
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
@@ -1890,17 +1883,17 @@ page.disableUser = function (id) {
   if (!user || !user.enabled) return
 
   const content = document.createElement('div')
-  content.innerHTML = `You will be disabling a user with the username <b>${page.cache.users[id].username}</b>!`
+  content.innerHTML = `您将禁用用户 <b>${page.cache.users[id].username}</b>!`
 
   swal({
-    title: 'Are you sure?',
+    title: '你确定吗？',
     icon: 'warning',
     content,
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: 'Yes, disable them!',
+        text: '是的，禁用它们！',
         closeModal: false
       }
     }
@@ -1914,13 +1907,13 @@ page.disableUser = function (id) {
         if (response.data.description === 'No token provided')
           return page.verifyToken(page.token)
         else
-          return swal('An error occurred!', response.data.description, 'error')
+          return swal('发生错误！', response.data.description, 'error')
 
-      swal('Success!', 'The user has been disabled.', 'success')
+      swal('成功！', '用户已被禁用。', 'success')
       page.getUsers(page.views.users)
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
@@ -1968,69 +1961,11 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
 
   return `
     <nav class="pagination is-centered is-small">
-      <a class="button pagination-previous" data-action="page-prev">Previous</a>
-      <a class="button pagination-next" data-action="page-next">Next page</a>
+      <a class="button pagination-previous" data-action="page-prev">上一页</a>
+      <a class="button pagination-next" data-action="page-next">下一页</a>
       <ul class="pagination-list">${template}</ul>
     </nav>
   `
-}
-
-page.getServerStats = function (element) {
-  if (!page.permissions.admin)
-    return swal('An error occurred!', 'You can not do this!', 'error')
-
-  const url = 'api/stats'
-  axios.get(url).then(function (response) {
-    if (response.data.success === false)
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        return swal('An error occurred!', response.data.description, 'error')
-      }
-
-    let content = ''
-    for (const key of Object.keys(response.data.stats)) {
-      let rows = ''
-      for (const valKey of Object.keys(response.data.stats[key])) {
-        const _value = response.data.stats[key][valKey]
-        let value = _value
-        if (['albums', 'users', 'uploads'].includes(key))
-          value = _value.toLocaleString()
-        if (['memoryUsage', 'size'].includes(valKey))
-          value = page.getPrettyBytes(_value)
-        if (valKey === 'systemMemory')
-          value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
-        rows += `
-          <tr>
-            <th>${valKey.replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
-            <td>${value}</td>
-          </tr>
-        `
-      }
-      content += `
-        <div class="table-container">
-          <table class="table is-fullwidth is-hoverable">
-            <thead>
-              <tr>
-                <th>${key.toUpperCase()}</th>
-                <td style="width: 50%"></td>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        </div>
-      `
-    }
-
-    page.dom.innerHTML = `
-      <h2 class="subtitle">Statistics</h2>
-      ${content}
-    `
-
-    page.fadeIn()
-  })
 }
 
 page.getPrettyDate = function (date) {
@@ -2079,12 +2014,12 @@ window.onload = function () {
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
   page.clipboardJS.on('success', function () {
-    return swal('Copied!', 'The link has been copied to clipboard.', 'success')
+    return swal('已复制！', '该链接已复制到剪贴板。', 'success')
   })
 
   page.clipboardJS.on('error', function (event) {
     console.error(event)
-    return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
+    return swal('发生错误！', '尝试将链接复制到剪贴板时出错，请检查控制台以获取更多信息。', 'error')
   })
 
   page.lazyLoad = new LazyLoad()

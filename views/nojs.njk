@@ -17,14 +17,14 @@
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
       <h3 class="subtitle" id="maxFileSize">
-        Maximum upload size per file is {{ renderOptions.maxFileSize }}
+        每个文件最大上传大小为 {{ renderOptions.maxFileSize }}
       </h3>
 
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
         <div class="column">
           <p class="subtitle" style="font-size: 1rem">
-            Files uploaded through this No-JS uploader will not be associated to your account, if you have any.
+            通过此No-JS上传器上传的文件将不会与您的帐户相关联（如果您有）。
           </p>
           {% if renderOptions.uploadDisabled -%}
           <a class="button is-danger" style="display: flex" href="auth">{{ renderOptions.uploadDisabled }}</a>
