@@ -34,8 +34,8 @@ page.checkIfPublic = function () {
     console.log(error)
     const button = document.getElementById('loginToUpload')
     button.classList.remove('is-loading')
-    button.innerText = 'Error occurred. Reload the page?'
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    button.innerText = '发生了错误。 重新加载页面？'
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -49,9 +49,9 @@ page.preparePage = function () {
       button.classList.remove('is-loading')
 
       if (page.enableUserAccounts)
-        button.innerText = 'Anonymous upload is disabled. Log in to page.'
+        button.innerText = '匿名上传已禁用，请登录。'
       else
-        button.innerText = 'Running in private mode. Log in to page.'
+        button.innerText = '以私人模式运行，请登录。'
     }
   else
     return page.prepareUpload()
@@ -63,7 +63,7 @@ page.verifyToken = function (token, reloadOnError) {
   axios.post('api/tokens/verify', { token }).then(function (response) {
     if (response.data.success === false)
       return swal({
-        title: 'An error occurred!',
+        title: '发生错误！',
         text: response.data.description,
         icon: 'error'
       }).then(function () {
@@ -77,7 +77,7 @@ page.verifyToken = function (token, reloadOnError) {
     return page.prepareUpload()
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -96,11 +96,11 @@ page.prepareUpload = function () {
     document.getElementById('albumDiv').style.display = 'flex'
   }
 
-  document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${page.maxFileSize}`
+  document.getElementById('maxFileSize').innerHTML = `每个文件的最大上传大小为 ${page.maxFileSize}`
   document.getElementById('loginToUpload').style.display = 'none'
 
   if (!page.token && page.enableUserAccounts)
-    document.getElementById('loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
+    document.getElementById('loginLinkText').innerHTML = '创建一个帐户并跟踪您的上传'
 
   const previewNode = document.querySelector('#tpl')
   page.previewTemplate = previewNode.innerHTML
@@ -129,7 +129,7 @@ page.prepareUpload = function () {
 page.prepareAlbums = function () {
   const option = document.createElement('option')
   option.value = ''
-  option.innerHTML = 'Upload to album'
+  option.innerHTML = '选择相册（默认上传到主目录）'
   option.disabled = true
   option.selected = true
   page.albumSelect.appendChild(option)
@@ -140,7 +140,7 @@ page.prepareAlbums = function () {
     }
   }).then(function (response) {
     if (response.data.success === false)
-      return swal('An error occurred!', response.data.description, 'error')
+      return swal('发生错误！', response.data.description, 'error')
 
     // If the user doesn't have any albums we don't really need to display
     // an album selection
@@ -156,7 +156,7 @@ page.prepareAlbums = function () {
     }
   }).catch(function (error) {
     console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -183,7 +183,7 @@ page.prepareDropzone = function () {
       <span class="icon">
         <i class="icon-upload-cloud"></i>
       </span>
-      <span>Click here or drag and drop files</span>
+      <span>点击此处或拖放文件</span>
     </div>
   `
   tabDiv.querySelector('.dz-container').appendChild(div)
@@ -272,7 +272,6 @@ page.prepareDropzone = function () {
   })
 
   page.dropzone.on('error', function (file, error) {
-    page.updateTemplateIcon(file.previewElement, 'icon-block')
     file.previewElement.querySelector('.progress').style.display = 'none'
     file.previewElement.querySelector('.name').innerHTML = file.name
     file.previewElement.querySelector('.error').innerHTML = error.description || error
@@ -289,7 +288,7 @@ page.uploadUrls = function (button) {
   button.classList.add('is-loading')
 
   function done (error) {
-    if (error) swal('An error occurred!', error, 'error')
+    if (error) swal('发生错误！', error, 'error')
     button.classList.remove('is-loading')
   }
 
@@ -305,7 +304,7 @@ page.uploadUrls = function (button) {
 
     if (!urls.length)
       // eslint-disable-next-line prefer-promise-reject-errors
-      return done('You have not entered any URLs.')
+      return done('您尚未输入任何网址。')
 
     tabDiv.getElementsByClassName('uploads')[0].style.display = 'block'
     const files = urls.map(function (url) {
@@ -313,7 +312,6 @@ page.uploadUrls = function (button) {
       previewTemplate.innerHTML = page.previewTemplate.trim()
       const previewElement = previewTemplate.content.firstChild
       previewElement.querySelector('.name').innerHTML = url
-      previewElement.querySelector('.progress').removeAttribute('value')
       previewsContainer.appendChild(previewElement)
       return {
         url,
@@ -328,12 +326,11 @@ page.uploadUrls = function (button) {
 
       function posted (result) {
         file.previewElement.querySelector('.progress').style.display = 'none'
-        if (result.success) {
+        if (result.success)
           page.updateTemplate(file, result.files[0])
-        } else {
-          page.updateTemplateIcon(file.previewElement, 'icon-block')
+        else
           file.previewElement.querySelector('.error').innerHTML = result.description
-        }
+
         return post(i + 1)
       }
 
@@ -358,13 +355,6 @@ page.uploadUrls = function (button) {
   return run()
 }
 
-page.updateTemplateIcon = function (templateElement, iconClass) {
-  const iconElement = templateElement.querySelector('.icon')
-  if (!iconElement) return
-  iconElement.classList.add(iconClass)
-  iconElement.style.display = ''
-}
-
 page.updateTemplate = function (file, response) {
   if (!response.url) return
 
@@ -378,16 +368,12 @@ page.updateTemplate = function (file, response) {
     const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
     img.dataset['src'] = response.url
-    img.style.display = ''
     img.onerror = function () {
-      // Hide image elements that fail to load
-      // Consequently include WEBP in browsers that do not have WEBP support (Firefox/IE)
+      // Hide images that failed to load
+      // Consequently also WEBP in browsers that do not have WEBP support (Firefox/IE)
       this.style.display = 'none'
-      file.previewElement.querySelector('.icon').style.display = ''
     }
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
-  } else {
-    page.updateTemplateIcon(file.previewElement, 'icon-doc-inv')
   }
 }
 
@@ -396,19 +382,19 @@ page.createAlbum = function () {
   div.innerHTML = `
     <div class="field">
       <div class="controls">
-        <input id="swalName" class="input" type="text" placeholder="Name">
+        <input id="swalName" class="input" type="text" placeholder="名称">
       </div>
     </div>
     <div class="field">
       <div class="control">
-        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2"></textarea>
+        <textarea id="swalDescription" class="textarea" placeholder="描述" rows="2"></textarea>
       </div>
     </div>
     <div class="field">
       <div class="control">
         <label class="checkbox">
           <input id="swalDownload" type="checkbox" checked>
-          Enable download
+          启用下载
         </label>
       </div>
     </div>
@@ -416,14 +402,14 @@ page.createAlbum = function () {
       <div class="control">
         <label class="checkbox">
           <input id="swalPublic" type="checkbox" checked>
-          Enable public link
+          启用公共链接
         </label>
       </div>
     </div>
   `
 
   swal({
-    title: 'Create new album',
+    title: '创建新相册',
     icon: 'info',
     content: div,
     buttons: {
@@ -447,17 +433,17 @@ page.createAlbum = function () {
       }
     }).then(function (response) {
       if (response.data.success === false)
-        return swal('An error occurred!', response.data.description, 'error')
+        return swal('发生错误！', response.data.description, 'error')
 
       const option = document.createElement('option')
       option.value = response.data.id
       option.innerHTML = name
       page.albumSelect.appendChild(option)
 
-      swal('Woohoo!', 'Album was created successfully', 'success')
+      swal('哇噢！', '相册已成功创建', 'success')
     }).catch(function (error) {
       console.log(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
     })
   })
 }
@@ -482,12 +468,12 @@ window.onload = function () {
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
   page.clipboardJS.on('success', function () {
-    return swal('Copied!', 'The link has been copied to clipboard.', 'success')
+    return swal('已复制！', '该链接已复制到剪贴板。', 'success')
   })
 
   page.clipboardJS.on('error', function (event) {
     console.error(event)
-    return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
+    return swal('发生错误！', '尝试将链接复制到剪贴板时出错，请检查控制台以获取更多信息。', 'error')
   })
 
   page.lazyLoad = new LazyLoad({

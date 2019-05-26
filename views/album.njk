@@ -42,7 +42,7 @@
         </div>
         <div class="level-item">
           <h1 id="count" class="subtitle">
-            {{ count }} files (<span class="file-size">{{ totalSize }} B</span>)
+            {{ count }} files (<span class="file-size">{{ totalSize }}</span>)
           </h1>
         </div>
       </div>
@@ -51,9 +51,9 @@
       <div class="level-right">
         <p class="level-item">
           {% if downloadLink -%}
-          <a class="button is-primary is-outlined" title="Be aware that album archive may be cached by CDN" href="{{ downloadLink }}">Download album</a>
+          <a class="button is-primary is-outlined" title="请注意，相册存档可能由CDN缓存" href="{{ downloadLink }}">下载相册</a>
           {%- else -%}
-          <a class="button is-primary is-outlined" title="The album's owner has chosen to disable download" disabled>Download disabled</a>
+          <a class="button is-primary is-outlined" title="相册的所有者已关闭下载功能" disabled>下载已禁用</a>
           {%- endif %}
         </p>
       </div>
@@ -73,9 +73,9 @@
             {% if file.thumb -%}
             <img alt="{{ file.name }}" data-src="{{ file.thumb }}">
             {#-
-              This will kinda increase the overall page size,
-              but this will still benefit users with JavaScript enabled by lazyloading images,
-              and not causing those who have JavaScript disabled be unable to view the images.
+              这会增加整体页面大小，
+              但是通过启用JavaScript延迟加载图像仍然可以使用户流畅体验，
+              并且不会导致禁用JavaScript的人无法查看图像。
             #}
             <noscript><img alt="{{ file.name }}" src="{{ file.thumb }}" style="display: none"></noscript>
             {%- else -%}
@@ -84,7 +84,7 @@
           </a>
           <div class="details">
             <p><span class="name" title="{{ file.file }}">{{ file.name }}</span></p>
-            <p class="file-size">{{ file.size }} B</p>
+            <p class="file-size">{{ file.size }}</p>
           </div>
         </div>
       {% endfor %}
@@ -92,14 +92,14 @@
     {%- else -%}
     <article class="message">
       <div class="message-body">
-        There are no files in the album.
+        相册中没有文件。
       </div>
     </article>
     {%- endif %}
   </div>
 </section>
 
-{# Hide lazyload img tags and show noscript img tags #}
+{# 隐藏lazyload img标签并显示noscript img标签 #}
 <noscript>
   <style>
     img[data-src] { display: none; }

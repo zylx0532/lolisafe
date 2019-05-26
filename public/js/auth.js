@@ -14,23 +14,23 @@ page.do = function (dest) {
   const pass = page.pass.value
 
   if (!user)
-    return swal('An error occurred!', 'You need to specify a username', 'error')
+    return swal('发生错误！', '您需要指定用户名', 'error')
 
   if (!pass)
-    return swal('An error occurred!', 'You need to specify a username', 'error')
+    return swal('发生错误！', '您需要指定用户名', 'error')
 
   axios.post(`api/${dest}`, {
     username: user,
     password: pass
   }).then(function (response) {
     if (response.data.success === false)
-      return swal('An error occurred!', response.data.description, 'error')
+      return swal('发生错误！', response.data.description, 'error')
 
     localStorage.token = response.data.token
     window.location = 'dashboard'
   }).catch(function (error) {
     console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
@@ -41,12 +41,12 @@ page.verify = function () {
     token: page.token
   }).then(function (response) {
     if (response.data.success === false)
-      return swal('An error occurred!', response.data.description, 'error')
+      return swal('发生错误！', response.data.description, 'error')
 
     window.location = 'dashboard'
   }).catch(function (error) {
     console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    return swal('发生错误！', '请求出错，请查看控制台以获取更多信息。', 'error')
   })
 }
 
