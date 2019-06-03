@@ -112,7 +112,7 @@ module.exports = {
   */
   rateLimits: [
     {
-    // 2 requests in 5 seconds
+      // 2 requests in 5 seconds
       routes: [
         '/api/login/',
         '/api/register'
@@ -123,7 +123,7 @@ module.exports = {
       }
     },
     {
-    // 2 requests in 30 seconds
+      // 2 requests in 30 seconds
       routes: [
         '/api/album/zip'
       ],
