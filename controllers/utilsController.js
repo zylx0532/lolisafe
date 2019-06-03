@@ -13,19 +13,26 @@ const utilsController = {}
 const _stats = {
   system: {
     cache: null,
-    timestamp: 0
+    generating: false,
+    generatedAt: 0
   },
   albums: {
     cache: null,
-    valid: false
+    generating: false,
+    generatedAt: 0,
+    invalidatedAt: 0
   },
   users: {
     cache: null,
-    valid: false
+    generating: false,
+    generatedAt: 0,
+    invalidatedAt: 0
   },
   uploads: {
     cache: null,
-    valid: false
+    generating: false,
+    generatedAt: 0,
+    invalidatedAt: 0
   }
 }
 
@@ -238,6 +245,7 @@ utilsController.generateThumbs = (name, force) => {
           console.error(`${name}: ${error.toString()}`)
           fs.symlink(thumbUnavailable, thumbname, error => {
             if (error) console.error(error)
+            // We return true if we could make a symlink to the placeholder image
             resolve(!error)
           })
         })
@@ -453,8 +461,7 @@ utilsController.getMemoryUsage = () => {
 
 utilsController.invalidateStatsCache = type => {
   if (!['albums', 'users', 'uploads'].includes(type)) return
-  _stats[type].cache = null
-  _stats[type].valid = false
+  _stats[type].invalidatedAt = Date.now()
 }
 
 utilsController.stats = async (req, res, next) => {
@@ -466,10 +473,13 @@ utilsController.stats = async (req, res, next) => {
 
   const stats = {}
 
-  // Re-use system cache for only 1000ms
-  if (Date.now() - _stats.system.timestamp <= 1000) {
+  if (!_stats.system.cache && _stats.system.generating) {
+    stats.system = false
+  } else if ((Date.now() - _stats.system.generatedAt <= 1000) || _stats.system.generating) {
+    // Re-use system cache for only 1000ms
     stats.system = _stats.system.cache
   } else {
+    _stats.system.generating = true
     const platform = os.platform()
     stats.system = {
       platform: `${platform}-${os.arch()}`,
@@ -491,18 +501,20 @@ utilsController.stats = async (req, res, next) => {
     if (platform !== 'win32')
       stats.system.loadAverage = `${os.loadavg().map(load => load.toFixed(2)).join(', ')}`
 
-    // Cache
-    _stats.system = {
-      cache: stats.system,
-      timestamp: Date.now()
-    }
+    // Update cache
+    _stats.system.cache = stats.system
+    _stats.system.generatedAt = Date.now()
+    _stats.system.generating = false
   }
 
   // Re-use albums, users, and uploads caches as long as they are still valid
 
-  if (_stats.albums.valid) {
+  if (!_stats.albums.cache && _stats.albums.generating) {
+    stats.albums = false
+  } else if ((_stats.albums.invalidatedAt < _stats.albums.generatedAt) || _stats.albums.generating) {
     stats.albums = _stats.albums.cache
   } else {
+    _stats.albums.generating = true
     stats.albums = {
       total: 0,
       active: 0,
@@ -533,16 +545,18 @@ utilsController.stats = async (req, res, next) => {
       })
     }))
 
-    // Cache
-    _stats.albums = {
-      cache: stats.albums,
-      valid: true
-    }
+    // Update cache
+    _stats.albums.cache = stats.albums
+    _stats.albums.generatedAt = Date.now()
+    _stats.albums.generating = false
   }
 
-  if (_stats.users.valid) {
+  if (!_stats.users.cache && _stats.users.generating) {
+    stats.users = false
+  } else if ((_stats.users.invalidatedAt < _stats.users.generatedAt) || _stats.users.generating) {
     stats.users = _stats.users.cache
   } else {
+    _stats.users.generating = true
     stats.users = {
       total: 0,
       disabled: 0
@@ -568,16 +582,18 @@ utilsController.stats = async (req, res, next) => {
         }
     }
 
-    // Cache
-    _stats.users = {
-      cache: stats.users,
-      valid: true
-    }
+    // Update cache
+    _stats.users.cache = stats.users
+    _stats.users.generatedAt = Date.now()
+    _stats.users.generating = false
   }
 
-  if (_stats.uploads.valid) {
+  if (!_stats.uploads.cache && _stats.uploads.generating) {
+    stats.uploads = false
+  } else if ((_stats.uploads.invalidatedAt < _stats.uploads.generatedAt) || _stats.uploads.generating) {
     stats.uploads = _stats.uploads.cache
   } else {
+    _stats.uploads.generating = true
     stats.uploads = {
       total: 0,
       size: 0,
@@ -599,11 +615,10 @@ utilsController.stats = async (req, res, next) => {
         stats.uploads.others++
     }
 
-    // Cache
-    _stats.uploads = {
-      cache: stats.uploads,
-      valid: true
-    }
+    // Update cache
+    _stats.uploads.cache = stats.uploads
+    _stats.uploads.generatedAt = Date.now()
+    _stats.uploads.generating = false
   }
 
   return res.json({ success: true, stats })

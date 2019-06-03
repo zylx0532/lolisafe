@@ -201,6 +201,12 @@ page.getItemID = function (element) {
 }
 
 page.domClick = function (event) {
+  // We are processing clicks this way to avoid using "onclick" attribute
+  // Apparently we will need to use "unsafe-inline" for "script-src" directive
+  // of Content Security Policy (CSP), if we want ot use "onclick" attribute
+  // Though I think that only applies to some browsers (?)
+  // Either way, I personally would rather not
+  // Of course it wouldn't have mattered if we didn't use CSP to begin with
   let element = event.target
   if (!element) return
 
@@ -878,6 +884,10 @@ page.deleteSelectedFiles = function () {
 }
 
 page.deleteByNames = function () {
+  let appendix = ''
+  if (page.permissions.moderator)
+    appendix = '<br>As a staff, you can use this feature to delete uploads by other users.'
+
   page.dom.innerHTML = `
     <h2 class="subtitle">Delete by names</h2>
     <div class="field">
@@ -885,7 +895,7 @@ page.deleteByNames = function () {
       <div class="control">
         <textarea id="names" class="textarea"></textarea>
       </div>
-      <p class="help">Separate each entry with a new line.</p>
+      <p class="help">Separate each entry with a new line.${appendix}</p>
     </div>
     <div class="field">
       <div class="control">
@@ -1991,22 +2001,31 @@ page.getServerStats = function (element) {
     let content = ''
     for (const key of Object.keys(response.data.stats)) {
       let rows = ''
-      for (const valKey of Object.keys(response.data.stats[key])) {
-        const _value = response.data.stats[key][valKey]
-        let value = _value
-        if (['albums', 'users', 'uploads'].includes(key))
-          value = _value.toLocaleString()
-        if (['memoryUsage', 'size'].includes(valKey))
-          value = page.getPrettyBytes(_value)
-        if (valKey === 'systemMemory')
-          value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
+      if (!response.data.stats[key])
         rows += `
           <tr>
-            <th>${valKey.replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
-            <td>${value}</td>
+            <td>Generating, please try again later\u2026</td>
+            <td></td>
           </tr>
         `
-      }
+      else
+        for (const valKey of Object.keys(response.data.stats[key])) {
+          const _value = response.data.stats[key][valKey]
+          let value = _value
+          if (['albums', 'users', 'uploads'].includes(key))
+            value = _value.toLocaleString()
+          if (['memoryUsage', 'size'].includes(valKey))
+            value = page.getPrettyBytes(_value)
+          if (valKey === 'systemMemory')
+            value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
+          rows += `
+            <tr>
+              <th>${valKey.replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
+              <td>${value}</td>
+            </tr>
+          `
+        }
+
       content += `
         <div class="table-container">
           <table class="table is-fullwidth is-hoverable">

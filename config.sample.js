@@ -106,6 +106,35 @@ module.exports = {
   trustProxy: true,
 
   /*
+    Rate limits.
+    Please be aware that these apply to all users, including site owners.
+    https://github.com/nfriedly/express-rate-limit#configuration-options
+  */
+  rateLimits: [
+    {
+    // 2 requests in 5 seconds
+      routes: [
+        '/api/login/',
+        '/api/register'
+      ],
+      config: {
+        windowMs: 5 * 1000,
+        max: 2
+      }
+    },
+    {
+    // 2 requests in 30 seconds
+      routes: [
+        '/api/album/zip'
+      ],
+      config: {
+        windowMs: 30 * 1000,
+        max: 1
+      }
+    }
+  ],
+
+  /*
     Uploads config.
   */
   uploads: {

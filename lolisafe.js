@@ -45,9 +45,13 @@ nunjucks.configure('views', {
 safe.set('view engine', 'njk')
 safe.enable('view cache')
 
-const limiter = new RateLimit({ windowMs: 5000, max: 2 })
-safe.use('/api/login/', limiter)
-safe.use('/api/register/', limiter)
+// Configure rate limits
+if (Array.isArray(config.rateLimits) && config.rateLimits.length)
+  for (const rateLimit of config.rateLimits) {
+    const limiter = new RateLimit(rateLimit.config)
+    for (const route of rateLimit.routes)
+      safe.use(route, limiter)
+  }
 
 safe.use(bodyParser.urlencoded({ extended: true }))
 safe.use(bodyParser.json())
