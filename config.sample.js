@@ -208,6 +208,13 @@ module.exports = {
     },
 
     /*
+      Store uploader's IPs into the database.
+      NOTE: Dashboard's Manage Uploads will display IP column regardless of whether
+      this is set to true or false.
+    */
+    storeIP: true,
+
+    /*
       Chunk size for chunk uploads. Needs to be in MB.
       If this is enabled, every files uploaded from the homepage uploader will forcibly be chunked
       by the size specified in "chunkSize". People will still be able to upload bigger files with

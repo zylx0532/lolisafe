@@ -545,7 +545,7 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
             type: info.data.mimetype,
             size: info.data.size,
             hash: fileHash,
-            ip: req.ip,
+            ip: config.uploads.storeIP !== false ? req.ip : null, // only disable if explicitly set to false
             albumid: albumsAuthorized[info.data.albumid] ? info.data.albumid : null,
             userid: user !== undefined ? user.id : null,
             timestamp: Math.floor(Date.now() / 1000)
@@ -688,25 +688,33 @@ uploadsController.list = async (req, res) => {
   const ismoderator = perms.is(user, 'moderator')
   if ((all || uploader) && !ismoderator) return res.status(403).end()
 
+  const basedomain = config.domain
+
+  // For filtering by uploader's username
   let uploaderID = null
-  if (uploader)
+  if (uploader) {
     uploaderID = await db.table('users')
       .where('username', uploader)
       .select('id')
       .first()
       .then(row => row ? row.id : null)
+    // Close request if the provided username is not valid
+    if (!uploaderID)
+      return res.json({ success: false, description: 'User with that username could not be found.' })
+  }
 
   function filter () {
     if (req.params.id === undefined)
-      this.where('id', '<>', '')
+      this.where('id', '<>', '') // TODO: Why is this necessary?
     else
       this.where('albumid', req.params.id)
-    if (!ismoderator || !all)
+    if (!all)
       this.where('userid', user.id)
     else if (uploaderID)
       this.where('userid', uploaderID)
   }
 
+  // Query uploads count for pagination
   const count = await db.table('files')
     .where(filter)
     .count('id as count')
@@ -716,55 +724,73 @@ uploadsController.list = async (req, res) => {
   let offset = req.params.page
   if (offset === undefined) offset = 0
 
+  const columns = ['id', 'timestamp', 'name', 'userid', 'size']
+  // Only select IPs if we are listing all uploads
+  columns.push(all ? 'ip' : 'albumid')
+
   const files = await db.table('files')
     .where(filter)
     .orderBy('id', 'DESC')
     .limit(25)
     .offset(25 * offset)
-    .select('id', 'albumid', 'timestamp', 'name', 'userid', 'size')
-
-  const albums = await db.table('albums')
-    .where(function () {
-      this.where('enabled', 1)
-      if (!all || !ismoderator)
-        this.where('userid', user.id)
-    })
-
-  const basedomain = config.domain
-  const userids = []
+    .select(columns)
 
   for (const file of files) {
-    file.file = `${basedomain}/${file.name}`
-
-    file.album = ''
-    if (file.albumid !== undefined)
-      for (const album of albums)
-        if (file.albumid === album.id)
-          file.album = album.name
-
-    // Only push usernames if we are a moderator
-    if (all && ismoderator)
-      if (file.userid !== undefined && file.userid !== null && file.userid !== '')
-        userids.push(file.userid)
-
     file.extname = utils.extname(file.name)
     if (utils.mayGenerateThumb(file.extname))
-      file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
+      file.thumb = `/thumbs/${file.name.slice(0, -file.extname.length)}.png`
   }
 
-  // If we are a normal user, send response
-  if (!ismoderator) return res.json({ success: true, files, count })
+  // If we are not listing all uploads, query album names
+  let albums = {}
+  if (!all) {
+    const albumids = files
+      .map(file => file.albumid)
+      .filter((v, i, a) => {
+        return v !== null && v !== undefined && v !== '' && a.indexOf(v) === i
+      })
+    albums = await db.table('albums')
+      .whereIn('id', albumids)
+      .where('enabled', 1)
+      .where('userid', user.id)
+      .select('id', 'name')
+      .then(rows => {
+        // Build Object indexed by their IDs
+        const obj = {}
+        for (const row of rows) obj[row.id] = row.name
+        return obj
+      })
+  }
 
-  // If we are a moderator but there are no uploads attached to a user, send response
-  if (userids.length === 0) return res.json({ success: true, files, count })
+  // If we are a regular user, or we are not listing all uploads, send response
+  if (!ismoderator || !all) return res.json({ success: true, files, count, albums, basedomain })
 
-  const users = await db.table('users').whereIn('id', userids)
-  for (const dbUser of users)
-    for (const file of files)
-      if (file.userid === dbUser.id)
-        file.username = dbUser.username
+  // Otherwise proceed to querying usernames
+  let users = {}
+  if (uploaderID) {
+    // If we are already filtering by username, manually build array
+    users[uploaderID] = uploader
+  } else {
+    const userids = files
+      .map(file => file.userid)
+      .filter((v, i, a) => {
+        return v !== null && v !== undefined && v !== '' && a.indexOf(v) === i
+      })
+    // If there are no uploads attached to a registered user, send response
+    if (userids.length === 0) return res.json({ success: true, files, count, basedomain })
 
-  return res.json({ success: true, files, count })
+    // Query usernames of user IDs from currently selected files
+    users = await db.table('users')
+      .whereIn('id', userids)
+      .then(rows => {
+        // Build Object indexed by their IDs
+        const obj = {}
+        for (const row of rows) obj[row.id] = row.username
+        return obj
+      })
+  }
+
+  return res.json({ success: true, files, count, users, basedomain })
 }
 
 module.exports = uploadsController

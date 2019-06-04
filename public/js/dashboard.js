@@ -203,7 +203,7 @@ page.getItemID = function (element) {
 page.domClick = function (event) {
   // We are processing clicks this way to avoid using "onclick" attribute
   // Apparently we will need to use "unsafe-inline" for "script-src" directive
-  // of Content Security Policy (CSP), if we want ot use "onclick" attribute
+  // of Content Security Policy (CSP), if we want to use "onclick" attribute
   // Though I think that only applies to some browsers (?)
   // Either way, I personally would rather not
   // Of course it wouldn't have mattered if we didn't use CSP to begin with
@@ -342,11 +342,12 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
+        if (element) page.isLoading(element, false)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    if (pageNum && (response.data.files.length === 0)) {
-      // Only remove loading class here, since beyond this the entire page will be replaced anyways
+    const files = response.data.files
+    if (pageNum && (files === 0)) {
       if (element) page.isLoading(element, false)
       return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
     }
@@ -354,6 +355,9 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
     page.currentView = all ? 'uploadsAll' : 'uploads'
     page.cache.uploads = {}
 
+    const albums = response.data.albums
+    const users = response.data.users
+    const basedomain = response.data.basedomain
     const pagination = page.paginate(response.data.count, 25, pageNum)
 
     let filter = ''
@@ -432,7 +436,30 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
       </div>
     `
 
+    // Set to true to tick "all files" checkbox in list view
     let allSelected = true
+
+    for (let i = 0; i < files.length; i++) {
+      // Build full URLs
+      files[i].file = `${basedomain}/${files[i].name}`
+      if (files[i].thumb) files[i].thumb = `${basedomain}/${files[i].thumb}`
+      // Cache bare minimum data for thumbnails viewer
+      page.cache.uploads[files[i].id] = {
+        name: files[i].name,
+        thumb: files[i].thumb,
+        original: files[i].file
+      }
+      // Prettify
+      files[i].prettyBytes = page.getPrettyBytes(parseInt(files[i].size))
+      files[i].prettyDate = page.getPrettyDate(new Date(files[i].timestamp * 1000))
+      // Update selected status
+      files[i].selected = page.selected[page.currentView].includes(files[i].id)
+      if (allSelected && !files[i].selected) allSelected = false
+      // Appendix (display album or user)
+      files[i].appendix = files[i].albumid ? albums[files[i].albumid] : ''
+      if (all) files[i].appendix = files[i].userid ? users[files[i].userid] : ''
+    }
+
     if (page.views[page.currentView].type === 'thumbs') {
       page.dom.innerHTML = `
         ${pagination}
@@ -447,24 +474,8 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
 
       const table = document.getElementById('table')
 
-      for (let i = 0; i < response.data.files.length; i++) {
-        const upload = response.data.files[i]
-        const selected = page.selected[page.currentView].includes(upload.id)
-        if (!selected && allSelected) allSelected = false
-
-        page.cache.uploads[upload.id] = {
-          name: upload.name,
-          thumb: upload.thumb,
-          original: upload.file
-        }
-
-        // Prettify
-        upload.prettyBytes = page.getPrettyBytes(parseInt(upload.size))
-        upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
-
-        let displayAlbumOrUser = upload.album
-        if (all) displayAlbumOrUser = upload.username || ''
-
+      for (let i = 0; i < files.length; i++) {
+        const upload = files[i]
         const div = document.createElement('div')
         div.className = 'image-container column is-narrow'
         div.dataset.id = upload.id
@@ -474,7 +485,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><h1 class="title">${upload.extname || 'N/A'}</h1></a>`
 
         div.innerHTML += `
-          <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}>
+          <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${upload.selected ? ' checked' : ''}>
           <div class="controls">
             <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
@@ -499,7 +510,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
           </div>
           <div class="details">
             <p><span class="name" title="${upload.file}">${upload.name}</span></p>
-            <p>${displayAlbumOrUser ? `<span>${displayAlbumOrUser}</span> – ` : ''}${upload.prettyBytes}</p>
+            <p>${upload.appendix ? `<span>${upload.appendix}</span> – ` : ''}${upload.prettyBytes}</p>
           </div>
         `
 
@@ -508,9 +519,6 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
         page.lazyLoad.update()
       }
     } else {
-      let albumOrUser = 'Album'
-      if (all) albumOrUser = 'User'
-
       page.dom.innerHTML = `
         ${pagination}
         ${extraControls}
@@ -521,8 +529,9 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
               <tr>
                 <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all uploads" data-action="select-all"></th>
                 <th style="width: 25%">File</th>
-                <th>${albumOrUser}</th>
+                <th>${all ? 'User' : 'Album'}</th>
                 <th>Size</th>
+                ${all ? '<th>IP</th>' : ''}
                 <th>Date</th>
                 <th></th>
               </tr>
@@ -538,31 +547,16 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
 
       const table = document.getElementById('table')
 
-      for (let i = 0; i < response.data.files.length; i++) {
-        const upload = response.data.files[i]
-        const selected = page.selected[page.currentView].includes(upload.id)
-        if (!selected && allSelected) allSelected = false
-
-        page.cache.uploads[upload.id] = {
-          name: upload.name,
-          thumb: upload.thumb,
-          original: upload.file
-        }
-
-        // Prettify
-        upload.prettyBytes = page.getPrettyBytes(parseInt(upload.size))
-        upload.prettyDate = page.getPrettyDate(new Date(upload.timestamp * 1000))
-
-        let displayAlbumOrUser = upload.album
-        if (all) displayAlbumOrUser = upload.username || ''
-
+      for (let i = 0; i < files.length; i++) {
+        const upload = files[i]
         const tr = document.createElement('tr')
         tr.dataset.id = upload.id
         tr.innerHTML = `
-          <td class="controls"><input type="checkbox" class="checkbox" title="Select this file" data-action="select"${selected ? ' checked' : ''}></td>
+          <td class="controls"><input type="checkbox" class="checkbox" title="Select this file" data-action="select"${upload.selected ? ' checked' : ''}></td>
           <th><a href="${upload.file}" target="_blank" rel="noopener" title="${upload.file}">${upload.name}</a></th>
-          <th>${displayAlbumOrUser}</th>
+          <th>${upload.appendix}</th>
           <td>${upload.prettyBytes}</td>
+          ${all ? `<td>${upload.ip || ''}</td>` : ''}
           <td>${upload.prettyDate}</td>
           <td class="controls" style="text-align: right">
             <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
@@ -594,14 +588,14 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
       }
     }
 
-    if (allSelected && response.data.files.length) {
+    if (allSelected && files.length) {
       const selectAll = document.getElementById('selectAll')
       if (selectAll) selectAll.checked = true
     }
 
     if (page.currentView === 'uploads') page.views.uploads.album = album
     if (page.currentView === 'uploadsAll') page.views.uploadsAll.uploader = uploader
-    page.views[page.currentView].pageNum = response.data.files.length ? pageNum : 0
+    page.views[page.currentView].pageNum = files.length ? pageNum : 0
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
     console.log(error)
