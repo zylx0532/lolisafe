@@ -36,7 +36,7 @@ const page = {
     // config of uploads view (all)
     uploadsAll: {
       type: localStorage[lsKeys.viewType.uploadsAll],
-      uploader: null, // uploader's name
+      filters: null, // uploads' filters
       pageNum: null, // page num
       all: true
     },
@@ -259,8 +259,10 @@ page.domClick = function (event) {
       return page.editUser(id)
     case 'disable-user':
       return page.disableUser(id)
-    case 'filter-by-uploader':
-      return page.filterByUploader(element)
+    case 'filters-help':
+      return page.filtersHelp(element)
+    case 'filter-uploads':
+      return page.filterUploads(element)
     case 'view-user-uploads':
       return page.viewUserUploads(id)
     case 'page-prev':
@@ -298,7 +300,7 @@ page.switchPage = function (action, element) {
     func = page.getUploads
     views.album = page.views[page.currentView].album
     views.all = page.views[page.currentView].all
-    views.uploader = page.views[page.currentView].uploader
+    views.filters = page.views[page.currentView].filters
   }
 
   switch (action) {
@@ -321,10 +323,10 @@ page.switchPage = function (action, element) {
   }
 }
 
-page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
+page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
   if (element) page.isLoading(element, true)
 
-  if ((all || uploader) && !page.permissions.moderator)
+  if ((all || filters) && !page.permissions.moderator)
     return swal('An error occurred!', 'You can not do this!', 'error')
 
   if (typeof pageNum !== 'number' || pageNum < 0)
@@ -336,7 +338,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
 
   const headers = {}
   if (all) headers.all = '1'
-  if (uploader) headers.uploader = uploader
+  if (filters) headers.filters = filters
   axios.get(url, { headers }).then(function (response) {
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
@@ -360,16 +362,23 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
     const basedomain = response.data.basedomain
     const pagination = page.paginate(response.data.count, 25, pageNum)
 
-    let filter = ''
+    let filter = '<div class="column is-hidden-mobile"></div>'
     if (all)
       filter = `
-        <div class="column is-one-quarter">
+        <div class="column">
           <div class="field has-addons">
             <div class="control is-expanded">
-              <input id="uploader" class="input is-small" type="text" placeholder="Username" value="${uploader || ''}">
+              <input id="filters" class="input is-small" type="text" placeholder="Filters" value="${filters || ''}">
             </div>
             <div class="control">
-              <a class="button is-small is-breeze" title="Filter by uploader" data-action="filter-by-uploader">
+              <a class="button is-small is-breeze" title="Help?" data-action="filters-help">
+                <span class="icon">
+                  <i class="icon-help-circled"></i>
+                </span>
+              </a>
+            </div>
+            <div class="control">
+              <a class="button is-small is-breeze" title="Filter uploads" data-action="filter-uploads">
                 <span class="icon">
                   <i class="icon-filter"></i>
                 </span>
@@ -381,7 +390,6 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
     const extraControls = `
       <div class="columns" style="margin-top: 10px">
         ${filter}
-        <div class="column is-hidden-mobile"></div>
         <div class="column is-one-quarter">
           <div class="field has-addons">
             <div class="control is-expanded">
@@ -456,8 +464,8 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
       files[i].selected = page.selected[page.currentView].includes(files[i].id)
       if (allSelected && !files[i].selected) allSelected = false
       // Appendix (display album or user)
-      files[i].appendix = files[i].albumid ? albums[files[i].albumid] : ''
       if (all) files[i].appendix = files[i].userid ? users[files[i].userid] : ''
+      else files[i].appendix = files[i].albumid ? albums[files[i].albumid] : ''
     }
 
     if (page.views[page.currentView].type === 'thumbs') {
@@ -594,7 +602,7 @@ page.getUploads = function ({ pageNum, album, all, uploader } = {}, element) {
     }
 
     if (page.currentView === 'uploads') page.views.uploads.album = album
-    if (page.currentView === 'uploadsAll') page.views.uploadsAll.uploader = uploader
+    if (page.currentView === 'uploadsAll') page.views.uploadsAll.filters = filters
     page.views[page.currentView].pageNum = files.length ? pageNum : 0
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
@@ -770,16 +778,46 @@ page.clearSelection = function () {
   })
 }
 
-page.filterByUploader = function (element) {
-  const uploader = document.getElementById('uploader').value
-  page.getUploads({ all: true, uploader }, element)
+page.filtersHelp = function (element) {
+  const content = document.createElement('div')
+  content.style = 'text-align: left'
+  content.innerHTML = `
+    This supports 3 filter keys, namely <b>user</b> (username), <b>ip</b> and <b>name</b> (file name).
+    Each key can be specified more than once.
+    Backlashes should be used if the usernames have spaces.
+    There are also 2 additional flags, namely <b>-user</b> and <b>-ip</b>, which will match uploads by non-registered users and have no IPs respectively.
+
+    How does it work?
+    First, it will filter uploads matching ANY of the supplied <b>user</b> or <b>ip</b> keys.
+    Then, it will refine the matches using the supplied <b>name</b> keys.
+
+    Examples:
+
+    Uploads from user with username "demo":
+    <span class="is-code">user:demo</span>
+
+    Uploads from users with username either "John Doe" OR "demo":
+    <span class="is-code">user:John\\ Doe user:demo</span>
+
+    Uploads from IP "127.0.0.1" AND which file names match "*.rar" OR "*.zip":
+    <span class="is-code">ip:127.0.0.1 name:*.rar name:*.zip</span>
+
+    Uploads from user with username "test" OR from non-registered users:
+    <span class="is-code">user:test -user</span>
+  `.trim().replace(/^ {6}/gm, '').replace(/\n/g, '<br>')
+  swal({ content })
+}
+
+page.filterUploads = function (element) {
+  const filters = document.getElementById('filters').value
+  page.getUploads({ all: true, filters }, element)
 }
 
 page.viewUserUploads = function (id) {
   const user = page.cache.users[id]
   if (!user) return
   page.setActiveMenu(document.getElementById('itemManageUploads'))
-  page.getUploads({ all: true, uploader: user.username })
+  page.getUploads({ all: true, filters: `user:${user.username.replace(/ /g, '\\ ')}` })
 }
 
 page.deleteFile = function (id) {
@@ -1956,17 +1994,17 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
     }
   }
 
-  if (elementsToShow >= numPages) {
+  if (elementsToShow + 1 >= numPages) {
     add.pageNum(1, numPages)
   } else if (currentPage < elementsToShow) {
     add.pageNum(1, elementsToShow)
     add.endDots()
-  } else if (currentPage > numPages - elementsToShow) {
+  } else if (currentPage > numPages - elementsToShow + 1) {
     add.startDots()
-    add.pageNum(numPages - elementsToShow, numPages)
+    add.pageNum(numPages - elementsToShow + 1, numPages)
   } else {
     add.startDots()
-    add.pageNum(currentPage - step, currentPage, step)
+    add.pageNum(currentPage - step + 1, currentPage + step - 1)
     add.endDots()
   }
 

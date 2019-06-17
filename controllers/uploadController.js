@@ -684,34 +684,86 @@ uploadsController.list = async (req, res) => {
 
   // Headers is string-only, this seem to be the safest and lightest
   const all = req.headers.all === '1'
-  const uploader = req.headers.uploader
+  const filters = req.headers.filters
   const ismoderator = perms.is(user, 'moderator')
-  if ((all || uploader) && !ismoderator) return res.status(403).end()
+  if ((all || filters) && !ismoderator) return res.status(403).end()
 
   const basedomain = config.domain
 
-  // For filtering by uploader's username
-  let uploaderID = null
-  if (uploader) {
-    uploaderID = await db.table('users')
-      .where('username', uploader)
+  // For filtering uploads
+  const _filters = {
+    uploaders: [],
+    names: [],
+    ips: [],
+    flags: {
+      nouser: false,
+      noip: false
+    }
+  }
+
+  // Perhaps this can be simplified even further?
+  if (filters) {
+    const usernames = []
+    filters
+      .split(' ')
+      .map((v, i, a) => {
+        if (/[^\\]\\$/.test(v) && a[i + 1]) {
+          const tmp = `${v.slice(0, -1)} ${a[i + 1]}`
+          a[i + 1] = ''
+          return tmp
+        }
+        return v.replace(/\\\\/, '\\')
+      })
+      .map((v, i) => {
+        const x = v.indexOf(':')
+        if (x >= 0 && v.substring(x + 1))
+          return [v.substring(0, x), v.substring(x + 1)]
+        else if (v.startsWith('-'))
+          return [v]
+      })
+      .forEach(v => {
+        if (!v) return
+        if (v[0] === 'user') usernames.push(v[1])
+        else if (v[0] === 'name') _filters.names.push(v[1])
+        else if (v[0] === 'ip') _filters.ips.push(v[1])
+        else if (v[0] === '-user') _filters.flags.nouser = true
+        else if (v[0] === '-ip') _filters.flags.noip = true
+      })
+    _filters.uploaders = await db.table('users')
+      .whereIn('username', usernames)
       .select('id')
-      .first()
-      .then(row => row ? row.id : null)
-    // Close request if the provided username is not valid
-    if (!uploaderID)
-      return res.json({ success: false, description: 'User with that username could not be found.' })
+      .then(rows => rows.map(v => v.id))
   }
 
   function filter () {
-    if (req.params.id === undefined)
-      this.where('id', '<>', '') // TODO: Why is this necessary?
-    else
+    if (req.params.id !== undefined) {
       this.where('albumid', req.params.id)
-    if (!all)
+    } else if (!all) {
       this.where('userid', user.id)
-    else if (uploaderID)
-      this.where('userid', uploaderID)
+    } else {
+      // Fisrt, look for uploads matching ANY of the supplied 'user' OR 'ip' filters
+      // Then, refined the matches using the supplied 'name' filters
+      const raw = []
+      const source = []
+      if (_filters.uploaders.length)
+        source.push(`\`userid\` in (${_filters.uploaders.map(v => `'${v}'`).join(', ')})`)
+      if (_filters.ips.length)
+        source.push(`\`ip\` in (${_filters.ips.map(v => `'${v}'`).join(', ')})`)
+      if (_filters.flags.nouser)
+        source.push('(`userid` is null or \'\')')
+      if (_filters.flags.noip)
+        source.push('(`ip` is null or \'\')')
+      if (source.length)
+        raw.push(`(${source.join(' or ')})`)
+      if (_filters.names.length)
+        raw.push(`(${_filters.names.map(v => {
+          if (v.includes('*'))
+            return `\`name\` like '${v.replace(/\*/g, '%')}'`
+          else
+            return `\`name\` = '${v}'`
+        }).join(' or ')})`)
+      this.whereRaw(raw.join(' and '))
+    }
   }
 
   // Query uploads count for pagination
@@ -763,32 +815,29 @@ uploadsController.list = async (req, res) => {
   }
 
   // If we are a regular user, or we are not listing all uploads, send response
+  // TODO: !ismoderator is probably redundant (?)
   if (!ismoderator || !all) return res.json({ success: true, files, count, albums, basedomain })
 
   // Otherwise proceed to querying usernames
-  let users = {}
-  if (uploaderID) {
-    // If we are already filtering by username, manually build array
-    users[uploaderID] = uploader
-  } else {
-    const userids = files
-      .map(file => file.userid)
-      .filter((v, i, a) => {
-        return v !== null && v !== undefined && v !== '' && a.indexOf(v) === i
-      })
-    // If there are no uploads attached to a registered user, send response
-    if (userids.length === 0) return res.json({ success: true, files, count, basedomain })
+  const userids = files
+    .map(file => file.userid)
+    .filter((v, i, a) => {
+      return v !== null && v !== undefined && v !== '' && a.indexOf(v) === i
+    })
 
-    // Query usernames of user IDs from currently selected files
-    users = await db.table('users')
-      .whereIn('id', userids)
-      .then(rows => {
-        // Build Object indexed by their IDs
-        const obj = {}
-        for (const row of rows) obj[row.id] = row.username
-        return obj
-      })
-  }
+  // If there are no uploads attached to a registered user, send response
+  if (userids.length === 0) return res.json({ success: true, files, count, basedomain })
+
+  // Query usernames of user IDs from currently selected files
+  const users = await db.table('users')
+    .whereIn('id', userids)
+    .select('id', 'username')
+    .then(rows => {
+      // Build Object indexed by their IDs
+      const obj = {}
+      for (const row of rows) obj[row.id] = row.username
+      return obj
+    })
 
   return res.json({ success: true, files, count, users, basedomain })
 }
