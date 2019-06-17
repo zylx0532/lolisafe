@@ -731,8 +731,7 @@ uploadsController.list = async (req, res) => {
       })
     _filters.uploaders = await db.table('users')
       .whereIn('username', usernames)
-      .select('id')
-      .then(rows => rows.map(v => v.id))
+      .select('id', 'username')
   }
 
   function filter () {
@@ -742,11 +741,11 @@ uploadsController.list = async (req, res) => {
       this.where('userid', user.id)
     } else {
       // Fisrt, look for uploads matching ANY of the supplied 'user' OR 'ip' filters
-      // Then, refined the matches using the supplied 'name' filters
+      // Then, refine the matches using the supplied 'name' filters
       const raw = []
       const source = []
       if (_filters.uploaders.length)
-        source.push(`\`userid\` in (${_filters.uploaders.map(v => `'${v}'`).join(', ')})`)
+        source.push(`\`userid\` in (${_filters.uploaders.map(v => `'${v.id}'`).join(', ')})`)
       if (_filters.ips.length)
         source.push(`\`ip\` in (${_filters.ips.map(v => `'${v}'`).join(', ')})`)
       if (_filters.flags.nouser)
@@ -814,30 +813,30 @@ uploadsController.list = async (req, res) => {
       })
   }
 
-  // If we are a regular user, or we are not listing all uploads, send response
-  // TODO: !ismoderator is probably redundant (?)
-  if (!ismoderator || !all) return res.json({ success: true, files, count, albums, basedomain })
+  // If we are not listing all uploads, send response
+  if (!all) return res.json({ success: true, files, count, albums, basedomain })
 
   // Otherwise proceed to querying usernames
-  const userids = files
-    .map(file => file.userid)
-    .filter((v, i, a) => {
-      return v !== null && v !== undefined && v !== '' && a.indexOf(v) === i
-    })
+  let _users = _filters.uploaders
+  if (!_users.length) {
+    const userids = files
+      .map(file => file.userid)
+      .filter((v, i, a) => {
+        return v !== null && v !== undefined && v !== '' && a.indexOf(v) === i
+      })
 
-  // If there are no uploads attached to a registered user, send response
-  if (userids.length === 0) return res.json({ success: true, files, count, basedomain })
+    // If there are no uploads attached to a registered user, send response
+    if (userids.length === 0) return res.json({ success: true, files, count, basedomain })
 
-  // Query usernames of user IDs from currently selected files
-  const users = await db.table('users')
-    .whereIn('id', userids)
-    .select('id', 'username')
-    .then(rows => {
-      // Build Object indexed by their IDs
-      const obj = {}
-      for (const row of rows) obj[row.id] = row.username
-      return obj
-    })
+    // Query usernames of user IDs from currently selected files
+    _users = await db.table('users')
+      .whereIn('id', userids)
+      .select('id', 'username')
+  }
+
+  const users = {}
+  for (const user of _users)
+    users[user.id] = user.username
 
   return res.json({ success: true, files, count, users, basedomain })
 }
