@@ -3,6 +3,7 @@ const config = require('./../config')
 const db = require('knex')(config.database)
 const perms = require('./permissionController')
 const randomstring = require('randomstring')
+const tokens = require('./tokenController')
 const utils = require('./utilsController')
 
 const authController = {}
@@ -38,8 +39,10 @@ authController.register = async (req, res, next) => {
   const username = req.body.username
   const password = req.body.password
 
-  if (username === undefined) return res.json({ success: false, description: 'No username provided.' })
-  if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
+  if (username === undefined)
+    return res.json({ success: false, description: 'No username provided.' })
+  if (password === undefined)
+    return res.json({ success: false, description: 'No password provided.' })
 
   if (username.length < 4 || username.length > 32)
     return res.json({ success: false, description: 'Username must have 4-32 characters.' })
@@ -48,14 +51,19 @@ authController.register = async (req, res, next) => {
     return res.json({ success: false, description: 'Password must have 6-64 characters.' })
 
   const user = await db.table('users').where('username', username).first()
-  if (user) return res.json({ success: false, description: 'Username already exists.' })
+  if (user)
+    return res.json({ success: false, description: 'Username already exists.' })
 
   bcrypt.hash(password, 10, async (error, hash) => {
     if (error) {
       console.error(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
-    const token = randomstring.generate(64)
+
+    const token = await tokens.generateUniqueToken()
+    if (!token)
+      return res.json({ success: false, description: 'Error generating unique token (╯°□°）╯︵ ┻━┻.' })
+
     await db.table('users').insert({
       username,
       password: hash,
@@ -63,6 +71,7 @@ authController.register = async (req, res, next) => {
       enabled: 1,
       permission: perms.permissions.user
     })
+
     utils.invalidateStatsCache('users')
     return res.json({ success: true, token })
   })
@@ -73,7 +82,8 @@ authController.changePassword = async (req, res, next) => {
   if (!user) return
 
   const password = req.body.password
-  if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
+  if (password === undefined)
+    return res.json({ success: false, description: 'No password provided.' })
 
   if (password.length < 6 || password.length > 64)
     return res.json({ success: false, description: 'Password must have 6-64 characters.' })
@@ -214,12 +224,14 @@ authController.listUsers = async (req, res, next) => {
   if (!user) return
 
   const isadmin = perms.is(user, 'admin')
-  if (!isadmin) return res.status(403).end()
+  if (!isadmin)
+    return res.status(403).end()
 
   const count = await db.table('users')
     .count('id as count')
     .then(rows => rows[0].count)
-  if (!count) return res.json({ success: true, users: [], count })
+  if (!count)
+    return res.json({ success: true, users: [], count })
 
   let offset = req.params.page
   if (offset === undefined) offset = 0

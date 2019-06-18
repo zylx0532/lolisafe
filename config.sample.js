@@ -129,7 +129,7 @@ module.exports = {
       ],
       config: {
         windowMs: 30 * 1000,
-        max: 1
+        max: 2
       }
     }
   ],
