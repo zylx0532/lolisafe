@@ -103,6 +103,10 @@ hr {
   color: #fff;
 }
 
+.progress.is-breeze:indeterminate {
+  background-image: linear-gradient(to right,#60a8dc 30%,#eff0f1 30%);
+}
+
 .render {
   position: fixed;
   right: 0;
@@ -141,15 +145,4 @@ hr {
   100% {
     opacity: 1;
   }
-}
-
-.pagination-link.is-current {
-  background-color: #3794d2;
-  border-color: #3794d2;
-}
-
-.pagination-link:hover,
-.pagination-next:hover,
-.pagination-previous:hover {
-  border-color: #3794d2;
 }

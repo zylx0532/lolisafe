@@ -59,18 +59,27 @@ ul#albumsContainer li {
   animation: fadeInOpacity .5s
 }
 
-.pagination a {
+.pagination a:not([disabled]) {
   color: #eff0f1;
   border-color: #4d4d4d;
   background-color: #31363b;
 }
 
-.pagination-link:hover,
-.pagination-next:hover,
-.pagination-previous:hover {
+a.pagination-link:not(.is-current):hover,
+a.pagination-next:not([disabled]):hover,
+a.pagination-previous:not([disabled]):hover {
   color: #eff0f1;
   border-color: #60a8dc;
   background-color: #31363b;
+}
+
+a.pagination-link.is-current {
+  background-color: #3794d2;
+  border-color: #3794d2;
+}
+
+a.pagination-link.is-current:hover {
+  border-color: #60a8dc;
 }
 
 .label {

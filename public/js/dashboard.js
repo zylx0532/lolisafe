@@ -349,7 +349,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
       }
 
     const files = response.data.files
-    if (pageNum && (files === 0)) {
+    if (pageNum && (files.length === 0)) {
       if (element) page.isLoading(element, false)
       return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
     }
@@ -2020,6 +2020,12 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
 page.getServerStats = function (element) {
   if (!page.permissions.admin)
     return swal('An error occurred!', 'You can not do this!', 'error')
+
+  page.dom.innerHTML = `
+    Please wait, this may take a while\u2026
+    <progress class="progress is-breeze" max="100" style="margin-top: 10px"></progress>
+  `
+  page.fadeIn()
 
   const url = 'api/stats'
   axios.get(url).then(function (response) {

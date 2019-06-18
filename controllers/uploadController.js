@@ -786,6 +786,8 @@ uploadsController.list = async (req, res) => {
     .offset(25 * offset)
     .select(columns)
 
+  if (!files.length) return res.json({ success: true, files, count, basedomain })
+
   for (const file of files) {
     file.extname = utils.extname(file.name)
     if (utils.mayGenerateThumb(file.extname))
