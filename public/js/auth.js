@@ -45,8 +45,11 @@ page.verify = function () {
 
     window.location = 'dashboard'
   }).catch(function (error) {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    console.log(error)
+    const description = error.response.data && error.response.data.description
+      ? error.response.data.description
+      : 'There was an error with the request, please check the console for more information.'
+    return swal(`${error.response.status} ${error.response.statusText}`, description, 'error')
   })
 }
 
