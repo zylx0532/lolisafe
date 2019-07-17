@@ -15,6 +15,16 @@ const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const zipsDir = path.join(uploadsDir, 'zips')
 const zipMaxTotalSize = config.cloudflare.zipMaxTotalSize
 const zipMaxTotalSizeBytes = parseInt(config.cloudflare.zipMaxTotalSize) * 1000000
+const zipOptions = config.uploads.jsZipOptions
+
+// Force 'type' option to 'nodebuffer'
+zipOptions.type = 'nodebuffer'
+
+// Apply fallbacks for missing config values
+if (zipOptions.streamFiles === undefined) zipOptions.streamFiles = true
+if (zipOptions.compression === undefined) zipOptions.compression = 'DEFLATE'
+if (zipOptions.compressionOptions === undefined || zipOptions.compressionOptions.level === undefined)
+  zipOptions.compressionOptions = { level: 1 }
 
 albumsController.zipEmitters = new Map()
 
@@ -402,12 +412,7 @@ albumsController.generateZip = async (req, res, next) => {
       iteration++
       if (iteration === files.length)
         archive
-          .generateNodeStream({
-            type: 'nodebuffer',
-            streamFiles: true,
-            compression: 'DEFLATE',
-            compressionOptions: { level: 1 }
-          })
+          .generateNodeStream(zipOptions)
           .pipe(fs.createWriteStream(zipPath))
           .on('finish', async () => {
             console.log(`Finished zip task for album: ${identifier} (success).`)

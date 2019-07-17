@@ -293,7 +293,20 @@ module.exports = {
       The file is generated when the user clicks the download button in the view
       and is re-used if the album has not changed between download requests.
     */
-    generateZips: true
+    generateZips: true,
+
+    /*
+      JSZip's options to use when generating album ZIPs.
+      https://stuk.github.io/jszip/documentation/api_jszip/generate_async.html
+      NOTE: Changing this option will not re-generate existing ZIPs.
+    */
+    jsZipOptions: {
+      streamFiles: true,
+      compression: 'DEFLATE',
+      compressionOptions: {
+        level: 1
+      }
+    }
   },
 
   /*
