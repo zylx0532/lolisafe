@@ -165,17 +165,17 @@ utilsController.generateThumbs = (name, force) => {
 
       if (!error && stats.isSymbolicLink()) {
         // Unlink symlink
-        const unlink = await new Promise((resolve, reject) => {
+        const unlink = await new Promise(resolve => {
           fs.unlink(thumbname, error => {
-            if (error) return reject(error)
-            return resolve(true)
+            if (error) console.error(error)
+            resolve(!error)
           })
-        }).catch(console.error)
+        })
         if (!unlink) return resolve(false)
       }
 
       // Only make thumbnail if it does not exist (ENOENT)
-      if (!error && !stats.isSymbolicLink() && !force) return resolve(true)
+      if (!error && !force) return resolve(true)
 
       // Full path to input file
       const input = path.join(__dirname, '..', config.uploads.folder, name)
@@ -235,7 +235,15 @@ utilsController.generateThumbs = (name, force) => {
               '-vframes 1',
               '-vf scale=200:200:force_original_aspect_ratio=decrease'
             ])
-            .on('error', reject)
+            .on('error', error => {
+              // Attempt to unlink thumbnail
+              // Since ffmpeg may have already created an incomplete thumbnail
+              fs.unlink(thumbname, err => {
+                if (err && err.code !== 'ENOENT')
+                  console.error(`${name}: ${err.toString()}`)
+                reject(error)
+              })
+            })
             .on('end', () => resolve(true))
             .run()
         })
