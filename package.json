@@ -20,7 +20,7 @@
     "pm2": "pm2 start --name safe ./lolisafe.js",
     "thumbs": "node ./scripts/thumbs.js",
     "cfpurge": "node ./scripts/cfpurge.js",
-    "pull": "git stash; git pull; yarn install --production; git stash pop"
+    "pull": "git stash; git pull; yarn install --production; git stash pop; echo OK."
   },
   "dependencies": {
     "bcrypt": "^3.0.6",
