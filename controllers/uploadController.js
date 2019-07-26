@@ -791,7 +791,7 @@ uploadsController.list = async (req, res) => {
   for (const file of files) {
     file.extname = utils.extname(file.name)
     if (utils.mayGenerateThumb(file.extname))
-      file.thumb = `/thumbs/${file.name.slice(0, -file.extname.length)}.png`
+      file.thumb = `thumbs/${file.name.slice(0, -file.extname.length)}.png`
   }
 
   // If we are not listing all uploads, query album names
