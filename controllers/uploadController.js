@@ -476,29 +476,27 @@ uploadsController.appendToStream = (destFileStream, uuidDr, chunkNames) => {
   })
 }
 
-uploadsController.cleanUpChunks = (uuidDir, chunkNames) => {
-  return new Promise(async (resolve, reject) => {
-    await Promise.all(chunkNames.map(chunkName => {
-      return new Promise((resolve, reject) => {
-        const chunkPath = path.join(uuidDir, chunkName)
-        fs.unlink(chunkPath, error => {
-          if (error && error.code !== 'ENOENT') {
-            console.error(error)
-            return reject(error)
-          }
-          resolve()
-        })
+uploadsController.cleanUpChunks = async (uuidDir, chunkNames) => {
+  await Promise.all(chunkNames.map(chunkName =>
+    new Promise((resolve, reject) => {
+      const chunkPath = path.join(uuidDir, chunkName)
+      fs.unlink(chunkPath, error => {
+        if (error && error.code !== 'ENOENT')
+          return reject(error)
+        resolve()
       })
-    })).catch(reject)
+    })
+  ))
+  return new Promise((resolve, reject) => {
     fs.rmdir(uuidDir, error => {
-      if (error) return reject(error)
+      if (error) reject(error)
       resolve(true)
     })
   })
 }
 
 uploadsController.formatInfoMap = (req, res, user, infoMap) => {
-  return new Promise(async resolve => {
+  return new Promise((resolve, reject) => {
     let iteration = 0
     const files = []
     const existingFiles = []
@@ -565,7 +563,7 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
 }
 
 uploadsController.scanFiles = (req, infoMap) => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const scanner = req.app.get('clam-scanner')
     const timeout = config.uploads.scan.timeout || 5000
     const chunkSize = config.uploads.scan.chunkSize || 64 * 1024

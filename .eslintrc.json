@@ -30,7 +30,6 @@
       "error",
       "single"
     ],
-    "no-async-promise-executor": 0,
     "no-var": "error"
   }
 }

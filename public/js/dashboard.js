@@ -1446,7 +1446,7 @@ page.changeFileLength = function () {
 
     // Shorter vars
     const { max, min } = response.data.config
-    const [ chg, def ] = [ response.data.config.userChangeable, response.data.config.default ]
+    const [chg, def] = [response.data.config.userChangeable, response.data.config.default]
     const len = response.data.fileLength
 
     page.dom.innerHTML = `
