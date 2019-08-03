@@ -336,7 +336,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
         deletedFiles.forEach(file => {
           const identifier = file.name.split('.')[0]
           set.delete(identifier)
-        // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
+          // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
         })
 
       // Update albums if necessary
@@ -362,7 +362,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
           })
 
       return resolve()
-    })
+    }).catch(console.error)
   }))
   return failed
 }

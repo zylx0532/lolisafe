@@ -489,14 +489,14 @@ uploadsController.cleanUpChunks = async (uuidDir, chunkNames) => {
   ))
   return new Promise((resolve, reject) => {
     fs.rmdir(uuidDir, error => {
-      if (error) reject(error)
+      if (error) return reject(error)
       resolve(true)
     })
   })
 }
 
 uploadsController.formatInfoMap = (req, res, user, infoMap) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     let iteration = 0
     const files = []
     const existingFiles = []
