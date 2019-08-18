@@ -14,17 +14,17 @@ page.do = function (dest) {
   const pass = page.pass.value
 
   if (!user)
-    return swal('An error occurred!', 'You need to specify a username', 'error')
+    return swal('An error occurred!', 'You need to specify a username.', 'error')
 
   if (!pass)
-    return swal('An error occurred!', 'You need to specify a username', 'error')
+    return swal('An error occurred!', 'You need to specify a password.', 'error')
 
   axios.post(`api/${dest}`, {
     username: user,
     password: pass
   }).then(function (response) {
     if (response.data.success === false)
-      return swal('An error occurred!', response.data.description, 'error')
+      return swal(`Unable to ${dest}!`, response.data.description, 'error')
 
     localStorage.token = response.data.token
     window.location = 'dashboard'
@@ -58,6 +58,11 @@ window.onload = function () {
 
   page.user = document.getElementById('user')
   page.pass = document.getElementById('pass')
+
+  // Prevent default form's submit action
+  document.getElementById('authForm').addEventListener('submit', function (event) {
+    event.preventDefault()
+  })
 
   document.getElementById('loginBtn').addEventListener('click', function () {
     page.do('login')

@@ -17,7 +17,7 @@ authController.verify = async (req, res, next) => {
 
   const user = await db.table('users').where('username', username).first()
   if (!user)
-    return res.json({ success: false, description: 'Username doesn\'t exist.' })
+    return res.json({ success: false, description: 'Username does not exist.' })
 
   if (user.enabled === false || user.enabled === 0)
     return res.json({ success: false, description: 'This account has been disabled.' })
