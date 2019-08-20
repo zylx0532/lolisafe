@@ -56,19 +56,19 @@ page.verify = function () {
 window.onload = function () {
   page.verify()
 
-  page.user = document.getElementById('user')
-  page.pass = document.getElementById('pass')
+  page.user = document.querySelector('#user')
+  page.pass = document.querySelector('#pass')
 
   // Prevent default form's submit action
-  document.getElementById('authForm').addEventListener('submit', function (event) {
+  document.querySelector('#authForm').addEventListener('submit', function (event) {
     event.preventDefault()
   })
 
-  document.getElementById('loginBtn').addEventListener('click', function () {
+  document.querySelector('#loginBtn').addEventListener('click', function () {
     page.do('login')
   })
 
-  document.getElementById('registerBtn').addEventListener('click', function () {
+  document.querySelector('#registerBtn').addEventListener('click', function () {
     page.do('register')
   })
 }

@@ -16,8 +16,8 @@ const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
 const chunkedUploads = Boolean(config.uploads.chunkSize)
 const chunksDir = path.join(uploadsDir, 'chunks')
 const maxSize = config.uploads.maxSize
-const maxSizeBytes = parseInt(maxSize) * 1000 * 1000
-const urlMaxSizeBytes = parseInt(config.uploads.urlMaxSize) * 1000 * 1000
+const maxSizeBytes = parseInt(maxSize) * 1e6
+const urlMaxSizeBytes = parseInt(config.uploads.urlMaxSize) * 1e6
 
 const storage = multer.diskStorage({
   destination (req, file, cb) {
@@ -181,11 +181,12 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 
   upload(req, res, async error => {
     if (error) {
-      const expected = [
+      // Suppress error logging for errors with these codes
+      const suppress = [
         'LIMIT_FILE_SIZE',
         'LIMIT_UNEXPECTED_FILE'
       ]
-      if (expected.includes(error.code)) return erred(error.toString())
+      if (error.code && suppress.includes(error.code)) return erred(error.toString())
       return erred(error)
     }
 
@@ -597,7 +598,7 @@ uploadsController.scanFiles = (req, infoMap) => {
     return `Threat found: ${result.virus}${result.lastIteration ? '' : ', and maybe more'}.`
   }).catch(error => {
     console.error(`ClamAV: ${error.toString()}.`)
-    return `ClamAV: ${error.code !== undefined ? `${error.code} , p` : 'P'}lease contact the site owner.`
+    return `ClamAV: ${error.code !== undefined ? `${error.code}, p` : 'P'}lease contact the site owner.`
   })
 }
 

@@ -115,14 +115,13 @@ page.verifyToken = function (token, reloadOnError) {
 }
 
 page.prepareDashboard = function () {
-  page.dom = document.getElementById('page')
+  page.dom = document.querySelector('#page')
   page.dom.addEventListener('click', page.domClick, true)
 
-  // document.getElementById('auth').style.display = 'none'
-  document.getElementById('dashboard').style.display = 'block'
+  document.querySelector('#dashboard').style.display = 'block'
 
   if (page.permissions.moderator) {
-    const itemManageUploads = document.getElementById('itemManageUploads')
+    const itemManageUploads = document.querySelector('#itemManageUploads')
     itemManageUploads.removeAttribute('disabled')
     itemManageUploads.addEventListener('click', function () {
       page.setActiveMenu(this)
@@ -131,14 +130,14 @@ page.prepareDashboard = function () {
   }
 
   if (page.permissions.admin) {
-    const itemServerStats = document.getElementById('itemServerStats')
+    const itemServerStats = document.querySelector('#itemServerStats')
     itemServerStats.removeAttribute('disabled')
     itemServerStats.addEventListener('click', function () {
       page.setActiveMenu(this)
       page.getServerStats()
     })
 
-    const itemManageUsers = document.getElementById('itemManageUsers')
+    const itemManageUsers = document.querySelector('#itemManageUsers')
     itemManageUsers.removeAttribute('disabled')
     itemManageUsers.addEventListener('click', function () {
       page.setActiveMenu(this)
@@ -146,37 +145,37 @@ page.prepareDashboard = function () {
     })
   }
 
-  document.getElementById('itemUploads').addEventListener('click', function () {
+  document.querySelector('#itemUploads').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.getUploads({ all: false })
   })
 
-  document.getElementById('itemDeleteByNames').addEventListener('click', function () {
+  document.querySelector('#itemDeleteByNames').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.deleteByNames()
   })
 
-  document.getElementById('itemManageGallery').addEventListener('click', function () {
+  document.querySelector('#itemManageGallery').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.getAlbums()
   })
 
-  document.getElementById('itemFileLength').addEventListener('click', function () {
+  document.querySelector('#itemFileLength').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.changeFileLength()
   })
 
-  document.getElementById('itemTokens').addEventListener('click', function () {
+  document.querySelector('#itemTokens').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.changeToken()
   })
 
-  document.getElementById('itemPassword').addEventListener('click', function () {
+  document.querySelector('#itemPassword').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.changePassword()
   })
 
-  const logoutBtn = document.getElementById('itemLogout')
+  const logoutBtn = document.querySelector('#itemLogout')
   logoutBtn.addEventListener('click', function () {
     page.logout()
   })
@@ -315,11 +314,12 @@ page.switchPage = function (action, element) {
     case 'page-goto':
       views.pageNum = parseInt(element.dataset.goto)
       return func(views, element)
-    case 'jump-to-page':
-      const jumpToPage = parseInt(document.getElementById('jumpToPage').value)
+    case 'jump-to-page': {
+      const jumpToPage = parseInt(document.querySelector('#jumpToPage').value)
       views.pageNum = isNaN(jumpToPage) ? 0 : (jumpToPage - 1)
       if (views.pageNum < 0) views.pageNum = 0
       return func(views, element)
+    }
   }
 }
 
@@ -480,7 +480,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
       `
       page.fadeIn()
 
-      const table = document.getElementById('table')
+      const table = document.querySelector('#table')
 
       for (let i = 0; i < files.length; i++) {
         const upload = files[i]
@@ -553,7 +553,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
       `
       page.fadeIn()
 
-      const table = document.getElementById('table')
+      const table = document.querySelector('#table')
 
       for (let i = 0; i < files.length; i++) {
         const upload = files[i]
@@ -597,7 +597,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
     }
 
     if (allSelected && files.length) {
-      const selectAll = document.getElementById('selectAll')
+      const selectAll = document.querySelector('#selectAll')
       if (selectAll) selectAll.checked = true
     }
 
@@ -771,7 +771,7 @@ page.clearSelection = function () {
     localStorage[lsKeys.selected[page.currentView]] = '[]'
     page.selected[page.currentView] = []
 
-    const selectAll = document.getElementById('selectAll')
+    const selectAll = document.querySelector('#selectAll')
     if (selectAll) selectAll.checked = false
 
     return swal('Cleared selection!', `Unselected ${count} ${suffix}.`, 'success')
@@ -809,14 +809,14 @@ page.filtersHelp = function (element) {
 }
 
 page.filterUploads = function (element) {
-  const filters = document.getElementById('filters').value
+  const filters = document.querySelector('#filters').value
   page.getUploads({ all: true, filters }, element)
 }
 
 page.viewUserUploads = function (id) {
   const user = page.cache.users[id]
   if (!user) return
-  page.setActiveMenu(document.getElementById('itemManageUploads'))
+  page.setActiveMenu(document.querySelector('#itemManageUploads'))
   page.getUploads({ all: true, filters: `user:${user.username.replace(/ /g, '\\ ')}` })
 }
 
@@ -944,7 +944,7 @@ page.deleteByNames = function () {
 }
 
 page.deleteFileByNames = function () {
-  const names = document.getElementById('names').value
+  const names = document.querySelector('#names').value
     .split(/\r?\n/)
     .filter(function (n) {
       return n.trim().length
@@ -986,7 +986,7 @@ page.deleteFileByNames = function () {
       if (bulkdelete.data.failed && bulkdelete.data.failed.length)
         deleted -= bulkdelete.data.failed.length
 
-      document.getElementById('names').value = bulkdelete.data.failed.join('\n')
+      document.querySelector('#names').value = bulkdelete.data.failed.join('\n')
       swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
     }).catch(function (error) {
       console.log(error)
@@ -1058,7 +1058,7 @@ page.addFilesToAlbum = function (ids, callback) {
   }).then(function (choose) {
     if (!choose) return
 
-    const albumid = parseInt(document.getElementById('swalAlbum').value)
+    const albumid = parseInt(document.querySelector('#swalAlbum').value)
     if (isNaN(albumid))
       return swal('An error occurred!', 'You did not choose an album.', 'error')
 
@@ -1107,7 +1107,7 @@ page.addFilesToAlbum = function (ids, callback) {
       return
     }
 
-    const select = document.getElementById('swalAlbum')
+    const select = document.querySelector('#swalAlbum')
     // If the prompt was replaced, the container would be missing
     if (!select) return
     select.innerHTML += list.data.albums
@@ -1180,7 +1180,7 @@ page.getAlbums = function () {
     page.fadeIn()
 
     const homeDomain = response.data.homeDomain
-    const table = document.getElementById('table')
+    const table = document.querySelector('#table')
 
     for (let i = 0; i < response.data.albums.length; i++) {
       const album = response.data.albums[i]
@@ -1292,11 +1292,11 @@ page.editAlbum = function (id) {
 
     axios.post('api/albums/edit', {
       id,
-      name: document.getElementById('swalName').value,
-      description: document.getElementById('swalDescription').value,
-      download: document.getElementById('swalDownload').checked,
-      public: document.getElementById('swalPublic').checked,
-      requestLink: document.getElementById('swalRequestLink').checked
+      name: document.querySelector('#swalName').value,
+      description: document.querySelector('#swalDescription').value,
+      download: document.querySelector('#swalDownload').checked,
+      public: document.querySelector('#swalPublic').checked,
+      requestLink: document.querySelector('#swalRequestLink').checked
     }).then(function (response) {
       if (!response) return
 
@@ -1370,8 +1370,8 @@ page.submitAlbum = function (element) {
   page.isLoading(element, true)
 
   axios.post('api/albums', {
-    name: document.getElementById('albumName').value,
-    description: document.getElementById('albumDescription').value
+    name: document.querySelector('#albumName').value,
+    description: document.querySelector('#albumDescription').value
   }).then(function (response) {
     if (!response) return
 
@@ -1405,7 +1405,7 @@ page.getAlbumsSidebar = function () {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    const albumsContainer = document.getElementById('albumsContainer')
+    const albumsContainer = document.querySelector('#albumsContainer')
     albumsContainer.innerHTML = ''
 
     if (response.data.albums === undefined) return
@@ -1473,8 +1473,8 @@ page.changeFileLength = function () {
     `
     page.fadeIn()
 
-    document.getElementById('setFileLength').addEventListener('click', function () {
-      page.setFileLength(document.getElementById('fileLength').value, this)
+    document.querySelector('#setFileLength').addEventListener('click', function () {
+      page.setFileLength(document.querySelector('#fileLength').value, this)
     })
   }).catch(function (error) {
     console.log(error)
@@ -1604,9 +1604,9 @@ page.changePassword = function () {
   `
   page.fadeIn()
 
-  document.getElementById('sendChangePassword').addEventListener('click', function () {
-    if (document.getElementById('password').value === document.getElementById('passwordConfirm').value)
-      page.sendNewPassword(document.getElementById('password').value, this)
+  document.querySelector('#sendChangePassword').addEventListener('click', function () {
+    if (document.querySelector('#password').value === document.querySelector('#passwordConfirm').value)
+      page.sendNewPassword(document.querySelector('#password').value, this)
     else
       swal({
         title: 'Password mismatch!',
@@ -1644,7 +1644,7 @@ page.sendNewPassword = function (pass, element) {
 }
 
 page.setActiveMenu = function (activeItem) {
-  const menu = document.getElementById('menu')
+  const menu = document.querySelector('#menu')
   const items = menu.getElementsByTagName('a')
   for (let i = 0; i < items.length; i++)
     items[i].classList.remove('is-active')
@@ -1753,7 +1753,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
     `
     page.fadeIn()
 
-    const table = document.getElementById('table')
+    const table = document.querySelector('#table')
 
     for (let i = 0; i < response.data.users.length; i++) {
       const user = response.data.users[i]
@@ -1810,12 +1810,11 @@ page.getUsers = function ({ pageNum } = {}, element) {
       `
 
       table.appendChild(tr)
-      // page.checkboxes.users = Array.from(table.getElementsByClassName('checkbox'))
       page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
     }
 
     if (allSelected && response.data.users.length) {
-      const selectAll = document.getElementById('selectAll')
+      const selectAll = document.querySelector('#selectAll')
       if (selectAll) selectAll.checked = true
     }
 
@@ -1888,10 +1887,10 @@ page.editUser = function (id) {
 
     axios.post('api/users/edit', {
       id,
-      username: document.getElementById('swalUsername').value,
-      group: document.getElementById('swalGroup').value,
-      enabled: document.getElementById('swalEnabled').checked,
-      resetPassword: document.getElementById('swalResetPassword').checked
+      username: document.querySelector('#swalUsername').value,
+      group: document.querySelector('#swalGroup').value,
+      enabled: document.querySelector('#swalEnabled').checked,
+      resetPassword: document.querySelector('#swalResetPassword').checked
     }).then(function (response) {
       if (!response) return
 

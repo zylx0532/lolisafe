@@ -166,22 +166,23 @@ const start = async () => {
 
   const scan = config.uploads.scan
   if (scan && scan.enabled) {
-    const created = await new Promise(async (resolve, reject) => {
-      if (!scan.ip || !scan.port)
-        return reject(new Error('clamd IP or port is missing'))
+    const createScanner = async () => {
+      try {
+        if (!scan.ip || !scan.port)
+          throw new Error('clamd IP or port is missing')
 
-      const ping = await clamd.ping(scan.ip, scan.port).catch(reject)
-      if (!ping)
-        return reject(new Error('Could not ping clamd'))
+        const version = await clamd.version(scan.ip, scan.port)
+        console.log(`${scan.ip}:${scan.port} ${version}`)
 
-      const version = await clamd.version(scan.ip, scan.port).catch(reject)
-      console.log(`${scan.ip}:${scan.port} ${version}`)
-
-      const scanner = clamd.createScanner(scan.ip, scan.port)
-      safe.set('clam-scanner', scanner)
-      return resolve(true)
-    }).catch(error => console.error(error.toString()))
-    if (!created) return process.exit(1)
+        const scanner = clamd.createScanner(scan.ip, scan.port)
+        safe.set('clam-scanner', scanner)
+        return true
+      } catch (error) {
+        console.error(`ClamAV: ${error.toString()}`)
+        return false
+      }
+    }
+    if (!await createScanner()) return process.exit(1)
   }
 
   if (config.uploads.cacheFileIdentifiers) {

@@ -4,7 +4,7 @@ page.prepareShareX = function () {
   if (!page.token) return
   const origin = (location.hostname + location.pathname).replace(/\/(dashboard)?$/, '')
   const originClean = origin.replace(/\//g, '_')
-  const sharexElement = document.getElementById('ShareX')
+  const sharexElement = document.querySelector('#ShareX')
   const sharexFile = `{
   "Name": "${originClean}",
   "DestinationType": "ImageUploader, FileUploader",

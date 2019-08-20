@@ -298,71 +298,70 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
   const failed = []
   const ismoderator = perms.is(user, 'moderator')
   await Promise.all(chunks.map((chunk, index) => {
-    // It's much too dirty to code the function below without async function
-    // eslint-disable-next-line no-async-promise-executor
-    return new Promise(async (resolve, reject) => {
-      const files = await db.table('files')
-        .whereIn(field, chunk)
-        .where(function () {
-          if (!ismoderator)
-            this.where('userid', user.id)
-        })
-        .catch(reject)
-
-      // Push files that could not be found in DB
-      failed.push.apply(failed, chunk.filter(v => !files.find(file => file[field] === v)))
-
-      // Delete all found files physically
-      const deletedFiles = []
-      await Promise.all(files.map(file =>
-        utilsController.deleteFile(file.name)
-          .then(() => deletedFiles.push(file))
-          .catch(error => {
-            failed.push(file[field])
-            console.error(error)
+    const job = async () => {
+      try {
+        const files = await db.table('files')
+          .whereIn(field, chunk)
+          .where(function () {
+            if (!ismoderator)
+              this.where('userid', user.id)
           })
-      ))
 
-      if (!deletedFiles.length)
-        return resolve()
+        // Push files that could not be found in DB
+        failed.push.apply(failed, chunk.filter(v => !files.find(file => file[field] === v)))
 
-      // Delete all found files from database
-      const deletedFromDb = await db.table('files')
-        .whereIn('id', deletedFiles.map(file => file.id))
-        .del()
-        .catch(reject)
+        // Delete all found files physically
+        const deletedFiles = []
+        await Promise.all(files.map(file =>
+          utilsController.deleteFile(file.name)
+            .then(() => deletedFiles.push(file))
+            .catch(error => {
+              failed.push(file[field])
+              console.error(error)
+            })
+        ))
 
-      if (set)
-        deletedFiles.forEach(file => {
-          const identifier = file.name.split('.')[0]
-          set.delete(identifier)
-          // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
-        })
+        if (!deletedFiles.length)
+          return true
 
-      // Update albums if necessary
-      if (deletedFromDb) {
-        const albumids = []
-        deletedFiles.forEach(file => {
-          if (file.albumid && !albumids.includes(file.albumid))
-            albumids.push(file.albumid)
-        })
-        await db.table('albums')
-          .whereIn('id', albumids)
-          .update('editedAt', Math.floor(Date.now() / 1000))
-          .catch(console.error)
+        // Delete all found files from database
+        const deletedFromDb = await db.table('files')
+          .whereIn('id', deletedFiles.map(file => file.id))
+          .del()
+
+        if (set)
+          deletedFiles.forEach(file => {
+            const identifier = file.name.split('.')[0]
+            set.delete(identifier)
+            // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
+          })
+
+        // Update albums if necessary
+        if (deletedFromDb) {
+          const albumids = []
+          deletedFiles.forEach(file => {
+            if (file.albumid && !albumids.includes(file.albumid))
+              albumids.push(file.albumid)
+          })
+          await db.table('albums')
+            .whereIn('id', albumids)
+            .update('editedAt', Math.floor(Date.now() / 1000))
+            .catch(console.error)
+        }
+
+        // Purge Cloudflare's cache if necessary
+        if (config.cloudflare.purgeCache)
+          utilsController.purgeCloudflareCache(deletedFiles.map(file => file.name), true, true)
+            .then(results => {
+              for (const result of results)
+                if (result.errors.length)
+                  result.errors.forEach(error => console.error(`CF: ${error}`))
+            })
+      } catch (error) {
+        console.error(error)
       }
-
-      // Purge Cloudflare's cache if necessary
-      if (config.cloudflare.purgeCache)
-        utilsController.purgeCloudflareCache(deletedFiles.map(file => file.name), true, true)
-          .then(results => {
-            for (const result of results)
-              if (result.errors.length)
-                result.errors.forEach(error => console.error(`CF: ${error}`))
-          })
-
-      return resolve()
-    }).catch(console.error)
+    }
+    return new Promise(resolve => job().then(() => resolve()))
   }))
   return failed
 }

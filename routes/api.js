@@ -10,7 +10,7 @@ routes.get('/check', (req, res, next) => {
   return res.json({
     private: config.private,
     enableUserAccounts: config.enableUserAccounts,
-    maxFileSize: config.uploads.maxSize,
+    maxSize: config.uploads.maxSize,
     chunkSize: config.uploads.chunkSize
   })
 })

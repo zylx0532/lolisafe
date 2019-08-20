@@ -7,7 +7,7 @@ const page = {
   // configs from api/check
   private: null,
   enableUserAccounts: null,
-  maxFileSize: null,
+  maxSize: null,
   chunkSize: null,
 
   // store album id that will be used with upload requests
@@ -27,12 +27,12 @@ page.checkIfPublic = function () {
   axios.get('api/check').then(function (response) {
     page.private = response.data.private
     page.enableUserAccounts = response.data.enableUserAccounts
-    page.maxFileSize = response.data.maxFileSize
+    page.maxSize = response.data.maxSize
     page.chunkSize = response.data.chunkSize
     page.preparePage()
   }).catch(function (error) {
     console.log(error)
-    const button = document.getElementById('loginToUpload')
+    const button = document.querySelector('#loginToUpload')
     button.classList.remove('is-loading')
     button.innerText = 'Error occurred. Reload the page?'
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
@@ -44,7 +44,7 @@ page.preparePage = function () {
     if (page.token) {
       return page.verifyToken(page.token, true)
     } else {
-      const button = document.getElementById('loginToUpload')
+      const button = document.querySelector('#loginToUpload')
       button.href = 'auth'
       button.classList.remove('is-loading')
 
@@ -84,7 +84,7 @@ page.verifyToken = function (token, reloadOnError) {
 page.prepareUpload = function () {
   // I think this fits best here because we need to check for a valid token before we can get the albums
   if (page.token) {
-    page.albumSelect = document.getElementById('albumSelect')
+    page.albumSelect = document.querySelector('#albumSelect')
 
     page.albumSelect.addEventListener('change', function () {
       page.album = parseInt(page.albumSelect.value)
@@ -93,14 +93,14 @@ page.prepareUpload = function () {
     page.prepareAlbums()
 
     // Display the album selection
-    document.getElementById('albumDiv').style.display = 'flex'
+    document.querySelector('#albumDiv').style.display = 'flex'
   }
 
-  document.getElementById('maxFileSize').innerHTML = `Maximum upload size per file is ${page.maxFileSize}`
-  document.getElementById('loginToUpload').style.display = 'none'
+  document.querySelector('#maxSize').innerHTML = `Maximum upload size per file is ${page.maxSize}`
+  document.querySelector('#loginToUpload').style.display = 'none'
 
   if (!page.token && page.enableUserAccounts)
-    document.getElementById('loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
+    document.querySelector('#loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
 
   const previewNode = document.querySelector('#tpl')
   page.previewTemplate = previewNode.innerHTML
@@ -108,7 +108,7 @@ page.prepareUpload = function () {
 
   page.prepareDropzone()
 
-  const tabs = document.getElementById('tabs')
+  const tabs = document.querySelector('#tabs')
   if (tabs) {
     tabs.style.display = 'flex'
     const items = tabs.getElementsByTagName('li')
@@ -117,12 +117,12 @@ page.prepareUpload = function () {
         page.setActiveTab(this.dataset.id)
       })
 
-    document.getElementById('uploadUrls').addEventListener('click', function () {
+    document.querySelector('#uploadUrls').addEventListener('click', function () {
       page.uploadUrls(this)
     })
     page.setActiveTab('tab-files')
   } else {
-    document.getElementById('tab-files').style.display = 'block'
+    document.querySelector('#tab-files').style.display = 'block'
   }
 }
 
@@ -130,7 +130,6 @@ page.prepareAlbums = function () {
   const option = document.createElement('option')
   option.value = ''
   option.innerHTML = 'Upload to album'
-  option.disabled = true
   option.selected = true
   page.albumSelect.appendChild(option)
 
@@ -164,7 +163,7 @@ page.prepareAlbums = function () {
 }
 
 page.setActiveTab = function (activeId) {
-  const items = document.getElementById('tabs').getElementsByTagName('li')
+  const items = document.querySelector('#tabs').getElementsByTagName('li')
   for (let i = 0; i < items.length; i++) {
     const tabId = items[i].dataset.id
     if (tabId === activeId) {
@@ -178,7 +177,7 @@ page.setActiveTab = function (activeId) {
 }
 
 page.prepareDropzone = function () {
-  const tabDiv = document.getElementById('tab-files')
+  const tabDiv = document.querySelector('#tab-files')
   const div = document.createElement('div')
   div.className = 'control is-expanded'
   div.innerHTML = `
@@ -191,28 +190,31 @@ page.prepareDropzone = function () {
   `
   tabDiv.querySelector('.dz-container').appendChild(div)
 
+  const maxSize = parseInt(page.maxSize)
+  const maxSizeBytes = maxSize * 1e6
+
   const previewsContainer = tabDiv.querySelector('#tab-files .field.uploads')
+
   page.dropzone = new Dropzone('#dropzone', {
     url: 'api/upload',
     paramName: 'files[]',
-    maxFilesize: parseInt(page.maxFileSize),
+    maxFilesize: maxSizeBytes / 1024 / 1024, // this option expects MiB
     parallelUploads: 2,
     uploadMultiple: false,
     previewsContainer,
     previewTemplate: page.previewTemplate,
     createImageThumbnails: false,
-    maxFiles: 1000,
     autoProcessQueue: true,
     headers: { token: page.token },
     chunking: Boolean(page.chunkSize),
-    chunkSize: parseInt(page.chunkSize) * 1000000, // 1000000 B = 1 MB,
-    parallelChunkUploads: false, // when set to true, sometimes it often hangs with hundreds of parallel uploads
+    chunkSize: (parseInt(page.chunkSize) * 1e6), // the option below expects Bytes
+    parallelChunkUploads: false, // when set to true, it often hangs with hundreds of parallel uploads
     chunksUploaded (file, done) {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
       file.previewElement.querySelector('.progress').innerHTML = '100%'
 
       return axios.post('api/upload/finishchunks', {
-        // The API supports an array of multiple files
+        // This API supports an array of multiple files
         files: [{
           uuid: file.upload.uuid,
           original: file.name,
@@ -245,7 +247,7 @@ page.prepareDropzone = function () {
   })
 
   page.dropzone.on('addedfile', function (file) {
-    tabDiv.getElementsByClassName('uploads')[0].style.display = 'block'
+    tabDiv.querySelector('.uploads').style.display = 'block'
     file.previewElement.querySelector('.name').innerHTML = file.name
   })
 
@@ -257,6 +259,8 @@ page.prepareDropzone = function () {
 
   // Update the total progress bar
   page.dropzone.on('uploadprogress', function (file, progress) {
+    // For some reason, chunked uploads fire 100% progress event
+    // for each chunk's successful uploads
     if (file.upload.chunked && progress === 100) return
     file.previewElement.querySelector('.progress').setAttribute('value', progress)
     file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
@@ -265,7 +269,6 @@ page.prepareDropzone = function () {
   page.dropzone.on('success', function (file, response) {
     if (!response) return
     file.previewElement.querySelector('.progress').style.display = 'none'
-    // file.previewElement.querySelector('.name').innerHTML = file.name
 
     if (response.success === false)
       file.previewElement.querySelector('.error').innerHTML = response.description
@@ -275,6 +278,9 @@ page.prepareDropzone = function () {
   })
 
   page.dropzone.on('error', function (file, error) {
+    if ((typeof error === 'string' && /^File is too big/.test(error)) ||
+      error.description === 'MulterError: File too large')
+      error = `File too large (${(file.size / 1e6).toFixed(2)}MB).`
     page.updateTemplateIcon(file.previewElement, 'icon-block')
     file.previewElement.querySelector('.progress').style.display = 'none'
     file.previewElement.querySelector('.name').innerHTML = file.name
@@ -285,7 +291,7 @@ page.prepareDropzone = function () {
 }
 
 page.uploadUrls = function (button) {
-  const tabDiv = document.getElementById('tab-urls')
+  const tabDiv = document.querySelector('#tab-urls')
   if (!tabDiv) return
 
   if (button.classList.contains('is-loading')) return
@@ -298,19 +304,19 @@ page.uploadUrls = function (button) {
 
   function run () {
     const albumid = page.album
-    const previewsContainer = tabDiv.getElementsByClassName('uploads')[0]
-    const urls = document.getElementById('urls').value
+    const previewsContainer = tabDiv.querySelector('.uploads')
+    const urls = document.querySelector('#urls').value
       .split(/\r?\n/)
       .filter(function (url) {
         return url.trim().length
       })
-    document.getElementById('urls').value = urls.join('\n')
+    document.querySelector('#urls').value = urls.join('\n')
 
     if (!urls.length)
       // eslint-disable-next-line prefer-promise-reject-errors
       return done('You have not entered any URLs.')
 
-    tabDiv.getElementsByClassName('uploads')[0].style.display = 'block'
+    tabDiv.querySelector('.uploads').style.display = 'block'
     const files = urls.map(function (url) {
       const previewTemplate = document.createElement('template')
       previewTemplate.innerHTML = page.previewTemplate.trim()
@@ -373,14 +379,14 @@ page.updateTemplate = function (file, response) {
 
   const a = file.previewElement.querySelector('.link > a')
   const clipboard = file.previewElement.querySelector('.clipboard-mobile > .clipboard-js')
-  a.href = a.innerHTML = clipboard.dataset['clipboardText'] = response.url
+  a.href = a.innerHTML = clipboard.dataset.clipboardText = response.url
   clipboard.parentElement.style.display = 'block'
 
   const exec = /.[\w]+(\?|$)/.exec(response.url)
   if (exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())) {
     const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
-    img.dataset['src'] = response.url
+    img.dataset.src = response.url
     img.style.display = ''
     img.onerror = function () {
       // Hide image elements that fail to load
@@ -438,12 +444,12 @@ page.createAlbum = function () {
   }).then(function (value) {
     if (!value) return
 
-    const name = document.getElementById('swalName').value
+    const name = document.querySelector('#swalName').value
     axios.post('api/albums', {
       name,
-      description: document.getElementById('swalDescription').value,
-      download: document.getElementById('swalDownload').checked,
-      public: document.getElementById('swalPublic').checked
+      description: document.querySelector('#swalDescription').value,
+      download: document.querySelector('#swalDownload').checked,
+      public: document.querySelector('#swalPublic').checked
     }, {
       headers: {
         token: page.token
@@ -453,9 +459,10 @@ page.createAlbum = function () {
         return swal('An error occurred!', response.data.description, 'error')
 
       const option = document.createElement('option')
+      page.albumSelect.appendChild(option)
       option.value = response.data.id
       option.innerHTML = name
-      page.albumSelect.appendChild(option)
+      option.selected = true
 
       swal('Woohoo!', 'Album was created successfully', 'success')
     }).catch(function (error) {
@@ -497,7 +504,7 @@ window.onload = function () {
     elements_selector: '.field.uploads img'
   })
 
-  document.getElementById('createAlbum').addEventListener('click', function () {
+  document.querySelector('#createAlbum').addEventListener('click', function () {
     page.createAlbum()
   })
 }

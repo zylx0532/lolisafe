@@ -93,7 +93,7 @@ page.doRenderSwal = function () {
 }
 
 page.getRenderVersion = function () {
-  const renderScript = document.getElementById('renderScript')
+  const renderScript = document.querySelector('#renderScript')
   if (renderScript && renderScript.dataset.version)
     return `?v=${renderScript.dataset.version}`
   return ''
