@@ -228,7 +228,7 @@ utilsController.generateThumbs = (name, force) => {
           if (error) return reject(error)
 
           // Skip files that do not have video streams/channels
-          if (!metadata.streams || !metadata.streams.find(s => s.codec_type === 'video'))
+          if (!metadata.streams || !metadata.streams.some(s => s.codec_type === 'video'))
             return reject(new Error('File does not contain any video stream'))
 
           ffmpeg(input)
