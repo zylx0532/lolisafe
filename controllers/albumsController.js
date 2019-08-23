@@ -11,7 +11,7 @@ const albumsController = {}
 
 const maxTries = config.uploads.maxTries || 1
 const homeDomain = config.homeDomain || config.domain
-const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
+const uploadsDir = path.resolve(config.uploads.folder)
 const zipsDir = path.join(uploadsDir, 'zips')
 const zipMaxTotalSize = config.cloudflare.zipMaxTotalSize
 const zipMaxTotalSizeBytes = parseInt(config.cloudflare.zipMaxTotalSize) * 1000000

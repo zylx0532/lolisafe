@@ -282,10 +282,12 @@ module.exports = {
     /*
       Thumbnails are only used in the dashboard and album's public pages.
       You need to install a separate binary called ffmpeg (https://ffmpeg.org/) for video thumbnails.
+      NOTE: Placeholder defaults to 'public/images/unavailable.png'.
     */
     generateThumbs: {
       image: true,
-      video: false
+      video: false,
+      placeholder: null
     },
 
     /*

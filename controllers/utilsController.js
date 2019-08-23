@@ -36,9 +36,9 @@ const _stats = {
   }
 }
 
-const uploadsDir = path.join(__dirname, '..', config.uploads.folder)
+const uploadsDir = path.resolve(config.uploads.folder)
 const thumbsDir = path.join(uploadsDir, 'thumbs')
-const thumbUnavailable = path.join(__dirname, '../public/images/unavailable.png')
+const thumbPlaceholder = path.resolve(config.uploads.generateThumbs.placeholder || 'public/images/unavailable.png')
 const cloudflareAuth = config.cloudflare.apiKey && config.cloudflare.email && config.cloudflare.zoneId
 
 utilsController.imageExtensions = ['.webp', '.jpg', '.jpeg', '.gif', '.png', '.tiff', '.tif', '.svg']
@@ -250,11 +250,17 @@ utilsController.generateThumbs = (name, force) => {
       })
         .then(resolve)
         .catch(error => {
-          console.error(`${name}: ${error.toString()}`)
-          fs.symlink(thumbUnavailable, thumbname, error => {
-            if (error) console.error(error)
+          const errorString = error.toString()
+          const tests = [
+            /Error: Input file contains unsupported image format/,
+            /Error: ffprobe exited with code 1/
+          ]
+          if (!tests.some(t => t.test(errorString)))
+            console.error(`${name}: ${errorString}`)
+          fs.symlink(thumbPlaceholder, thumbname, err => {
+            if (err) console.error(err)
             // We return true if we could make a symlink to the placeholder image
-            resolve(!error)
+            resolve(!err)
           })
         })
     })

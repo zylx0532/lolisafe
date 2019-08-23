@@ -1,4 +1,5 @@
 const { stripIndents } = require('./_utils')
+const config = require('./../config')
 const fs = require('fs')
 const path = require('path')
 const utils = require('./../controllers/utilsController')
@@ -58,7 +59,7 @@ thumbs.do = async () => {
       cfcache: 0 = do not clear cloudflare cache (default), 1 = clear cloudflare cache
     `))
 
-  const uploadsDir = path.join(__dirname, '..', 'uploads')
+  const uploadsDir = path.resolve(config.uploads.folder)
   const thumbsDir = path.join(uploadsDir, 'thumbs')
   const _uploads = await thumbs.getFiles(uploadsDir)
 
