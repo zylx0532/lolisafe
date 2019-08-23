@@ -226,6 +226,11 @@ utilsController.generateThumbs = (name, force) => {
         // Otherwise video extension
         ffmpeg.ffprobe(input, (error, metadata) => {
           if (error) return reject(error)
+
+          // Skip files that do not have video streams/channels
+          if (!metadata.streams || !metadata.streams.find(s => s.codec_type === 'video'))
+            return reject(new Error('File does not contain any video stream'))
+
           ffmpeg(input)
             .inputOptions([
               `-ss ${parseInt(metadata.format.duration) * 20 / 100}`
@@ -250,16 +255,20 @@ utilsController.generateThumbs = (name, force) => {
       })
         .then(resolve)
         .catch(error => {
+          // Suppress error logging for errors these patterns
           const errorString = error.toString()
-          const tests = [
+          const suppress = [
             /Error: Input file contains unsupported image format/,
-            /Error: ffprobe exited with code 1/
+            /Error: ffprobe exited with code 1/,
+            /Error: File does not contain any video stream/
           ]
-          if (!tests.some(t => t.test(errorString)))
+          if (!suppress.some(t => t.test(errorString)))
             console.error(`${name}: ${errorString}`)
+
           fs.symlink(thumbPlaceholder, thumbname, err => {
             if (err) console.error(err)
-            // We return true if we could make a symlink to the placeholder image
+            // We return true anyway
+            // if we could make a symlink to the placeholder image
             resolve(!err)
           })
         })
