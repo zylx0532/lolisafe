@@ -118,6 +118,12 @@ page.prepareDashboard = function () {
   page.dom = document.querySelector('#page')
   page.dom.addEventListener('click', page.domClick, true)
 
+  page.dom.addEventListener('submit', function (event) {
+    const element = event.target
+    if (element && element.classList.contains('prevent-default'))
+      return event.preventDefault()
+  }, true)
+
   document.querySelector('#dashboard').style.display = 'block'
 
   if (page.permissions.moderator) {
@@ -204,8 +210,8 @@ page.domClick = function (event) {
   // Apparently we will need to use "unsafe-inline" for "script-src" directive
   // of Content Security Policy (CSP), if we want to use "onclick" attribute
   // Though I think that only applies to some browsers (?)
-  // Either way, I personally would rather not
   // Of course it wouldn't have mattered if we didn't use CSP to begin with
+  // Anyway, I personally would rather not use "onclick" attribute
   let element = event.target
   if (!element) return
 
@@ -290,7 +296,7 @@ page.fadeIn = function (content) {
 }
 
 page.switchPage = function (action, element) {
-  const views = {}
+  const views = { scroll: true }
   let func = null
 
   if (page.currentView === 'users') {
@@ -323,7 +329,7 @@ page.switchPage = function (action, element) {
   }
 }
 
-page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
+page.getUploads = function ({ pageNum, album, all, filters, scroll } = {}, element) {
   if (element) page.isLoading(element, true)
 
   if ((all || filters) && !page.permissions.moderator)
@@ -366,43 +372,47 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
     if (all)
       filter = `
         <div class="column">
-          <div class="field has-addons">
-            <div class="control is-expanded">
-              <input id="filters" class="input is-small" type="text" placeholder="Filters" value="${filters || ''}">
+          <form class="prevent-default">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input id="filters" class="input is-small" type="text" placeholder="Filters" value="${filters || ''}">
+              </div>
+              <div class="control">
+                <button type="button" class="button is-small is-breeze" title="Help?" data-action="filters-help">
+                  <span class="icon">
+                    <i class="icon-help-circled"></i>
+                  </span>
+                </button>
+              </div>
+              <div class="control">
+                <button type="submit" class="button is-small is-breeze" title="Filter uploads" data-action="filter-uploads">
+                  <span class="icon">
+                    <i class="icon-filter"></i>
+                  </span>
+                </button>
+              </div>
             </div>
-            <div class="control">
-              <a class="button is-small is-breeze" title="Help?" data-action="filters-help">
-                <span class="icon">
-                  <i class="icon-help-circled"></i>
-                </span>
-              </a>
-            </div>
-            <div class="control">
-              <a class="button is-small is-breeze" title="Filter uploads" data-action="filter-uploads">
-                <span class="icon">
-                  <i class="icon-filter"></i>
-                </span>
-              </a>
-            </div>
-          </div>
+          </form>
         </div>
       `
     const extraControls = `
       <div class="columns" style="margin-top: 10px">
         ${filter}
         <div class="column is-one-quarter">
-          <div class="field has-addons">
-            <div class="control is-expanded">
-              <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+          <form class="prevent-default">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+              </div>
+              <div class="control">
+                <button type="submit" class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+                  <span class="icon">
+                    <i class="icon-paper-plane-empty"></i>
+                  </span>
+                </button>
+              </div>
             </div>
-            <div class="control">
-              <a class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
-                <span class="icon">
-                  <i class="icon-paper-plane-empty"></i>
-                </span>
-              </a>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
     `
@@ -595,6 +605,8 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
         page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
       }
     }
+
+    if (scroll) page.dom.scrollIntoView(true)
 
     if (allSelected && files.length) {
       const selectAll = document.querySelector('#selectAll')
@@ -1138,26 +1150,28 @@ page.getAlbums = function () {
 
     page.dom.innerHTML = `
       <h2 class="subtitle">Create new album</h2>
-      <div class="field">
-        <div class="control">
-          <input id="albumName" class="input" type="text" placeholder="Name">
+      <form class="prevent-default">
+        <div class="field">
+          <div class="control">
+            <input id="albumName" class="input" type="text" placeholder="Name">
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <div class="control">
-          <textarea id="albumDescription" class="textarea" placeholder="Description" rows="1"></textarea>
+        <div class="field">
+          <div class="control">
+            <textarea id="albumDescription" class="textarea" placeholder="Description" rows="1"></textarea>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <div class="control">
-          <a id="submitAlbum" class="button is-breeze is-fullwidth" data-action="submit-album">
-            <span class="icon">
-              <i class="icon-paper-plane-empty"></i>
-            </span>
-            <span>Create</span>
-          </a>
+        <div class="field">
+          <div class="control">
+            <button type="submit" id="submitAlbum" class="button is-breeze is-fullwidth" data-action="submit-album">
+              <span class="icon">
+                <i class="icon-paper-plane-empty"></i>
+              </span>
+              <span>Create</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </form>
       <hr>
       <h2 class="subtitle">List of albums</h2>
       <div class="table-container">
@@ -1451,25 +1465,27 @@ page.changeFileLength = function () {
 
     page.dom.innerHTML = `
       <h2 class="subtitle">File name length</h2>
-      <div class="field">
+      <form class="prevent-default">
         <div class="field">
-          <label class="label">Your current file name length:</label>
-          <div class="control">
-            <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${len ? Math.min(Math.max(len, min), max) : def}">
+          <div class="field">
+            <label class="label">Your current file name length:</label>
+            <div class="control">
+              <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${len ? Math.min(Math.max(len, min), max) : def}">
+            </div>
+            <p class="help">Default file name length is <b>${def}</b> characters. ${(chg ? `Range allowed for user is <b>${min}</b> to <b>${max}</b> characters.` : 'Changing file name length is disabled at the moment.')}</p>
           </div>
-          <p class="help">Default file name length is <b>${def}</b> characters. ${(chg ? `Range allowed for user is <b>${min}</b> to <b>${max}</b> characters.` : 'Changing file name length is disabled at the moment.')}</p>
+          <div class="field">
+            <div class="control">
+              <button type="submit" id="setFileLength" class="button is-breeze is-fullwidth">
+                <span class="icon">
+                  <i class="icon-paper-plane-empty"></i>
+                </span>
+                <span>Set file name length</span>
+              </button>
+            </div>
+          <div>
         </div>
-        <div class="field">
-          <div class="control">
-            <a id="setFileLength" class="button is-breeze is-fullwidth">
-              <span class="icon">
-                <i class="icon-paper-plane-empty"></i>
-              </span>
-              <span>Set file name length</span>
-            </a>
-          </div>
-        <div>
-      </div>
+      </form>
     `
     page.fadeIn()
 
@@ -1579,28 +1595,30 @@ page.getNewToken = function (element) {
 page.changePassword = function () {
   page.dom.innerHTML = `
     <h2 class="subtitle">Change your password</h2>
-    <div class="field">
-      <label class="label">New password:</label>
-      <div class="control">
-        <input id="password" class="input" type="password">
+    <form class="prevent-default">
+      <div class="field">
+        <label class="label">New password:</label>
+        <div class="control">
+          <input id="password" class="input" type="password">
+        </div>
       </div>
-    </div>
-    <div class="field">
-      <label class="label">Re-type new password:</label>
-      <div class="control">
-        <input id="passwordConfirm" class="input" type="password">
+      <div class="field">
+        <label class="label">Re-type new password:</label>
+        <div class="control">
+          <input id="passwordConfirm" class="input" type="password">
+        </div>
       </div>
-    </div>
-    <div class="field">
-      <div class="control">
-        <a id="sendChangePassword" class="button is-breeze is-fullwidth">
-          <span class="icon">
-            <i class="icon-paper-plane-empty"></i>
-          </span>
-          <span>Set new password</span>
-        </a>
+      <div class="field">
+        <div class="control">
+          <button type="submit" id="sendChangePassword" class="button is-breeze is-fullwidth">
+            <span class="icon">
+              <i class="icon-paper-plane-empty"></i>
+            </span>
+            <span>Set new password</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </form>
   `
   page.fadeIn()
 
@@ -1652,7 +1670,7 @@ page.setActiveMenu = function (activeItem) {
   activeItem.classList.add('is-active')
 }
 
-page.getUsers = function ({ pageNum } = {}, element) {
+page.getUsers = function ({ pageNum, scroll } = {}, element) {
   if (element) page.isLoading(element, true)
   if (pageNum === undefined) pageNum = 0
 
@@ -1683,18 +1701,20 @@ page.getUsers = function ({ pageNum } = {}, element) {
       <div class="columns" style="margin-top: 10px">
         <div class="column is-hidden-mobile"></div>
         <div class="column is-one-quarter">
-          <div class="field has-addons">
-            <div class="control is-expanded">
-              <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+          <form class="prevent-default">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+              </div>
+              <div class="control">
+                <button type="submit" class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+                  <span class="icon">
+                    <i class="icon-paper-plane-empty"></i>
+                  </span>
+                </button>
+              </div>
             </div>
-            <div class="control">
-              <a class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
-                <span class="icon">
-                  <i class="icon-paper-plane-empty"></i>
-                </span>
-              </a>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
     `
@@ -1812,6 +1832,8 @@ page.getUsers = function ({ pageNum } = {}, element) {
       table.appendChild(tr)
       page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
     }
+
+    if (scroll) page.dom.scrollIntoView(true)
 
     if (allSelected && response.data.users.length) {
       const selectAll = document.querySelector('#selectAll')

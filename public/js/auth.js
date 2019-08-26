@@ -20,8 +20,8 @@ page.do = function (dest) {
     return swal('An error occurred!', 'You need to specify a password.', 'error')
 
   axios.post(`api/${dest}`, {
-    username: user,
-    password: pass
+    username: user.trim(),
+    password: pass.trim()
   }).then(function (response) {
     if (response.data.success === false)
       return swal(`Unable to ${dest}!`, response.data.description, 'error')

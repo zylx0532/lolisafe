@@ -10,11 +10,16 @@ const utils = require('./utilsController')
 const authController = {}
 
 authController.verify = async (req, res, next) => {
-  const username = req.body.username
-  const password = req.body.password
+  let username = req.body.username
+  let password = req.body.password
 
-  if (username === undefined) return res.json({ success: false, description: 'No username provided.' })
-  if (password === undefined) return res.json({ success: false, description: 'No password provided.' })
+  if (username === undefined)
+    return res.json({ success: false, description: 'No username provided.' })
+  if (password === undefined)
+    return res.json({ success: false, description: 'No password provided.' })
+
+  username = username.trim()
+  password = password.trim()
 
   const user = await db.table('users').where('username', username).first()
   if (!user)
@@ -37,13 +42,16 @@ authController.register = async (req, res, next) => {
   if (config.enableUserAccounts === false)
     return res.json({ success: false, description: 'Register is disabled at the moment.' })
 
-  const username = req.body.username
-  const password = req.body.password
+  let username = req.body.username
+  let password = req.body.password
 
   if (username === undefined)
     return res.json({ success: false, description: 'No username provided.' })
   if (password === undefined)
     return res.json({ success: false, description: 'No password provided.' })
+
+  username = username.trim()
+  password = password.trim()
 
   if (username.length < 4 || username.length > 32)
     return res.json({ success: false, description: 'Username must have 4-32 characters.' })
