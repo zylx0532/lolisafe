@@ -1,3 +1,4 @@
+const logger = require('./../logger')
 const perms = require('./../controllers/permissionController')
 
 const init = function (db) {
@@ -50,7 +51,7 @@ const init = function (db) {
       db.table('users').where({ username: 'root' }).then((user) => {
         if (user.length > 0) return
         require('bcrypt').hash('root', 10, function (error, hash) {
-          if (error) console.error('Error generating password hash for root')
+          if (error) logger.error('Error generating password hash for root')
           db.table('users').insert({
             username: 'root',
             password: hash,

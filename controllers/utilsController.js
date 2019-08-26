@@ -4,6 +4,7 @@ const db = require('knex')(config.database)
 const fetch = require('node-fetch')
 const ffmpeg = require('fluent-ffmpeg')
 const fs = require('fs')
+const logger = require('./../logger')
 const os = require('os')
 const path = require('path')
 const perms = require('./permissionController')
@@ -159,7 +160,7 @@ utilsController.generateThumbs = (name, force) => {
     const thumbname = path.join(thumbsDir, name.slice(0, -extname.length) + '.png')
     fs.lstat(thumbname, async (error, stats) => {
       if (error && error.code !== 'ENOENT') {
-        console.error(error)
+        logger.error(error)
         return resolve(false)
       }
 
@@ -167,7 +168,7 @@ utilsController.generateThumbs = (name, force) => {
         // Unlink symlink
         const unlink = await new Promise(resolve => {
           fs.unlink(thumbname, error => {
-            if (error) console.error(error)
+            if (error) logger.error(error)
             resolve(!error)
           })
         })
@@ -229,7 +230,8 @@ utilsController.generateThumbs = (name, force) => {
 
           // Skip files that do not have video streams/channels
           if (!metadata.streams || !metadata.streams.some(s => s.codec_type === 'video'))
-            return reject(new Error('File does not contain any video stream'))
+            // eslint-disable-next-line prefer-promise-reject-errors
+            return reject('File does not contain any video stream')
 
           ffmpeg(input)
             .inputOptions([
@@ -245,7 +247,7 @@ utilsController.generateThumbs = (name, force) => {
               // Since ffmpeg may have already created an incomplete thumbnail
               fs.unlink(thumbname, err => {
                 if (err && err.code !== 'ENOENT')
-                  console.error(`${name}: ${err.toString()}`)
+                  logger.error(`[${name}]: ${err.toString()}`)
                 reject(error)
               })
             })
@@ -258,15 +260,15 @@ utilsController.generateThumbs = (name, force) => {
           // Suppress error logging for errors these patterns
           const errorString = error.toString()
           const suppress = [
-            /Error: Input file contains unsupported image format/,
-            /Error: ffprobe exited with code 1/,
-            /Error: File does not contain any video stream/
+            /Input file contains unsupported image format/,
+            /Invalid data found when processing input/,
+            /File does not contain any video stream/
           ]
           if (!suppress.some(t => t.test(errorString)))
-            console.error(`${name}: ${errorString}`)
+            logger.error(`[${name}]: ${errorString}`)
 
           fs.symlink(thumbPlaceholder, thumbname, err => {
-            if (err) console.error(err)
+            if (err) logger.error(err)
             // We return true anyway
             // if we could make a symlink to the placeholder image
             resolve(!err)
@@ -285,7 +287,7 @@ utilsController.deleteFile = (filename, set) => {
       // eslint-disable-next-line curly
       if (set) {
         set.delete(identifier)
-        // console.log(`Removed ${identifier} from identifiers cache (deleteFile)`)
+        // logger.log(`Removed ${identifier} from identifiers cache (deleteFile)`)
       }
       if (utilsController.imageExtensions.includes(extname) || utilsController.videoExtensions.includes(extname)) {
         const thumb = `${identifier}.png`
@@ -332,7 +334,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
             .then(() => deletedFiles.push(file))
             .catch(error => {
               failed.push(file[field])
-              console.error(error)
+              logger.error(error)
             })
         ))
 
@@ -348,7 +350,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
           deletedFiles.forEach(file => {
             const identifier = file.name.split('.')[0]
             set.delete(identifier)
-            // console.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
+            // logger.log(`Removed ${identifier} from identifiers cache (bulkDeleteFiles)`)
           })
 
         // Update albums if necessary
@@ -361,7 +363,7 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
           await db.table('albums')
             .whereIn('id', albumids)
             .update('editedAt', Math.floor(Date.now() / 1000))
-            .catch(console.error)
+            .catch(logger.error)
         }
 
         // Purge Cloudflare's cache if necessary
@@ -370,10 +372,10 @@ utilsController.bulkDeleteFiles = async (field, values, user, set) => {
             .then(results => {
               for (const result of results)
                 if (result.errors.length)
-                  result.errors.forEach(error => console.error(`CF: ${error}`))
+                  result.errors.forEach(error => logger.error(`[CF]: ${error}`))
             })
       } catch (error) {
-        console.error(error)
+        logger.error(error)
       }
     }
     return new Promise(resolve => job().then(() => resolve()))

@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt')
 const config = require('./../config')
 const db = require('knex')(config.database)
+const logger = require('./../logger')
 const perms = require('./permissionController')
 const randomstring = require('randomstring')
 const tokens = require('./tokenController')
@@ -24,7 +25,7 @@ authController.verify = async (req, res, next) => {
 
   bcrypt.compare(password, user.password, (error, result) => {
     if (error) {
-      console.error(error)
+      logger.error(error)
       return res.json({ success: false, description: 'There was an error.' })
     }
     if (result === false) return res.json({ success: false, description: 'Wrong password.' })
@@ -56,7 +57,7 @@ authController.register = async (req, res, next) => {
 
   bcrypt.hash(password, 10, async (error, hash) => {
     if (error) {
-      console.error(error)
+      logger.error(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
 
@@ -90,7 +91,7 @@ authController.changePassword = async (req, res, next) => {
 
   bcrypt.hash(password, 10, async (error, hash) => {
     if (error) {
-      console.error(error)
+      logger.error(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
 
@@ -198,7 +199,7 @@ authController.editUser = async (req, res, next) => {
   const password = randomstring.generate(16)
   bcrypt.hash(password, 10, async (error, hash) => {
     if (error) {
-      console.error(error)
+      logger.error(error)
       return res.json({ success: false, description: 'Error generating password hash (╯°□°）╯︵ ┻━┻.' })
     }
 

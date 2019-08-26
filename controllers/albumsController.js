@@ -2,6 +2,7 @@ const config = require('./../config')
 const db = require('knex')(config.database)
 const EventEmitter = require('events')
 const fs = require('fs')
+const logger = require('./../logger')
 const path = require('path')
 const randomstring = require('randomstring')
 const utils = require('./utilsController')
@@ -124,7 +125,7 @@ albumsController.getUniqueRandomName = () => {
         .where('identifier', identifier)
         .then(rows => {
           if (!rows || !rows.length) return resolve(identifier)
-          console.log(`An album with identifier ${identifier} already exists (${++i}/${maxTries}).`)
+          logger.log(`An album with identifier ${identifier} already exists (${++i}/${maxTries}).`)
           if (i < maxTries) return select(i)
           // eslint-disable-next-line prefer-promise-reject-errors
           return reject('Sorry, we could not allocate a unique random identifier. Try again?')
@@ -182,7 +183,7 @@ albumsController.delete = async (req, res, next) => {
   const zipPath = path.join(zipsDir, `${identifier}.zip`)
   fs.unlink(zipPath, error => {
     if (error && error.code !== 'ENOENT') {
-      console.error(error)
+      logger.error(error)
       return res.json({ success: false, description: error.toString(), failed })
     }
     res.json({ success: true, failed })
@@ -259,7 +260,7 @@ albumsController.edit = async (req, res, next) => {
       if (error) return res.json({ success: true, identifier })
       fs.rename(zipPath, path.join(zipsDir, `${identifier}.zip`), error => {
         if (!error) return res.json({ success: true, identifier })
-        console.error(error)
+        logger.error(error)
         res.json({ success: false, description: error.toString() })
       })
     })
@@ -363,7 +364,7 @@ albumsController.generateZip = async (req, res, next) => {
   }
 
   if (albumsController.zipEmitters.has(identifier)) {
-    console.log(`Waiting previous zip task for album: ${identifier}.`)
+    logger.log(`Waiting previous zip task for album: ${identifier}.`)
     return albumsController.zipEmitters.get(identifier).once('done', (filePath, fileName, json) => {
       if (filePath && fileName)
         download(filePath, fileName)
@@ -374,12 +375,12 @@ albumsController.generateZip = async (req, res, next) => {
 
   albumsController.zipEmitters.set(identifier, new ZipEmitter(identifier))
 
-  console.log(`Starting zip task for album: ${identifier}.`)
+  logger.log(`Starting zip task for album: ${identifier}.`)
   const files = await db.table('files')
     .select('name', 'size')
     .where('albumid', album.id)
   if (files.length === 0) {
-    console.log(`Finished zip task for album: ${identifier} (no files).`)
+    logger.log(`Finished zip task for album: ${identifier} (no files).`)
     const json = { success: false, description: 'There are no files in the album.' }
     albumsController.zipEmitters.get(identifier).emit('done', null, null, json)
     return res.json(json)
@@ -388,7 +389,7 @@ albumsController.generateZip = async (req, res, next) => {
   if (zipMaxTotalSize) {
     const totalSizeBytes = files.reduce((accumulator, file) => accumulator + parseInt(file.size), 0)
     if (totalSizeBytes > zipMaxTotalSizeBytes) {
-      console.log(`Finished zip task for album: ${identifier} (size exceeds).`)
+      logger.log(`Finished zip task for album: ${identifier} (size exceeds).`)
       const json = {
         success: false,
         description: `Total size of all files in the album exceeds the configured limit (${zipMaxTotalSize}).`
@@ -405,7 +406,7 @@ albumsController.generateZip = async (req, res, next) => {
   for (const file of files)
     fs.readFile(path.join(uploadsDir, file.name), (error, data) => {
       if (error)
-        console.error(error)
+        logger.error(error)
       else
         archive.file(file.name, data)
 
@@ -415,7 +416,7 @@ albumsController.generateZip = async (req, res, next) => {
           .generateNodeStream(zipOptions)
           .pipe(fs.createWriteStream(zipPath))
           .on('finish', async () => {
-            console.log(`Finished zip task for album: ${identifier} (success).`)
+            logger.log(`Finished zip task for album: ${identifier} (success).`)
             await db.table('albums')
               .where('id', album.id)
               .update('zipGeneratedAt', Math.floor(Date.now() / 1000))
@@ -471,7 +472,7 @@ albumsController.addFiles = async (req, res, next) => {
   const updateDb = await db.table('files')
     .whereIn('id', files.map(file => file.id))
     .update('albumid', albumid)
-    .catch(console.error)
+    .catch(logger.error)
 
   if (!updateDb)
     return res.json({
@@ -487,7 +488,7 @@ albumsController.addFiles = async (req, res, next) => {
   await db.table('albums')
     .whereIn('id', albumids)
     .update('editedAt', Math.floor(Date.now() / 1000))
-    .catch(console.error)
+    .catch(logger.error)
 
   return res.json({ success: true, failed })
 }

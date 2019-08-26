@@ -3,6 +3,7 @@ const crypto = require('crypto')
 const db = require('knex')(config.database)
 const fetch = require('node-fetch')
 const fs = require('fs')
+const logger = require('./../logger')
 const multer = require('multer')
 const path = require('path')
 const perms = require('./permissionController')
@@ -30,7 +31,7 @@ const storage = multer.diskStorage({
       if (!error) return cb(null, uuidDir)
       fs.mkdir(uuidDir, error => {
         if (!error) return cb(null, uuidDir)
-        console.error(error)
+        logger.error(error)
         // eslint-disable-next-line standard/no-callback-literal
         return cb('Could not process the chunked upload. Try again?')
       })
@@ -120,13 +121,13 @@ uploadsController.getUniqueRandomName = (length, extension, set) => {
       if (config.uploads.cacheFileIdentifiers) {
         // Check whether the identifier is already used in cache
         if (set.has(identifier)) {
-          console.log(`Identifier ${identifier} is already in use (${++i}/${maxTries}).`)
+          logger.log(`Identifier ${identifier} is already in use (${++i}/${maxTries}).`)
           if (i < maxTries) return access(i)
           // eslint-disable-next-line prefer-promise-reject-errors
           return reject('Sorry, we could not allocate a unique random name. Try again?')
         }
         set.add(identifier)
-        // console.log(`Added ${identifier} to identifiers cache`)
+        // logger.log(`Added ${identifier} to identifiers cache`)
         return resolve(identifier + extension)
       } else {
         // Less stricter collision check, as in the same identifier
@@ -134,7 +135,7 @@ uploadsController.getUniqueRandomName = (length, extension, set) => {
         const name = identifier + extension
         fs.access(path.join(uploadsDir, name), error => {
           if (error) return resolve(name)
-          console.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
+          logger.log(`A file named ${name} already exists (${++i}/${maxTries}).`)
           if (i < maxTries) return access(i)
           // eslint-disable-next-line prefer-promise-reject-errors
           return reject('Sorry, we could not allocate a unique random name. Try again?')
@@ -172,7 +173,7 @@ uploadsController.upload = async (req, res, next) => {
 uploadsController.actuallyUpload = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
-    if (isError) console.error(error)
+    if (isError) logger.error(error)
     res.status(400).json({
       success: false,
       description: isError ? error.toString() : error
@@ -205,7 +206,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 
     if (config.filterEmptyFile && infoMap.some(file => file.data.size === 0)) {
       infoMap.forEach(file => {
-        utils.deleteFile(file.data.filename, req.app.get('uploads-set')).catch(console.error)
+        utils.deleteFile(file.data.filename, req.app.get('uploads-set')).catch(logger.error)
       })
       return erred('Empty files are not allowed.')
     }
@@ -226,7 +227,7 @@ uploadsController.actuallyUpload = async (req, res, user, albumid) => {
 uploadsController.actuallyUploadByUrl = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
-    if (isError) console.error(error)
+    if (isError) logger.error(error)
     res.status(400).json({
       success: false,
       description: isError ? error.toString() : error
@@ -340,7 +341,7 @@ uploadsController.finishChunks = async (req, res, next) => {
 uploadsController.actuallyFinishChunks = async (req, res, user, albumid) => {
   const erred = error => {
     const isError = error instanceof Error
-    if (isError) console.error(error)
+    if (isError) logger.error(error)
     res.status(400).json({
       success: false,
       description: isError ? error.toString() : error
@@ -467,7 +468,7 @@ uploadsController.appendToStream = (destFileStream, uuidDr, chunkNames) => {
           append(i + 1)
         })
         .on('error', error => {
-          console.error(error)
+          logger.error(error)
           destFileStream.end()
           return reject(error)
         })
@@ -551,7 +552,7 @@ uploadsController.formatInfoMap = (req, res, user, infoMap) => {
           })
           utils.invalidateStatsCache('uploads')
         } else {
-          utils.deleteFile(info.data.filename, req.app.get('uploads-set')).catch(console.error)
+          utils.deleteFile(info.data.filename, req.app.get('uploads-set')).catch(logger.error)
           existingFiles.push(dbFile)
         }
 
@@ -576,7 +577,7 @@ uploadsController.scanFiles = (req, infoMap) => {
         if (!reply.includes('OK') || reply.includes('FOUND')) {
           // eslint-disable-next-line no-control-regex
           const virus = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
-          console.log(`ClamAV: ${info.data.filename}: ${virus} FOUND.`)
+          logger.log(`[ClamAV]: ${info.data.filename}: ${virus} FOUND.`)
           return resolve({ virus, lastIteration })
         }
         if (lastIteration) resolve(null)
@@ -586,19 +587,19 @@ uploadsController.scanFiles = (req, infoMap) => {
     // If there is at least one dirty file, then delete all files
     const set = req.app.get('uploads-set')
     infoMap.forEach(info => {
-      utils.deleteFile(info.data.filename).catch(console.error)
+      utils.deleteFile(info.data.filename).catch(logger.error)
       if (set) {
         const identifier = info.data.filename.split('.')[0]
         set.delete(identifier)
-        // console.log(`Removed ${identifier} from identifiers cache (formatInfoMap)`)
+        // logger.log(`Removed ${identifier} from identifiers cache (formatInfoMap)`)
       }
     })
     // Unfortunately, we will only be returning name of the first virus
     // even if the current session was made up by multiple virus types
     return `Threat found: ${result.virus}${result.lastIteration ? '' : ', and maybe more'}.`
   }).catch(error => {
-    console.error(`ClamAV: ${error.toString()}.`)
-    return `ClamAV: ${error.code !== undefined ? `${error.code}, p` : 'P'}lease contact the site owner.`
+    logger.error(`[ClamAV]: ${error.toString()}.`)
+    return `[ClamAV]: ${error.code !== undefined ? `${error.code}, p` : 'P'}lease contact the site owner.`
   })
 }
 
@@ -646,7 +647,7 @@ uploadsController.processFilesForDisplay = async (req, res, files, existingFiles
     db.table('albums')
       .whereIn('id', albumids)
       .update('editedAt', Math.floor(Date.now() / 1000))
-      .catch(console.error)
+      .catch(logger.error)
 }
 
 uploadsController.delete = async (req, res) => {
