@@ -270,6 +270,8 @@ page.domClick = function (event) {
       return page.filterUploads(element)
     case 'view-user-uploads':
       return page.viewUserUploads(id)
+    case 'page-ellipsis':
+      return page.focusJumpToPage()
     case 'page-prev':
     case 'page-next':
     case 'page-goto':
@@ -327,6 +329,13 @@ page.switchPage = function (action, element) {
       return func(views, element)
     }
   }
+}
+
+page.focusJumpToPage = function () {
+  const element = document.querySelector('#jumpToPage')
+  if (!element) return
+  element.focus()
+  element.select()
 }
 
 page.getUploads = function ({ pageNum, album, all, filters, scroll } = {}, element) {
@@ -2004,12 +2013,12 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
     startDots () {
       template += `
         <li><a class="button pagination-link" aria-label="Goto page 1" data-action="page-goto" data-goto="0">1</a></li>
-        <li><span class="pagination-ellipsis">&hellip;</span></li>
+        <li data-action="page-ellipsis"><span class="pagination-ellipsis">&hellip;</span></li>
       `
     },
     endDots () {
       template += `
-        <li><span class="pagination-ellipsis">&hellip;</span></li>
+        <li data-action="page-ellipsis"><span class="pagination-ellipsis">&hellip;</span></li>
         <li><a class="button pagination-link" aria-label="Goto page ${numPages}" data-action="page-goto" data-goto="${numPages - 1}">${numPages}</a></li>
       `
     }
