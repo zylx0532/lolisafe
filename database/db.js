@@ -1,5 +1,6 @@
 const logger = require('./../logger')
 const perms = require('./../controllers/permissionController')
+const randomstring = require('randomstring')
 
 const init = function (db) {
   // Create the tables we need to store galleries and files
@@ -55,7 +56,7 @@ const init = function (db) {
           db.table('users').insert({
             username: 'root',
             password: hash,
-            token: require('randomstring').generate(64),
+            token: randomstring.generate(64),
             timestamp: Math.floor(Date.now() / 1000),
             permission: perms.permissions.superadmin
           }).then(() => {})
