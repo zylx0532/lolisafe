@@ -22,9 +22,9 @@
 <script src="libs/clipboard.js/clipboard.min.js?v={{ globals.v3 }}"></script>
 <script src="libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script src="js/home.js?v={{ globals.v1 }}"></script>
-<script src="js/sharex.js?v={{ globals.v1 }}"></script>
+<script src="js/s/utils.js?v={{ globals.v1 }}"></script>
 <!-- We assign an ID for this so that the script can find out version string for render images -->
-<script id="renderScript" data-version="{{ globals.v4 }}" src="js/render.js?v={{ globals.v1 }}"></script>
+<script id="renderScript" data-version="{{ globals.v4 }}" src="js/s/render.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -66,7 +66,7 @@
           {%- endif %}
           <div id="tab-files" class="tab-content" style="display: none">
             <div class="field dz-container"></div>
-            <div class="field uploads" style="display: none"></div>
+            <div class="field uploads"></div>
           </div>
           {% if urlMaxSize -%}
           <div id="tab-urls" class="tab-content" style="display: none">
@@ -76,7 +76,7 @@
               </div>
               <p class="help">
                 {% if urlMaxSize !== maxSize -%}
-                Maximum file size for URL upload is <span style="font-weight: bold">{{ urlMaxSize }}</span>.
+                Maximum file size for URL upload is <span id="urlMaxSize">{{ urlMaxSize }}</span>.
                 {%- endif %}
 
                 {% if urlExtensionsFilter.length and (urlExtensionsFilterMode === 'blacklist') -%}
@@ -100,7 +100,7 @@
                 </a>
               </div>
             </div>
-            <div class="field uploads" style="display: none"></div>
+            <div class="field uploads"></div>
           </div>
           {%- endif %}
         </div>
@@ -112,7 +112,7 @@
           <i class="icon" style="display: none"></i>
           <img class="is-unselectable" style="display: none">
           <p class="name is-unselectable"></p>
-          <progress class="progress is-small is-danger" value="0" max="100">0%</progress>
+          <progress class="progress is-small is-danger" max="100"></progress>
           <p class="error"></p>
           <p class="link">
             <a target="_blank" rel="noopener"></a>

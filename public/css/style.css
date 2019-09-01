@@ -103,30 +103,24 @@ hr {
   color: #fff;
 }
 
+.checkbox:hover,
+.radio:hover {
+  color: #7f8c8d;
+}
+
 .progress.is-breeze:indeterminate {
   background-image: linear-gradient(to right,#60a8dc 30%,#eff0f1 30%);
 }
 
-.render {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  font-size: 1rem;
-  color: #bdc3c7;
-  cursor: pointer;
+.message {
+  background-color: #31363b;
 }
 
-.render.button {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  right: 1%;
-  opacity: .25;
-  -webkit-transition: opacity .25s;
-  transition: opacity .25s;
-}
-
-.render.button:hover {
-  opacity: 1;
+.message-body {
+  color: #eff0f1;
+  border: 0;
+  -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
 }
 
 @-webkit-keyframes fadeInOpacity {

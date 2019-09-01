@@ -1,8 +1,12 @@
 /* global swal, axios */
 
+const lsKeys = {
+  token: 'token'
+}
+
 const page = {
   // user token
-  token: localStorage.token,
+  token: localStorage[lsKeys.token],
 
   // HTML elements
   user: null,

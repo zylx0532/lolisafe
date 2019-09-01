@@ -4,6 +4,7 @@
 {{ super() }}
 <link rel="stylesheet" href="libs/fontello/fontello.css?v={{ globals.v3 }}">
 <link rel="stylesheet" href="css/sweetalert.css?v={{ globals.v1 }}">
+<link rel="stylesheet" href="css/thumbs.css?v={{ globals.v1 }}">
 <link rel="stylesheet" href="css/dashboard.css?v={{ globals.v1 }}">
 {% endblock %}
 
@@ -14,7 +15,7 @@
 <script src="libs/clipboard.js/clipboard.min.js?v={{ globals.v3 }}"></script>
 <script src="libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script src="js/dashboard.js?v={{ globals.v1 }}"></script>
-<script src="js/sharex.js?v={{ globals.v1 }}"></script>
+<script src="js/s/utils.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -53,22 +54,25 @@
               <ul id="albumsContainer"></ul>
             </li>
           </ul>
-          <p class="menu-label">Administration</p>
-          <ul class="menu-list">
+          <p id="itemLabelAdmin" class="menu-label" style="display: none">Administration</p>
+          <ul id="itemListAdmin" class="menu-list" style="display: none">
             <li>
-              <a id="itemServerStats" disabled>Statistics</a>
+              <a id="itemServerStats">Statistics</a>
             </li>
             <li>
-              <a id="itemManageUploads" disabled>Manage uploads</a>
+              <a id="itemManageUploads">Manage uploads</a>
             </li>
             <li>
-              <a id="itemManageUsers" disabled>Manage users</a>
+              <a id="itemManageUsers">Manage users</a>
             </li>
           </ul>
           <p class="menu-label">Configuration</p>
           <ul class="menu-list">
             <li>
               <a id="ShareX">ShareX user profile</a>
+            </li>
+            <li>
+              <a id="itemBrowserSettings">Browser settings</a>
             </li>
             <li>
               <a id="itemFileLength">File name length</a>

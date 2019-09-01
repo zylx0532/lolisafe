@@ -1,6 +1,5 @@
 /* global swal, axios, ClipboardJS, LazyLoad */
 
-// keys for localStorage
 const lsKeys = {
   token: 'token',
   viewType: {
@@ -11,7 +10,9 @@ const lsKeys = {
     uploads: 'selectedUploads',
     uploadsAll: 'selectedUploadsAll',
     users: 'selectedUsers'
-  }
+  },
+  chunkSize: 'chunkSize',
+  parallelUploads: 'parallelUploads'
 }
 
 const page = {
@@ -127,8 +128,9 @@ page.prepareDashboard = function () {
   document.querySelector('#dashboard').style.display = 'block'
 
   if (page.permissions.moderator) {
+    document.querySelector('#itemLabelAdmin').style.display = 'block'
+    document.querySelector('#itemListAdmin').style.display = 'block'
     const itemManageUploads = document.querySelector('#itemManageUploads')
-    itemManageUploads.removeAttribute('disabled')
     itemManageUploads.addEventListener('click', function () {
       page.setActiveMenu(this)
       page.getUploads({ all: true })
@@ -137,18 +139,19 @@ page.prepareDashboard = function () {
 
   if (page.permissions.admin) {
     const itemServerStats = document.querySelector('#itemServerStats')
-    itemServerStats.removeAttribute('disabled')
     itemServerStats.addEventListener('click', function () {
       page.setActiveMenu(this)
       page.getServerStats()
     })
 
     const itemManageUsers = document.querySelector('#itemManageUsers')
-    itemManageUsers.removeAttribute('disabled')
     itemManageUsers.addEventListener('click', function () {
       page.setActiveMenu(this)
       page.getUsers()
     })
+  } else {
+    document.querySelector('#itemServerStats').style.display = 'none'
+    document.querySelector('#itemManageUsers').style.display = 'none'
   }
 
   document.querySelector('#itemUploads').addEventListener('click', function () {
@@ -164,6 +167,11 @@ page.prepareDashboard = function () {
   document.querySelector('#itemManageGallery').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.getAlbums()
+  })
+
+  document.querySelector('#itemBrowserSettings').addEventListener('click', function () {
+    page.setActiveMenu(this)
+    page.browserSettings()
   })
 
   document.querySelector('#itemFileLength').addEventListener('click', function () {
@@ -286,7 +294,7 @@ page.isLoading = function (element, state) {
   element.classList.remove('is-loading')
 }
 
-page.fadeIn = function (content) {
+page.fadeAndScroll = function (content) {
   if (page.fadingIn) {
     clearTimeout(page.fadingIn)
     page.dom.classList.remove('fade-in')
@@ -295,10 +303,11 @@ page.fadeIn = function (content) {
   page.fadingIn = setTimeout(function () {
     page.dom.classList.remove('fade-in')
   }, 500)
+  page.dom.scrollIntoView(true)
 }
 
 page.switchPage = function (action, element) {
-  const views = { scroll: true }
+  const views = {}
   let func = null
 
   if (page.currentView === 'users') {
@@ -338,7 +347,7 @@ page.focusJumpToPage = function () {
   element.select()
 }
 
-page.getUploads = function ({ pageNum, album, all, filters, scroll } = {}, element) {
+page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
   if (element) page.isLoading(element, true)
 
   if ((all || filters) && !page.permissions.moderator)
@@ -497,7 +506,7 @@ page.getUploads = function ({ pageNum, album, all, filters, scroll } = {}, eleme
         <hr>
         ${pagination}
       `
-      page.fadeIn()
+      page.fadeAndScroll()
 
       const table = document.querySelector('#table')
 
@@ -570,7 +579,7 @@ page.getUploads = function ({ pageNum, album, all, filters, scroll } = {}, eleme
         <hr>
         ${pagination}
       `
-      page.fadeIn()
+      page.fadeAndScroll()
 
       const table = document.querySelector('#table')
 
@@ -614,8 +623,6 @@ page.getUploads = function ({ pageNum, album, all, filters, scroll } = {}, eleme
         page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
       }
     }
-
-    if (scroll) page.dom.scrollIntoView(true)
 
     if (allSelected && files.length) {
       const selectAll = document.querySelector('#selectAll')
@@ -961,7 +968,7 @@ page.deleteByNames = function () {
       </div>
     </div>
   `
-  page.fadeIn()
+  page.fadeAndScroll()
 }
 
 page.deleteFileByNames = function () {
@@ -1200,7 +1207,7 @@ page.getAlbums = function () {
         </table>
       </div>
     `
-    page.fadeIn()
+    page.fadeAndScroll()
 
     const homeDomain = response.data.homeDomain
     const table = document.querySelector('#table')
@@ -1458,6 +1465,111 @@ page.getAlbum = function (album) {
   page.getUploads({ album: album.id })
 }
 
+page.browserSettings = function () {
+  const selectionMap = { uploads: 'Selected uploads' }
+
+  if (page.permissions.moderator)
+    selectionMap.uploadsAll = 'Selected uploads (manager)'
+
+  if (page.permissions.admin)
+    selectionMap.users = 'Selected users'
+
+  let selectionSection = ''
+  const keys = Object.keys(selectionMap)
+  for (let i = 0; i < keys.length; i++)
+    selectionSection += `
+      <p>${selectionMap[keys[i]]}: ${page.selected[keys[i]].length}
+    `
+
+  const maxChunkSize = 95
+  const siBytes = localStorage[lsKeys.siBytes] !== '0'
+
+  page.dom.innerHTML = `
+    <h2 class="subtitle">Browser settings</h2>
+    <article class="message has-text-left">
+      <div class="message-body">
+        ${selectionSection}
+      </div>
+    </article>
+    <article class="message has-text-left">
+      <div class="message-body">
+        <form class="prevent-default" id="browserSettingsForm">
+          <div class="field">
+            <label class="label">File size unit</label>
+            <div class="control">
+              <label class="radio">
+                <input type="radio" name="siBytes" value="default"${siBytes ? ' checked' : ''}>
+                1 Kilobyte = 1 kB = 1000 B (default)
+              </label>
+            </div>
+            <div>
+              <label class="radio">
+                <input type="radio" name="siBytes" value="0"${siBytes ? '' : ' checked'}>
+                1 Kibibyte = 1 KiB = 1024 B
+              </label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Upload chunk size (MB)</label>
+            <div class="control">
+              <input class="input" type="number" name="chunkSize" min="0" max="${maxChunkSize}" step="5" value="${localStorage[lsKeys.chunkSize] || '0'}">
+            </div>
+            <p class="help">Default is 0, which means to use server's setting. Max is ${maxChunkSize} MB.</p>
+          </div>
+          <div class="field">
+            <label class="label">Parallel uploads</label>
+            <div class="control">
+              <input class="input" type="number" name="parallelUploads" min="0" value="${localStorage[lsKeys.parallelUploads] || '0'}">
+            </div>
+            <p class="help">Default is 0, which means to use hard-coded Dropzone setting.</p>
+          </div>
+          <div class="field is-grouped">
+            <p class="control">
+              <button type="submit" id="saveBrowserSettings" class="button is-breeze">
+                Save
+              </button>
+            </p>
+          </div>
+        </form>
+      </div>
+    </article>
+  `
+  page.fadeAndScroll()
+
+  document.querySelector('#saveBrowserSettings').addEventListener('click', function () {
+    const form = document.querySelector('#browserSettingsForm')
+
+    const prefKeys = ['siBytes']
+    for (let i = 0; i < prefKeys.length; i++) {
+      const value = form.elements[prefKeys[i]].value
+      if (value !== '0')
+        localStorage.removeItem(lsKeys[prefKeys[i]])
+      else
+        localStorage[lsKeys[prefKeys[i]]] = value
+    }
+
+    const numKeys = ['chunkSize', 'parallelUploads']
+    for (let i = 0; i < numKeys.length; i++) {
+      const parsed = parseInt(form.elements[numKeys[i]].value)
+      let value = isNaN(parsed) ? 0 : Math.max(parsed, 0)
+      if (numKeys[i] === 'chunkSize') value = Math.min(value, maxChunkSize)
+      value = Math.min(value, Number.MAX_SAFE_INTEGER)
+      if (value > 0)
+        localStorage[lsKeys[numKeys[i]]] = value
+      else
+        localStorage.removeItem(lsKeys[numKeys[i]])
+    }
+
+    swal({
+      title: 'Woohoo!',
+      text: 'Browser settings saved.',
+      icon: 'success'
+    }).then(function () {
+      page.browserSettings()
+    })
+  })
+}
+
 page.changeFileLength = function () {
   axios.get('api/filelength/config').then(function (response) {
     if (response.data.success === false)
@@ -1496,7 +1608,7 @@ page.changeFileLength = function () {
         </div>
       </form>
     `
-    page.fadeIn()
+    page.fadeAndScroll()
 
     document.querySelector('#setFileLength').addEventListener('click', function () {
       page.setFileLength(document.querySelector('#fileLength').value, this)
@@ -1564,7 +1676,7 @@ page.changeToken = function () {
         </div>
       </div>
     `
-    page.fadeIn()
+    page.fadeAndScroll()
   }).catch(function (error) {
     console.log(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
@@ -1629,7 +1741,7 @@ page.changePassword = function () {
       </div>
     </form>
   `
-  page.fadeIn()
+  page.fadeAndScroll()
 
   document.querySelector('#sendChangePassword').addEventListener('click', function () {
     if (document.querySelector('#password').value === document.querySelector('#passwordConfirm').value)
@@ -1679,7 +1791,7 @@ page.setActiveMenu = function (activeItem) {
   activeItem.classList.add('is-active')
 }
 
-page.getUsers = function ({ pageNum, scroll } = {}, element) {
+page.getUsers = function ({ pageNum } = {}, element) {
   if (element) page.isLoading(element, true)
   if (pageNum === undefined) pageNum = 0
 
@@ -1780,7 +1892,7 @@ page.getUsers = function ({ pageNum, scroll } = {}, element) {
       <hr>
       ${pagination}
     `
-    page.fadeIn()
+    page.fadeAndScroll()
 
     const table = document.querySelector('#table')
 
@@ -1790,9 +1902,10 @@ page.getUsers = function ({ pageNum, scroll } = {}, element) {
       if (!selected && allSelected) allSelected = false
 
       let displayGroup = null
-      for (const group of Object.keys(user.groups)) {
-        if (!user.groups[group]) break
-        displayGroup = group
+      const groups = Object.keys(user.groups)
+      for (let i = 0; i < groups.length; i++) {
+        if (!user.groups[groups[i]]) break
+        displayGroup = groups[i]
       }
 
       // Server-side explicitly expects either of these two values to consider a user as disabled
@@ -1841,8 +1954,6 @@ page.getUsers = function ({ pageNum, scroll } = {}, element) {
       table.appendChild(tr)
       page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
     }
-
-    if (scroll) page.dom.scrollIntoView(true)
 
     if (allSelected && response.data.users.length) {
       const selectAll = document.querySelector('#selectAll')
@@ -2055,7 +2166,7 @@ page.getServerStats = function (element) {
     Please wait, this may take a while\u2026
     <progress class="progress is-breeze" max="100" style="margin-top: 10px"></progress>
   `
-  page.fadeIn()
+  page.fadeAndScroll()
 
   const url = 'api/stats'
   axios.get(url).then(function (response) {
@@ -2067,39 +2178,42 @@ page.getServerStats = function (element) {
       }
 
     let content = ''
-    for (const key of Object.keys(response.data.stats)) {
+    const keys = Object.keys(response.data.stats)
+    for (let i = 0; i < keys.length; i++) {
       let rows = ''
-      if (!response.data.stats[key])
+      if (!response.data.stats[keys[i]]) {
         rows += `
           <tr>
             <td>Generating, please try again later\u2026</td>
             <td></td>
           </tr>
         `
-      else
-        for (const valKey of Object.keys(response.data.stats[key])) {
-          const _value = response.data.stats[key][valKey]
+      } else {
+        const valKeys = Object.keys(response.data.stats[keys[i]])
+        for (let j = 0; j < valKeys.length; j++) {
+          const _value = response.data.stats[keys[i]][valKeys[j]]
           let value = _value
-          if (['albums', 'users', 'uploads'].includes(key))
+          if (['albums', 'users', 'uploads'].includes(keys[i]))
             value = _value.toLocaleString()
-          if (['memoryUsage', 'size'].includes(valKey))
+          if (['memoryUsage', 'size'].includes(valKeys[j]))
             value = page.getPrettyBytes(_value)
-          if (valKey === 'systemMemory')
+          if (valKeys[j] === 'systemMemory')
             value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
           rows += `
             <tr>
-              <th>${valKey.replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
+              <th>${valKeys[j].replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
               <td>${value}</td>
             </tr>
           `
         }
+      }
 
       content += `
         <div class="table-container">
           <table class="table is-fullwidth is-hoverable">
             <thead>
               <tr>
-                <th>${key.toUpperCase()}</th>
+                <th>${keys[i].toUpperCase()}</th>
                 <td style="width: 50%"></td>
               </tr>
             </thead>
@@ -2116,38 +2230,8 @@ page.getServerStats = function (element) {
       ${content}
     `
 
-    page.fadeIn()
+    page.fadeAndScroll()
   })
-}
-
-page.getPrettyDate = function (date) {
-  return date.getFullYear() + '-' +
-    (date.getMonth() < 9 ? '0' : '') + // month's index starts from zero
-    (date.getMonth() + 1) + '-' +
-    (date.getDate() < 10 ? '0' : '') +
-    date.getDate() + ' ' +
-    (date.getHours() < 10 ? '0' : '') +
-    date.getHours() + ':' +
-    (date.getMinutes() < 10 ? '0' : '') +
-    date.getMinutes() + ':' +
-    (date.getSeconds() < 10 ? '0' : '') +
-    date.getSeconds()
-}
-
-page.getPrettyBytes = function (num, si) {
-  // MIT License
-  // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-  if (!Number.isFinite(num)) return num
-
-  const neg = num < 0 ? '-' : ''
-  const scale = si ? 1000 : 1024
-  if (neg) num = -num
-  if (num < scale) return `${neg}${num} B`
-
-  const exponent = Math.min(Math.floor(Math.log10(num) / 3), 8) // 8 is count of KMGTPEZY
-  const numStr = Number((num / Math.pow(scale, exponent)).toPrecision(3))
-  const pre = (si ? 'kMGTPEZY' : 'KMGTPEZY').charAt(exponent - 1) + (si ? '' : 'i')
-  return `${neg}${numStr} ${pre}B`
 }
 
 window.onload = function () {
@@ -2156,9 +2240,9 @@ window.onload = function () {
     document.documentElement.classList.add('no-touch')
 
   const selectedKeys = ['uploads', 'uploadsAll', 'users']
-  for (const selectedKey of selectedKeys) {
-    const ls = localStorage[lsKeys.selected[selectedKey]]
-    if (ls) page.selected[selectedKey] = JSON.parse(ls)
+  for (let i = 0; i < selectedKeys.length; i++) {
+    const ls = localStorage[lsKeys.selected[selectedKeys[i]]]
+    if (ls) page.selected[selectedKeys[i]] = JSON.parse(ls)
   }
 
   page.preparePage()

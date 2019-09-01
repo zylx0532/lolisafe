@@ -321,11 +321,11 @@ albumsController.get = async (req, res, next) => {
 albumsController.generateZip = async (req, res, next) => {
   const versionString = parseInt(req.query.v)
   const download = (filePath, fileName) => {
-    const headers = { 'Access-Control-Allow-Origin': '*' }
-    if (versionString > 0)
-      // Cache-Control header is useful when using CDN (max-age: 30 days)
+    const headers = {}
+    if (config.cacheControl && versionString > 0) {
+      headers['Access-Control-Allow-Origin'] = '*'
       headers['Cache-Control'] = 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800'
-
+    }
     return res.download(filePath, fileName, { headers })
   }
 
@@ -351,7 +351,7 @@ albumsController.generateZip = async (req, res, next) => {
   else if (album.download === 0)
     return res.json({ success: false, description: 'Download for this album is disabled.' })
 
-  if ((!versionString || versionString <= 0) && album.editedAt)
+  if ((isNaN(versionString) || versionString <= 0) && album.editedAt)
     return res.redirect(`${album.identifier}?v=${album.editedAt}`)
 
   if (album.zipGeneratedAt > album.editedAt) {

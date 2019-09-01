@@ -64,7 +64,8 @@ routes.get('/a/:identifier', async (req, res, next) => {
     downloadLink: album.download === 0 ? null : `../api/album/zip/${album.identifier}?v=${album.editedAt}`,
     editedAt: album.editedAt,
     url: `${homeDomain}/a/${album.identifier}`,
-    totalSize
+    totalSize,
+    nojs: req.query.nojs !== undefined
   })
 })
 

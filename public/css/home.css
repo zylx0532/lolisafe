@@ -106,14 +106,14 @@
   }
 }
 
-.uploads {
-  padding-top: 1rem;
-  margin-bottom: 1rem;
-}
-
 .uploads>div {
   -webkit-animation: fadeInOpacity .5s;
   animation: fadeInOpacity .5s;
+  margin: 1rem;
+}
+
+.uploads>div:first-child {
+  margin-top: 1.5rem;
 }
 
 .uploads.nojs {
@@ -210,4 +210,30 @@
 .git-commit a {
   display: inline-block;
   word-break: break-all;
+}
+
+#urlMaxSize {
+  font-weight: bold;
+}
+
+.render {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  font-size: 1rem;
+  color: #bdc3c7;
+  cursor: pointer;
+}
+
+.render.button {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  right: 1%;
+  opacity: .25;
+  -webkit-transition: opacity .25s;
+  transition: opacity .25s;
+}
+
+.render.button:hover {
+  opacity: 1;
 }

@@ -1,8 +1,15 @@
 /* global swal, axios, Dropzone, ClipboardJS, LazyLoad */
 
+const lsKeys = {
+  token: 'token',
+  chunkSize: 'chunkSize',
+  parallelUploads: 'parallelUploads',
+  ufBehavior: 'ufBehavior'
+}
+
 const page = {
   // user token
-  token: localStorage.token,
+  token: localStorage[lsKeys.token],
 
   // configs from api/check
   private: null,
@@ -12,6 +19,10 @@ const page = {
 
   // store album id that will be used with upload requests
   album: null,
+
+  maxSizeBytes: null,
+  urlMaxSize: null,
+  urlMaxSizeBytes: null,
 
   albumSelect: null,
   previewTemplate: null,
@@ -27,7 +38,8 @@ page.checkIfPublic = function () {
   axios.get('api/check').then(function (response) {
     page.private = response.data.private
     page.enableUserAccounts = response.data.enableUserAccounts
-    page.maxSize = response.data.maxSize
+    page.maxSize = parseInt(response.data.maxSize)
+    page.maxSizeBytes = page.maxSize * 1e6
     page.chunkSize = response.data.chunkSize
     page.preparePage()
   }).catch(function (error) {
@@ -96,8 +108,13 @@ page.prepareUpload = function () {
     document.querySelector('#albumDiv').style.display = 'flex'
   }
 
-  document.querySelector('#maxSize').innerHTML = `Maximum upload size per file is ${page.maxSize}`
+  document.querySelector('#maxSize').innerHTML = `Maximum upload size per file is ${page.getPrettyBytes(page.maxSizeBytes)}`
   document.querySelector('#loginToUpload').style.display = 'none'
+
+  const urlMaxSize = document.querySelector('#urlMaxSize')
+  page.urlMaxSize = parseInt(urlMaxSize.innerHTML)
+  page.urlMaxSizeBytes = page.urlMaxSize * 1e6
+  urlMaxSize.innerHTML = page.getPrettyBytes(page.urlMaxSizeBytes)
 
   if (!page.token && page.enableUserAccounts)
     document.querySelector('#loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
@@ -190,16 +207,16 @@ page.prepareDropzone = function () {
   `
   tabDiv.querySelector('.dz-container').appendChild(div)
 
-  const maxSize = parseInt(page.maxSize)
-  const maxSizeBytes = maxSize * 1e6
-
   const previewsContainer = tabDiv.querySelector('#tab-files .field.uploads')
+
+  const chunkSize = (localStorage[lsKeys.chunkSize] || parseInt(page.chunkSize)) * 1e6
+  const parallelUploads = localStorage[lsKeys.parallelUploads] || 2
 
   page.dropzone = new Dropzone('#dropzone', {
     url: 'api/upload',
     paramName: 'files[]',
-    maxFilesize: maxSizeBytes / 1024 / 1024, // this option expects MiB
-    parallelUploads: 2,
+    maxFilesize: page.maxSizeBytes / 1024 / 1024, // this option expects MiB
+    parallelUploads,
     uploadMultiple: false,
     previewsContainer,
     previewTemplate: page.previewTemplate,
@@ -207,7 +224,7 @@ page.prepareDropzone = function () {
     autoProcessQueue: true,
     headers: { token: page.token },
     chunking: Boolean(page.chunkSize),
-    chunkSize: (parseInt(page.chunkSize) * 1e6), // the option below expects Bytes
+    chunkSize, // the option below expects Bytes
     parallelChunkUploads: false, // when set to true, it often hangs with hundreds of parallel uploads
     chunksUploaded (file, done) {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
@@ -280,7 +297,7 @@ page.prepareDropzone = function () {
   page.dropzone.on('error', function (file, error) {
     if ((typeof error === 'string' && /^File is too big/.test(error)) ||
       error.description === 'MulterError: File too large')
-      error = `File too large (${(file.size / 1e6).toFixed(2)}MB).`
+      error = `File too large (${page.getPrettyBytes(file.size)}).`
     page.updateTemplateIcon(file.previewElement, 'icon-block')
     file.previewElement.querySelector('.progress').style.display = 'none'
     file.previewElement.querySelector('.name').innerHTML = file.name
@@ -475,8 +492,9 @@ page.createAlbum = function () {
 // Handle image paste event
 window.addEventListener('paste', function (event) {
   const items = (event.clipboardData || event.originalEvent.clipboardData).items
-  for (const index in items) {
-    const item = items[index]
+  const index = Object.keys(items)
+  for (let i = 0; i < index.length; i++) {
+    const item = items[index[i]]
     if (item.kind === 'file') {
       const blob = item.getAsFile()
       const file = new File([blob], `pasted-image.${blob.type.match(/(?:[^/]*\/)([^;]*)/)[1]}`)

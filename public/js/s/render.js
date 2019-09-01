@@ -1,4 +1,7 @@
-/* global page, swal */
+/* global lsKeys, page, swal */
+
+// keys for localStorage
+lsKeys.render = 'render'
 
 page.renderType = 'miku'
 page.renderConfig = {
@@ -66,7 +69,7 @@ page.doRenderSwal = function () {
     <div class="field">
       <div class="control">
         <label class="checkbox">
-          <input id="swalRender" type="checkbox" ${localStorage.render === '0' ? '' : 'checked'}>
+          <input id="swalRender" type="checkbox" ${localStorage[lsKeys.render] === '0' ? '' : 'checked'}>
           Enable random render of ${page.config.name}
         </label>
       </div>
@@ -82,8 +85,11 @@ page.doRenderSwal = function () {
   }).then(function (value) {
     if (!value) return
     const newValue = div.querySelector('#swalRender').checked ? undefined : '0'
-    if (newValue !== localStorage.render) {
-      newValue ? localStorage.render = newValue : localStorage.removeItem('render')
+    if (newValue !== localStorage[lsKeys.render]) {
+      if (newValue)
+        localStorage[lsKeys.render] = newValue
+      else
+        localStorage.removeItem(lsKeys.render)
       swal('Success!', `Random render is now ${newValue ? 'disabled' : 'enabled'}.`, 'success')
       const element = document.querySelector('body > .render')
       element.remove()
@@ -104,7 +110,7 @@ page.doRender = function () {
   if (!page.config || !page.config.array.length) return
 
   let element
-  if (localStorage.render === '0') {
+  if (localStorage[lsKeys.render] === '0') {
     element = document.createElement('a')
     element.className = 'button is-breeze is-hidden-mobile'
     element.title = page.config.name

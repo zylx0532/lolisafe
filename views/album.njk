@@ -4,13 +4,17 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="../libs/bulma/bulma.min.css?v={{ globals.v3 }}">
 <link rel="stylesheet" href="../css/style.css?v={{ globals.v1 }}">
+<link rel="stylesheet" href="../css/thumbs.css?v={{ globals.v1 }}">
 <link rel="stylesheet" href="../css/album.css?v={{ globals.v1 }}">
 {% endblock %}
 
 {% block scripts %}
+{% if not nojs -%}
 <!-- Scripts -->
 <script src="../libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script src="../js/album.js?v={{ globals.v1 }}"></script>
+<script src="../js/s/utils.js?v={{ globals.v1 }}"></script>
+{% endif %}
 {% endblock %}
 
 {% block opengraph %}
@@ -59,25 +63,34 @@
       </div>
       {%- endif %}
     </nav>
+
     {% if description -%}
     <h2 class="subtitle description">
       {{ description | safe }}
     </h2>
     {%- endif %}
     <hr>
+
+    {% if nojs -%}
+    <article class="message">
+      <div class="message-body">
+        <p>You are viewing No-JS version of this album, so file size will be displayed in bytes.</p>
+        <p>Please <a href="{{ url }}">click here</a> if you want to its regular version.</p>
+      </div>
+    </article>
+    {%- endif %}
+
     {% if files.length -%}
     <div id="table" class="columns is-multiline is-mobile is-centered has-text-centered">
       {% for file in files %}
         <div class="image-container column is-narrow">
           <a class="image" href="{{ file.file }}" target="_blank" rel="noopener">
             {% if file.thumb -%}
-            <img alt="{{ file.name }}" data-src="{{ file.thumb }}">
-            {#-
-              This will kinda increase the overall page size,
-              but this will still benefit users with JavaScript enabled by lazyloading images,
-              and not causing those who have JavaScript disabled be unable to view the images.
-            #}
-            <noscript><img alt="{{ file.name }}" src="{{ file.thumb }}" style="display: none"></noscript>
+              {% if nojs -%}
+              <img alt="{{ file.name }}" src="{{ file.thumb }}">
+              {%- else -%}
+              <img alt="{{ file.name }}" data-src="{{ file.thumb }}">
+              {%- endif %}
             {%- else -%}
             <h1 class="title">{{ file.extname | default('N/A') }}</h1>
             {%- endif %}
@@ -99,11 +112,17 @@
   </div>
 </section>
 
-{# Hide lazyload img tags and show noscript img tags #}
+{% if not nojs -%}
 <noscript>
-  <style>
-    img[data-src] { display: none; }
-    img[src] { display: block !important; }
-  </style>
+  <style>body > section:not(#noscript) { display: none !important; }</style>
+  <section id="noscript" class="hero is-fullheight">
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <p>You have JavaScript disabled, but this page requires JavaScript to function.</p>
+        <p>Please <a href="{{ url }}?nojs">click here</a> if you want to view its No-JS version.</p>
+      </div>
+    </div>
+  </section>
 </noscript>
+{%- endif %}
 {% endblock %}
