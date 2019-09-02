@@ -56,14 +56,30 @@
               </a>
             </div>
           </div>
-          {% if urlMaxSize -%}
-          <div id="tabs" class="tabs is-centered" style="display: none">
+          <div id="tabs" class="tabs is-centered is-boxed" style="display: none">
             <ul>
-              <li data-id="tab-files" class="is-active"><a>Files</a></li>
-              <li data-id="tab-urls"><a>URLs</a></li>
+              <li data-id="tab-files" class="is-active">
+                <a>
+                  <span class="icon is-small"><i class="icon-docs"></i></span>
+                  <span>Files</span>
+                </a>
+              </li>
+              {% if urlMaxSize -%}
+              <li data-id="tab-urls">
+                <a>
+                  <span class="icon is-small"><i class="icon-link"></i></span>
+                  <span>URLs</span>
+                </a>
+              </li>
+              {%- endif %}
+              <li data-id="tab-config">
+                <a>
+                  <span class="icon is-small"><i class="icon-cog-alt"></i></span>
+                  <span>Config</span>
+                </a>
+              </li>
             </ul>
           </div>
-          {%- endif %}
           <div id="tab-files" class="tab-content" style="display: none">
             <div class="field dz-container"></div>
             <div class="field uploads"></div>
@@ -103,6 +119,45 @@
             <div class="field uploads"></div>
           </div>
           {%- endif %}
+          <div id="tab-config" class="tab-content" style="display: none">
+            <form>
+              <div class="field">
+                <label class="label">File size display</label>
+                <div class="control is-expanded">
+                  <div class="select is-fullwidth">
+                    <select id="siBytes">
+                      <option value="default">1000 B = 1 kB = 1 Kilobyte (default)</option>
+                      <option value="0">1024 B = 1 KiB = 1 Kibibyte</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Upload chunk size (MB)</label>
+                <div class="control is-expanded">
+                  <input id="chunkSize" class="input is-fullwidth" type="number" min="0" step="5">
+                </div>
+                <p class="help">Default is <span id="defaultChunkSize"></span>. Max is <span id="maxChunkSize"></span>.</p>
+              </div>
+              <div class="field">
+                <label class="label">Parallel uploads</label>
+                <div class="control is-expanded">
+                  <input id="parallelUploads" class="input is-fullwidth" type="number" name="parallelUploads" min="0">
+                </div>
+                <p class="help">Default is <span id="defaultParallelUploads"></span>.</p>
+              </div>
+              <div class="field">
+                <p class="control is-expanded">
+                  <button id="saveConfig" type="submit" class="button is-danger is-fullwidth">
+                    <span class="icon">
+                      <i class="icon-floppy"></i>
+                    </span>
+                    <span>Save & reload</span>
+                  </button>
+                </p>
+              </div>
+            </form>
+          </div>
         </div>
         <div class="column is-hidden-mobile"></div>
       </div>

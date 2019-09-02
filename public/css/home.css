@@ -184,27 +184,38 @@
 }
 
 #tabs ul {
-  border-bottom: 1px solid #bdc3c7;
+  border-bottom: 1px solid #898b8d;
 }
 
-#tabs li:not(.is-active) a {
+#tabs li a {
   color: #bdc3c7;
+  border-bottom-color: #898b8d;
 }
 
-#tabs li:not(.is-active) a:hover {
-  color: #7f8c8d;
-  border-bottom-color: #7f8c8d;
-}
-
-.tabs li.is-active a {
-  border-bottom-color: #3794d2;
+#tabs.is-boxed li.is-active a {
   color: #3794d2;
+  background: #232629;
+  border-color: #898b8d;
+  border-bottom-color: #232629;
+}
+
+#tabs.is-boxed li:not(.is-active) a:hover {
+  background: #4d4d4d;
 }
 
 .tab-content {
   margin-bottom: -.75rem;
   -webkit-animation: fadeInOpacity .5s;
   animation: fadeInOpacity .5s;
+}
+
+.tab-content .label {
+  color: #bdc3c7;
+  font-weight: normal;
+}
+
+#tab-config.tab-content form {
+  margin-bottom: .75rem;
 }
 
 .git-commit a {

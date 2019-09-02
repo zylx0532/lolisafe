@@ -10,9 +10,7 @@ const lsKeys = {
     uploads: 'selectedUploads',
     uploadsAll: 'selectedUploadsAll',
     users: 'selectedUsers'
-  },
-  chunkSize: 'chunkSize',
-  parallelUploads: 'parallelUploads'
+  }
 }
 
 const page = {
@@ -167,11 +165,6 @@ page.prepareDashboard = function () {
   document.querySelector('#itemManageGallery').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.getAlbums()
-  })
-
-  document.querySelector('#itemBrowserSettings').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.browserSettings()
   })
 
   document.querySelector('#itemFileLength').addEventListener('click', function () {
@@ -1414,7 +1407,7 @@ page.submitAlbum = function (element) {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    swal('Woohoo!', 'Album was created successfully', 'success')
+    swal('Woohoo!', 'Album was created successfully.', 'success')
     page.getAlbumsSidebar()
     page.getAlbums()
   }).catch(function (error) {
@@ -1463,111 +1456,6 @@ page.getAlbumsSidebar = function () {
 page.getAlbum = function (album) {
   page.setActiveMenu(album)
   page.getUploads({ album: album.id })
-}
-
-page.browserSettings = function () {
-  const selectionMap = { uploads: 'Selected uploads' }
-
-  if (page.permissions.moderator)
-    selectionMap.uploadsAll = 'Selected uploads (manager)'
-
-  if (page.permissions.admin)
-    selectionMap.users = 'Selected users'
-
-  let selectionSection = ''
-  const keys = Object.keys(selectionMap)
-  for (let i = 0; i < keys.length; i++)
-    selectionSection += `
-      <p>${selectionMap[keys[i]]}: ${page.selected[keys[i]].length}
-    `
-
-  const maxChunkSize = 95
-  const siBytes = localStorage[lsKeys.siBytes] !== '0'
-
-  page.dom.innerHTML = `
-    <h2 class="subtitle">Browser settings</h2>
-    <article class="message has-text-left">
-      <div class="message-body">
-        ${selectionSection}
-      </div>
-    </article>
-    <article class="message has-text-left">
-      <div class="message-body">
-        <form class="prevent-default" id="browserSettingsForm">
-          <div class="field">
-            <label class="label">File size unit</label>
-            <div class="control">
-              <label class="radio">
-                <input type="radio" name="siBytes" value="default"${siBytes ? ' checked' : ''}>
-                1 Kilobyte = 1 kB = 1000 B (default)
-              </label>
-            </div>
-            <div>
-              <label class="radio">
-                <input type="radio" name="siBytes" value="0"${siBytes ? '' : ' checked'}>
-                1 Kibibyte = 1 KiB = 1024 B
-              </label>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label">Upload chunk size (MB)</label>
-            <div class="control">
-              <input class="input" type="number" name="chunkSize" min="0" max="${maxChunkSize}" step="5" value="${localStorage[lsKeys.chunkSize] || '0'}">
-            </div>
-            <p class="help">Default is 0, which means to use server's setting. Max is ${maxChunkSize} MB.</p>
-          </div>
-          <div class="field">
-            <label class="label">Parallel uploads</label>
-            <div class="control">
-              <input class="input" type="number" name="parallelUploads" min="0" value="${localStorage[lsKeys.parallelUploads] || '0'}">
-            </div>
-            <p class="help">Default is 0, which means to use hard-coded Dropzone setting.</p>
-          </div>
-          <div class="field is-grouped">
-            <p class="control">
-              <button type="submit" id="saveBrowserSettings" class="button is-breeze">
-                Save
-              </button>
-            </p>
-          </div>
-        </form>
-      </div>
-    </article>
-  `
-  page.fadeAndScroll()
-
-  document.querySelector('#saveBrowserSettings').addEventListener('click', function () {
-    const form = document.querySelector('#browserSettingsForm')
-
-    const prefKeys = ['siBytes']
-    for (let i = 0; i < prefKeys.length; i++) {
-      const value = form.elements[prefKeys[i]].value
-      if (value !== '0')
-        localStorage.removeItem(lsKeys[prefKeys[i]])
-      else
-        localStorage[lsKeys[prefKeys[i]]] = value
-    }
-
-    const numKeys = ['chunkSize', 'parallelUploads']
-    for (let i = 0; i < numKeys.length; i++) {
-      const parsed = parseInt(form.elements[numKeys[i]].value)
-      let value = isNaN(parsed) ? 0 : Math.max(parsed, 0)
-      if (numKeys[i] === 'chunkSize') value = Math.min(value, maxChunkSize)
-      value = Math.min(value, Number.MAX_SAFE_INTEGER)
-      if (value > 0)
-        localStorage[lsKeys[numKeys[i]]] = value
-      else
-        localStorage.removeItem(lsKeys[numKeys[i]])
-    }
-
-    swal({
-      title: 'Woohoo!',
-      text: 'Browser settings saved.',
-      icon: 'success'
-    }).then(function () {
-      page.browserSettings()
-    })
-  })
 }
 
 page.changeFileLength = function () {

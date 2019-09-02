@@ -3,8 +3,7 @@
 const lsKeys = {
   token: 'token',
   chunkSize: 'chunkSize',
-  parallelUploads: 'parallelUploads',
-  ufBehavior: 'ufBehavior'
+  parallelUploads: 'parallelUploads'
 }
 
 const page = {
@@ -20,6 +19,7 @@ const page = {
   // store album id that will be used with upload requests
   album: null,
 
+  parallelUploads: null,
   maxSizeBytes: null,
   urlMaxSize: null,
   urlMaxSizeBytes: null,
@@ -97,7 +97,6 @@ page.prepareUpload = function () {
   // I think this fits best here because we need to check for a valid token before we can get the albums
   if (page.token) {
     page.albumSelect = document.querySelector('#albumSelect')
-
     page.albumSelect.addEventListener('change', function () {
       page.album = parseInt(page.albumSelect.value)
     })
@@ -108,13 +107,10 @@ page.prepareUpload = function () {
     document.querySelector('#albumDiv').style.display = 'flex'
   }
 
+  page.prepareUploadConfig()
+
   document.querySelector('#maxSize').innerHTML = `Maximum upload size per file is ${page.getPrettyBytes(page.maxSizeBytes)}`
   document.querySelector('#loginToUpload').style.display = 'none'
-
-  const urlMaxSize = document.querySelector('#urlMaxSize')
-  page.urlMaxSize = parseInt(urlMaxSize.innerHTML)
-  page.urlMaxSizeBytes = page.urlMaxSize * 1e6
-  urlMaxSize.innerHTML = page.getPrettyBytes(page.urlMaxSizeBytes)
 
   if (!page.token && page.enableUserAccounts)
     document.querySelector('#loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
@@ -125,22 +121,24 @@ page.prepareUpload = function () {
 
   page.prepareDropzone()
 
-  const tabs = document.querySelector('#tabs')
-  if (tabs) {
-    tabs.style.display = 'flex'
-    const items = tabs.getElementsByTagName('li')
-    for (let i = 0; i < items.length; i++)
-      items[i].addEventListener('click', function () {
-        page.setActiveTab(this.dataset.id)
-      })
-
+  const urlMaxSize = document.querySelector('#urlMaxSize')
+  if (urlMaxSize) {
+    page.urlMaxSize = parseInt(urlMaxSize.innerHTML)
+    page.urlMaxSizeBytes = page.urlMaxSize * 1e6
+    urlMaxSize.innerHTML = page.getPrettyBytes(page.urlMaxSizeBytes)
     document.querySelector('#uploadUrls').addEventListener('click', function () {
       page.uploadUrls(this)
     })
-    page.setActiveTab('tab-files')
-  } else {
-    document.querySelector('#tab-files').style.display = 'block'
   }
+
+  const tabs = document.querySelector('#tabs')
+  tabs.style.display = 'flex'
+  const items = tabs.getElementsByTagName('li')
+  for (let i = 0; i < items.length; i++)
+    items[i].addEventListener('click', function () {
+      page.setActiveTab(this.dataset.id)
+    })
+  page.setActiveTab('tab-files')
 }
 
 page.prepareAlbums = function () {
@@ -202,21 +200,18 @@ page.prepareDropzone = function () {
       <span class="icon">
         <i class="icon-upload-cloud"></i>
       </span>
-      <span>Click here or drag and drop files</span>
+      <span>Click here or drag & drop files</span>
     </div>
   `
   tabDiv.querySelector('.dz-container').appendChild(div)
 
   const previewsContainer = tabDiv.querySelector('#tab-files .field.uploads')
 
-  const chunkSize = (localStorage[lsKeys.chunkSize] || parseInt(page.chunkSize)) * 1e6
-  const parallelUploads = localStorage[lsKeys.parallelUploads] || 2
-
   page.dropzone = new Dropzone('#dropzone', {
     url: 'api/upload',
     paramName: 'files[]',
     maxFilesize: page.maxSizeBytes / 1024 / 1024, // this option expects MiB
-    parallelUploads,
+    parallelUploads: page.parallelUploads,
     uploadMultiple: false,
     previewsContainer,
     previewTemplate: page.previewTemplate,
@@ -224,7 +219,7 @@ page.prepareDropzone = function () {
     autoProcessQueue: true,
     headers: { token: page.token },
     chunking: Boolean(page.chunkSize),
-    chunkSize, // the option below expects Bytes
+    chunkSize: page.chunkSize * 1e6, // the option below expects Bytes
     parallelChunkUploads: false, // when set to true, it often hangs with hundreds of parallel uploads
     chunksUploaded (file, done) {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
@@ -481,10 +476,69 @@ page.createAlbum = function () {
       option.innerHTML = name
       option.selected = true
 
-      swal('Woohoo!', 'Album was created successfully', 'success')
+      swal('Woohoo!', 'Album was created successfully.', 'success')
     }).catch(function (error) {
       console.log(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    })
+  })
+}
+
+page.prepareUploadConfig = function () {
+  const fallback = {
+    chunkSize: parseInt(page.chunkSize),
+    parallelUploads: 2
+  }
+  document.querySelector('#defaultChunkSize').innerHTML = `${fallback.chunkSize} MB`
+  document.querySelector('#defaultParallelUploads').innerHTML = `${fallback.parallelUploads}`
+
+  page.chunkSize = localStorage[lsKeys.chunkSize] || fallback.chunkSize
+  page.parallelUploads = localStorage[lsKeys.parallelUploads] || fallback.parallelUploads
+  document.querySelector('#chunkSize').value = page.chunkSize
+  document.querySelector('#parallelUploads').value = page.parallelUploads
+
+  const tabContent = document.querySelector('#tab-config')
+  const form = tabContent.querySelector('form')
+  form.addEventListener('submit', function (event) {
+    event.preventDefault()
+  })
+
+  const siBytes = localStorage[lsKeys.siBytes] !== '0'
+  if (!siBytes) document.querySelector('#siBytes').value = '0'
+
+  // Always display this in MB?
+  const maxChunkSize = 95
+  document.querySelector('#maxChunkSize').innerHTML = `${maxChunkSize} MB`
+  document.querySelector('#chunkSize').setAttribute('max', maxChunkSize)
+
+  document.querySelector('#saveConfig').addEventListener('click', function () {
+    const prefKeys = ['siBytes']
+    for (let i = 0; i < prefKeys.length; i++) {
+      const value = form.elements[prefKeys[i]].value
+      if (value !== '0' && value !== fallback[prefKeys[i]])
+        localStorage.removeItem(lsKeys[prefKeys[i]])
+      else
+        localStorage[lsKeys[prefKeys[i]]] = value
+    }
+
+    const numKeys = ['chunkSize', 'parallelUploads']
+    for (let i = 0; i < numKeys.length; i++) {
+      const parsed = parseInt(form.elements[numKeys[i]].value)
+      let value = isNaN(parsed) ? 0 : Math.max(parsed, 0)
+      if (numKeys[i] === 'chunkSize') value = Math.min(value, maxChunkSize)
+      value = Math.min(value, Number.MAX_SAFE_INTEGER)
+      if (value > 0 && value !== fallback[numKeys[i]])
+        localStorage[lsKeys[numKeys[i]]] = value
+      else
+        localStorage.removeItem(lsKeys[numKeys[i]])
+    }
+
+    swal({
+      title: 'Woohoo!',
+      text: 'Upload configuration saved.',
+      icon: 'success'
+    }).then(function () {
+      location.reload()
     })
   })
 }
