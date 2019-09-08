@@ -258,19 +258,13 @@ module.exports = {
 
     /*
       The length of the randomly generated identifier for uploaded files.
-      If "userChangeable" is set to true, registered users will be able to change
-      their preferred length from the dashboard. The allowed range will be set
-      by "min" and "max". Otherwise it will use "default".
-
-      It's possible to have "default" be outside of the "min" and "max" range,
-      but be aware that once a user has changed their preferred length to be somewhere
-      within the range, they will no longer be able to restore it back to "default".
+      If "force" is set to true, files will always use "default".
     */
-    fileLength: {
+    fileIdentifierLength: {
       min: 4,
       max: 32,
-      default: 32,
-      userChangeable: false
+      default: 8,
+      force: false
     },
 
     /*
