@@ -114,12 +114,17 @@ module.exports = {
     {
       // 2 requests in 5 seconds
       routes: [
-        '/api/login/',
+        '/api/login',
         '/api/register'
       ],
       config: {
         windowMs: 5 * 1000,
-        max: 2
+        max: 2,
+        statusCode: 200,
+        message: {
+          success: false,
+          description: 'Rate limit reached, please try again in a while.'
+        }
       }
     },
     {
