@@ -4,12 +4,12 @@
 lsKeys.siBytes = 'siBytes'
 
 page.prepareShareX = function () {
-  const values = {
+  const values = page.token ? {
     token: page.token || '',
-    albumid: page.album || '',
-    filelength: page.fileLength || '',
-    age: page.uploadAge || ''
-  }
+    albumid: page.album || ''
+  } : {}
+  values.filelength = page.filelength || ''
+  values.age = page.uploadAge || ''
 
   const headers = []
   const keys = Object.keys(values)
@@ -24,13 +24,13 @@ page.prepareShareX = function () {
   const sharexFile = `{
   "Name": "${originClean}",
   "DestinationType": "ImageUploader, FileUploader",
-  "RequestType": "POST",
+  "RequestMethod": "POST",
   "RequestURL": "${location.protocol}//${origin}/api/upload",
-  "FileFormName": "files[]",
   "Headers": {
 ${headers.join(',\n')}
   },
-  "ResponseType": "Text",
+  "Body": "MultipartFormData",
+  "FileFormName": "files[]",
   "URL": "$json:files[0].url$",
   "ThumbnailURL": "$json:files[0].url$"
 }`
