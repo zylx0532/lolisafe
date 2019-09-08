@@ -336,7 +336,7 @@ self.bulkDeleteFromDb = async (field, values, user) => {
         .whereIn(field, chunks[i])
         .where(function () {
           if (!ismoderator)
-            self.where('userid', user.id)
+            this.where('userid', user.id)
         })
 
       // Push files that could not be found in db

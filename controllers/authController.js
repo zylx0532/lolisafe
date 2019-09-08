@@ -87,7 +87,7 @@ self.register = async (req, res, next) => {
         permission: perms.permissions.user
       })
     utils.invalidateStatsCache('users')
-    token.onHold.delete(token)
+    tokens.onHold.delete(token)
 
     return res.json({ success: true, token })
   } catch (error) {
