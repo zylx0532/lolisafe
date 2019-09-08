@@ -21,7 +21,9 @@
     <h2 class='subtitle'>Will you keep my files forever?</h2>
     <article class="message">
       <div class="message-body">
-        Unless I receive a copyright complain or some other bullshit, I will.
+        Unless I receive a copyright complain, or some other bullshit, I will.<br>
+        However, we also have temporary uploads feature which will automatically delete your files after a certain period of time.<br>
+        You can configure the feature through our homepage's config tab.
       </div>
     </article>
 
@@ -36,9 +38,9 @@
     <article class="message">
       <div class="message-body">
         Albums are a simple way of sorting uploads together.<br>
-        As long as you are logged in, you can create albums through the homepage or the dashboard,<br>
+        As long as you are logged in, you can create albums through our homepage or dashboard,<br>
         then afterwards you can use them with our <a href="https://addons.mozilla.org/en-US/firefox/addon/lolisafe/" target="_blank" rel="noopener">Firefox extension</a> or <a href="https://chrome.google.com/webstore/detail/loli-safe-uploader/enkkmplljfjppcdaancckgilmgoiofnj" target="_blank" rel="noopener">Chrome extension</a>,<br>
-        which will enable you to <strong>right click -> send file to safe</strong> or to a desired album if you have any.<br>
+        which will enable you to <strong>right click -> send file to safe</strong>, or to a desired album if you have any.<br>
         You will have to set the domain in the extension's settings to <strong>https://safe.fiery.me</strong> though.
       </div>
     </article>
@@ -69,7 +71,7 @@
     <article class="message">
       <div class="message-body">
         Paris, France.<br>
-        We are using Cloudflare though, so you can expect your uploads to be delivered quickly all over the world after they have been cached.
+        We are using <a href="https://www.cloudflare.com/cdn/" target="_blank" rel="noopener">Cloudflare</a> though, so you can expect your uploads to be delivered quickly all over the world after they have been cached.
       </div>
     </article>
 
@@ -99,11 +101,11 @@
     {%- endif %}
 
     {% if chunkSize -%}
-    <h2 class='subtitle'>Does your API support chunked uploads?</h2>
+    <h2 class='subtitle'>So your API supports chunked uploads?</h2>
     <article class="message">
       <div class="message-body">
-        Yes, the homepage uploader is hard-coded to chunk uploads into {{ chunkSize }} MB pieces by default.<br>
-        If you want to chunk your API uploads, feel free to read the source code to see how it works.
+        Yes, the homepage uploader was coded to chunk uploads into {{ chunkSize }} MB pieces by default (chunk size is configurable through the config tab).<br>
+        If you want to chunk your API uploads, feel free to read the <a href="https://github.com/BobbyWibowo/lolisafe" target="_blank" rel="noopener">source code</a> to see how it works.
       </div>
     </article>
     {%- endif %}
@@ -113,9 +115,9 @@
       <div class="message-body">
         {% if extensionsFilter.length -%}
           {%- if whitelist -%}
-          We support any file extensions except the following: {{ extensionsFilter | join(', ') }}.
-          {%- else -%}
           We only support the following extensions:
+          {%- else -%}
+          We support any file extensions, except the following:
           {%- endif -%}<br>
           {% set comma = joiner(' ') -%}
           {%- for extension in extensionsFilter -%}

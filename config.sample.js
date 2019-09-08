@@ -219,7 +219,12 @@ module.exports = {
       6, // 6 hours
       12, // 12 hours
       24, // 24 hours (1 day)
-      168 // 168 hours (7 days)
+      24 * 2, // 48 hours (2 days)
+      24 * 3, // 72 hours (3 days)
+      24 * 4, // 96 hours (4 days)
+      24 * 5, // 120 hours (5 days)
+      24 * 6, // 144 hours (6 days)
+      24 * 7 // 168 hours (7 days)
     ],
 
     /*

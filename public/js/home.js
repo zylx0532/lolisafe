@@ -648,7 +648,7 @@ page.getPrettyUploadAge = function (hours) {
   } else if (hours < 1) {
     const minutes = hours * 60
     return `${minutes} minute${minutes === 1 ? '' : 's'}`
-  } else if (hours > 24) {
+  } else if (hours >= 24) {
     const days = hours / 24
     return `${days} day${days === 1 ? '' : 's'}`
   } else {

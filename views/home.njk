@@ -131,6 +131,7 @@
                     </select>
                   </div>
                 </div>
+                <p class="help">This will be used in our homepage, dashboard, and album public pages.</p>
               </div>
               <div id="fileLengthDiv" class="field" style="display: none">
                 <label class="label">File identifier length</label>
@@ -147,6 +148,7 @@
                     <select id="uploadAge"></select>
                   </div>
                 </div>
+                <p class="help">This allows your files to automatically be deleted after a certain period of time.</p>
               </div>
               {%- endif %}
               <div id="chunkSizeDiv" class="field">
@@ -172,7 +174,10 @@
                     <span>Save & reload</span>
                   </button>
                 </p>
-                <p class="help">This configuration will only be used in this browser.</p>
+                <p class="help">
+                  This configuration will only be used in this browser.<br>
+                  After reloading the page, some of them will also be applied to the ShareX config that you can download by clicking on the ShareX icon below.
+                </p>
               </div>
             </form>
           </div>
