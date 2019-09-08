@@ -23,7 +23,7 @@
 <script src="libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script src="js/home.js?v={{ globals.v1 }}"></script>
 <script src="js/s/utils.js?v={{ globals.v1 }}"></script>
-<!-- We assign an ID for this so that the script can find out version string for render images -->
+{# We assign an ID for this so that the script can find out version string for render images #}
 <script id="renderScript" data-version="{{ globals.v4 }}" src="js/s/render.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
@@ -92,7 +92,7 @@
               </div>
               <p class="help">
                 {% if urlMaxSize !== maxSize -%}
-                Maximum file size for URL upload is <span id="urlMaxSize">{{ urlMaxSize }}</span>.
+                Maximum file size per URL is <span id="urlMaxSize">{{ urlMaxSize }}</span>.
                 {%- endif %}
 
                 {% if urlExtensionsFilter.length and (urlExtensionsFilterMode === 'blacklist') -%}
@@ -132,19 +132,36 @@
                   </div>
                 </div>
               </div>
-              <div class="field">
+              <div id="fileLengthDiv" class="field" style="display: none">
+                <label class="label">File identifier length</label>
+                <div class="control is-expanded">
+                  <input id="fileLength" class="input is-fullwidth" type="number" min="0">
+                </div>
+                <p class="help"></p>
+              </div>
+              {%- if temporaryUploadAges %}
+              <div id="uploadAgeDiv" class="field" style="display: none">
+                <label class="label">Upload age</label>
+                <div class="control is-expanded">
+                  <div class="select is-fullwidth">
+                    <select id="uploadAge"></select>
+                  </div>
+                </div>
+              </div>
+              {%- endif %}
+              <div id="chunkSizeDiv" class="field">
                 <label class="label">Upload chunk size (MB)</label>
                 <div class="control is-expanded">
-                  <input id="chunkSize" class="input is-fullwidth" type="number" min="0" step="5">
+                  <input id="chunkSize" class="input is-fullwidth" type="number" min="0">
                 </div>
-                <p class="help">Default is <span id="defaultChunkSize"></span>. Max is <span id="maxChunkSize"></span>.</p>
+                <p class="help"></p>
               </div>
-              <div class="field">
+              <div id="parallelUploadsDiv" class="field">
                 <label class="label">Parallel uploads</label>
                 <div class="control is-expanded">
                   <input id="parallelUploads" class="input is-fullwidth" type="number" name="parallelUploads" min="0">
                 </div>
-                <p class="help">Default is <span id="defaultParallelUploads"></span>.</p>
+                <p class="help"></p>
               </div>
               <div class="field">
                 <p class="control is-expanded">
@@ -155,6 +172,7 @@
                     <span>Save & reload</span>
                   </button>
                 </p>
+                <p class="help">This configuration will only be used in this browser.</p>
               </div>
             </form>
           </div>
@@ -167,13 +185,14 @@
           <i class="icon" style="display: none"></i>
           <img class="is-unselectable" style="display: none">
           <p class="name is-unselectable"></p>
-          <progress class="progress is-small is-danger" max="100"></progress>
+          <progress class="progress is-small is-danger" max="100" value="0"></progress>
           <p class="error"></p>
           <p class="link">
             <a target="_blank" rel="noopener"></a>
           </p>
-          <p class="clipboard-mobile is-hidden-desktop" style="display: none">
-            <a class="button is-info is-outlined clipboard-js" style="display: flex">
+          <p class="help expiry-date" style="display: none"></p>
+          <p class="clipboard-mobile" style="display: none">
+            <a class="button is-small is-info is-outlined clipboard-js" style="display: flex">
               <span class="icon">
                 <i class="icon-clipboard-1"></i>
               </span>

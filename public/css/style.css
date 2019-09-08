@@ -13,6 +13,7 @@ body {
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -22,6 +23,7 @@ body {
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -37,6 +39,12 @@ a:hover {
 
 hr {
   background-color: #898b8d;
+}
+
+code,
+.message-body code {
+  background-color: #222528;
+  border-radius: 5px;
 }
 
 .title {
@@ -127,7 +135,8 @@ hr {
 }
 
 .progress.is-breeze:indeterminate {
-  background-image: linear-gradient(to right,#60a8dc 30%,#eff0f1 30%);
+  background-image: -webkit-gradient(linear, left top, right top, color-stop(30%, #60a8dc), color-stop(30%, #eff0f1));
+  background-image: linear-gradient(to right, #60a8dc 30%, #eff0f1 30%);
 }
 
 .message {

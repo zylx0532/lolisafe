@@ -108,7 +108,7 @@ page.verifyToken = function (token, reloadOnError) {
     page.permissions = response.data.permissions
     page.prepareDashboard()
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -167,11 +167,6 @@ page.prepareDashboard = function () {
     page.getAlbums()
   })
 
-  document.querySelector('#itemFileLength').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.changeFileLength()
-  })
-
   document.querySelector('#itemTokens').addEventListener('click', function () {
     page.setActiveMenu(this)
     page.changeToken()
@@ -216,9 +211,11 @@ page.domClick = function (event) {
   let element = event.target
   if (!element) return
 
-  // If the clicked element is an icon, delegate event to its A parent; hacky
-  if (element.tagName === 'I' && element.parentNode.tagName === 'SPAN') element = element.parentNode
-  if (element.tagName === 'SPAN' && element.parentNode.tagName === 'A') element = element.parentNode
+  // Delegate click events to their A or BUTTON parents
+  if (['I'].includes(element.tagName) && ['SPAN'].includes(element.parentNode.tagName))
+    element = element.parentNode
+  if (['SPAN'].includes(element.tagName) && ['A', 'BUTTON'].includes(element.parentNode.tagName))
+    element = element.parentNode
 
   // Skip elements that have no action data
   if (!element.dataset || !element.dataset.action) return
@@ -325,8 +322,10 @@ page.switchPage = function (action, element) {
       views.pageNum = parseInt(element.dataset.goto)
       return func(views, element)
     case 'jump-to-page': {
-      const jumpToPage = parseInt(document.querySelector('#jumpToPage').value)
-      views.pageNum = isNaN(jumpToPage) ? 0 : (jumpToPage - 1)
+      const jumpToPage = document.querySelector('#jumpToPage')
+      if (!jumpToPage.checkValidity()) return
+      const parsed = parseInt(jumpToPage.value)
+      views.pageNum = isNaN(parsed) ? 0 : (parsed - 1)
       if (views.pageNum < 0) views.pageNum = 0
       return func(views, element)
     }
@@ -340,7 +339,7 @@ page.focusJumpToPage = function () {
   element.select()
 }
 
-page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
+page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, element) {
   if (element) page.isLoading(element, true)
 
   if ((all || filters) && !page.permissions.moderator)
@@ -368,7 +367,15 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
     const files = response.data.files
     if (pageNum && (files.length === 0)) {
       if (element) page.isLoading(element, false)
-      return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
+      if (autoPage)
+        return page.getUploads({
+          pageNum: Math.ceil(response.data.count / 25) - 1,
+          album,
+          all,
+          filters
+        }, element)
+      else
+        return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
     }
 
     page.currentView = all ? 'uploadsAll' : 'uploads'
@@ -413,7 +420,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+                <input id="jumpToPage" class="input is-small" type="number" value="${pageNum + 1}">
               </div>
               <div class="control">
                 <button type="submit" class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
@@ -468,25 +475,43 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
     // Set to true to tick "all files" checkbox in list view
     let allSelected = true
 
+    const hasExpiryDateColumn = files.some(file => file.expirydate !== undefined)
+
     for (let i = 0; i < files.length; i++) {
       // Build full URLs
       files[i].file = `${basedomain}/${files[i].name}`
-      if (files[i].thumb) files[i].thumb = `${basedomain}/${files[i].thumb}`
+      if (files[i].thumb)
+        files[i].thumb = `${basedomain}/${files[i].thumb}`
+
       // Cache bare minimum data for thumbnails viewer
       page.cache.uploads[files[i].id] = {
         name: files[i].name,
         thumb: files[i].thumb,
         original: files[i].file
       }
+
       // Prettify
       files[i].prettyBytes = page.getPrettyBytes(parseInt(files[i].size))
       files[i].prettyDate = page.getPrettyDate(new Date(files[i].timestamp * 1000))
+
+      if (hasExpiryDateColumn)
+        files[i].prettyExpiryDate = files[i].expirydate
+          ? page.getPrettyDate(new Date(files[i].expirydate * 1000))
+          : '-'
+
       // Update selected status
       files[i].selected = page.selected[page.currentView].includes(files[i].id)
       if (allSelected && !files[i].selected) allSelected = false
+
       // Appendix (display album or user)
-      if (all) files[i].appendix = files[i].userid ? users[files[i].userid] : ''
-      else files[i].appendix = files[i].albumid ? albums[files[i].albumid] : ''
+      if (all)
+        files[i].appendix = files[i].userid
+          ? users[files[i].userid] || ''
+          : ''
+      else
+        files[i].appendix = files[i].albumid
+          ? albums[files[i].albumid] || ''
+          : ''
     }
 
     if (page.views[page.currentView].type === 'thumbs') {
@@ -499,7 +524,6 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
         <hr>
         ${pagination}
       `
-      page.fadeAndScroll()
 
       const table = document.querySelector('#table')
 
@@ -508,6 +532,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
         const div = document.createElement('div')
         div.className = 'image-container column is-narrow'
         div.dataset.id = upload.id
+
         if (upload.thumb !== undefined)
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><img alt="${upload.name}" data-src="${upload.thumb}"/></a>`
         else
@@ -557,11 +582,12 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
             <thead>
               <tr>
                 <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all uploads" data-action="select-all"></th>
-                <th style="width: 25%">File</th>
+                <th style="width: 20%">File</th>
                 <th>${all ? 'User' : 'Album'}</th>
                 <th>Size</th>
                 ${all ? '<th>IP</th>' : ''}
                 <th>Date</th>
+                ${hasExpiryDateColumn ? '<th>Expiry date</th>' : ''}
                 <th></th>
               </tr>
             </thead>
@@ -572,7 +598,6 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
         <hr>
         ${pagination}
       `
-      page.fadeAndScroll()
 
       const table = document.querySelector('#table')
 
@@ -587,6 +612,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
           <td>${upload.prettyBytes}</td>
           ${all ? `<td>${upload.ip || ''}</td>` : ''}
           <td>${upload.prettyDate}</td>
+          ${hasExpiryDateColumn ? `<td>${upload.prettyExpiryDate}</td>` : ''}
           <td class="controls" style="text-align: right">
             <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
@@ -616,6 +642,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
         page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
       }
     }
+    page.fadeAndScroll()
 
     if (allSelected && files.length) {
       const selectAll = document.querySelector('#selectAll')
@@ -627,7 +654,7 @@ page.getUploads = function ({ pageNum, album, all, filters } = {}, element) {
     page.views[page.currentView].pageNum = files.length ? pageNum : 0
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -789,8 +816,8 @@ page.clearSelection = function () {
       if (checkboxes[i].checked)
         checkboxes[i].checked = false
 
-    localStorage[lsKeys.selected[page.currentView]] = '[]'
     page.selected[page.currentView] = []
+    delete localStorage[lsKeys.selected[page.currentView]]
 
     const selectAll = document.querySelector('#selectAll')
     if (selectAll) selectAll.checked = false
@@ -815,16 +842,16 @@ page.filtersHelp = function (element) {
     Examples:
 
     Uploads from user with username "demo":
-    <span class="is-code">user:demo</span>
+    <code>user:demo</code>
 
     Uploads from users with username either "John Doe" OR "demo":
-    <span class="is-code">user:John\\ Doe user:demo</span>
+    <code>user:John\\ Doe user:demo</code>
 
     Uploads from IP "127.0.0.1" AND which file names match "*.rar" OR "*.zip":
-    <span class="is-code">ip:127.0.0.1 name:*.rar name:*.zip</span>
+    <code>ip:127.0.0.1 name:*.rar name:*.zip</code>
 
     Uploads from user with username "test" OR from non-registered users:
-    <span class="is-code">user:test -user</span>
+    <code>user:test -user</code>
   `.trim().replace(/^ {6}/gm, '').replace(/\n/g, '<br>')
   swal({ content })
 }
@@ -869,9 +896,12 @@ page.deleteFile = function (id) {
         }
 
       swal('Deleted!', 'The file has been deleted.', 'success')
-      page.getUploads(page.views[page.currentView])
+
+      const views = Object.assign({}, page.views[page.currentView])
+      views.autoPage = true
+      page.getUploads(views)
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -915,22 +945,23 @@ page.deleteSelectedFiles = function () {
           return swal('An error occurred!', bulkdelete.data.description, 'error')
         }
 
-      let deleted = count
-      if (bulkdelete.data.failed && bulkdelete.data.failed.length) {
-        deleted -= bulkdelete.data.failed.length
+      if (Array.isArray(bulkdelete.data.failed) && bulkdelete.data.failed.length) {
         page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
           return bulkdelete.data.failed.includes(id)
         })
+        localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+        swal('An error ocurrred!', `From ${count} ${suffix}, unable to delete ${bulkdelete.data.failed.length} of them.`, 'error')
       } else {
         page.selected[page.currentView] = []
+        delete localStorage[lsKeys.selected[page.currentView]]
+        swal('Deleted!', `${count} ${suffix} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
       }
 
-      localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
-
-      swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
-      return page.getUploads(page.views[page.currentView])
+      const views = Object.assign({}, page.views[page.currentView])
+      views.autoPage = true
+      page.getUploads(views)
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -1003,14 +1034,21 @@ page.deleteFileByNames = function () {
           return swal('An error occurred!', bulkdelete.data.description, 'error')
         }
 
-      let deleted = count
-      if (bulkdelete.data.failed && bulkdelete.data.failed.length)
-        deleted -= bulkdelete.data.failed.length
+      if (Array.isArray(bulkdelete.data.failed) && bulkdelete.data.failed.length) {
+        page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
+          return bulkdelete.data.failed.includes(id)
+        })
+        localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+        swal('An error ocurrred!', `From ${count} ${suffix}, unable to delete ${bulkdelete.data.failed.length} of them.`, 'error')
+      } else {
+        page.selected[page.currentView] = []
+        delete localStorage[lsKeys.selected[page.currentView]]
+        swal('Deleted!', `${count} ${suffix} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
+      }
 
       document.querySelector('#names').value = bulkdelete.data.failed.join('\n')
-      swal('Deleted!', `${deleted} file${deleted === 1 ? ' has' : 's have'} been deleted.`, 'success')
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -1107,13 +1145,13 @@ page.addFilesToAlbum = function (ids, callback) {
         return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
 
       swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
-      return callback(add.data.failed)
+      callback(add.data.failed)
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 
@@ -1139,7 +1177,7 @@ page.addFilesToAlbum = function (ids, callback) {
     select.getElementsByTagName('option')[1].innerHTML = 'Choose an album'
     select.removeAttribute('disabled')
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -1200,7 +1238,6 @@ page.getAlbums = function () {
         </table>
       </div>
     `
-    page.fadeAndScroll()
 
     const homeDomain = response.data.homeDomain
     const table = document.querySelector('#table')
@@ -1252,8 +1289,9 @@ page.getAlbums = function () {
 
       table.appendChild(tr)
     }
+    page.fadeAndScroll()
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -1315,8 +1353,8 @@ page.editAlbum = function (id) {
 
     axios.post('api/albums/edit', {
       id,
-      name: document.querySelector('#swalName').value,
-      description: document.querySelector('#swalDescription').value,
+      name: document.querySelector('#swalName').value.trim(),
+      description: document.querySelector('#swalDescription').value.trim(),
       download: document.querySelector('#swalDownload').checked,
       public: document.querySelector('#swalPublic').checked,
       requestLink: document.querySelector('#swalRequestLink').checked
@@ -1340,7 +1378,7 @@ page.editAlbum = function (id) {
       page.getAlbumsSidebar()
       page.getAlbums()
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -1375,6 +1413,8 @@ page.deleteAlbum = function (id) {
       if (response.data.success === false)
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
+        } else if (Array.isArray(response.data.failed) && response.data.failed.length) {
+          return swal('An error occurred!', 'Unable to delete ', 'error')
         } else {
           return swal('An error occurred!', response.data.description, 'error')
         }
@@ -1383,7 +1423,7 @@ page.deleteAlbum = function (id) {
       page.getAlbumsSidebar()
       page.getAlbums()
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -1411,7 +1451,7 @@ page.submitAlbum = function (element) {
     page.getAlbumsSidebar()
     page.getAlbums()
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     page.isLoading(element, false)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
@@ -1448,7 +1488,7 @@ page.getAlbumsSidebar = function () {
       albumsContainer.appendChild(li)
     }
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -1456,82 +1496,6 @@ page.getAlbumsSidebar = function () {
 page.getAlbum = function (album) {
   page.setActiveMenu(album)
   page.getUploads({ album: album.id })
-}
-
-page.changeFileLength = function () {
-  axios.get('api/filelength/config').then(function (response) {
-    if (response.data.success === false)
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        return swal('An error occurred!', response.data.description, 'error')
-      }
-
-    // Shorter vars
-    const { max, min } = response.data.config
-    const [chg, def] = [response.data.config.userChangeable, response.data.config.default]
-    const len = response.data.fileLength
-
-    page.dom.innerHTML = `
-      <h2 class="subtitle">File name length</h2>
-      <form class="prevent-default">
-        <div class="field">
-          <div class="field">
-            <label class="label">Your current file name length:</label>
-            <div class="control">
-              <input id="fileLength" class="input" type="text" placeholder="Your file length" value="${len ? Math.min(Math.max(len, min), max) : def}">
-            </div>
-            <p class="help">Default file name length is <b>${def}</b> characters. ${(chg ? `Range allowed for user is <b>${min}</b> to <b>${max}</b> characters.` : 'Changing file name length is disabled at the moment.')}</p>
-          </div>
-          <div class="field">
-            <div class="control">
-              <button type="submit" id="setFileLength" class="button is-breeze is-fullwidth">
-                <span class="icon">
-                  <i class="icon-paper-plane-empty"></i>
-                </span>
-                <span>Set file name length</span>
-              </button>
-            </div>
-          <div>
-        </div>
-      </form>
-    `
-    page.fadeAndScroll()
-
-    document.querySelector('#setFileLength').addEventListener('click', function () {
-      page.setFileLength(document.querySelector('#fileLength').value, this)
-    })
-  }).catch(function (error) {
-    console.log(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
-}
-
-page.setFileLength = function (fileLength, element) {
-  page.isLoading(element, true)
-
-  axios.post('api/filelength/change', { fileLength }).then(function (response) {
-    page.isLoading(element, false)
-
-    if (response.data.success === false)
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        return swal('An error occurred!', response.data.description, 'error')
-      }
-
-    swal({
-      title: 'Woohoo!',
-      text: 'Your file length was successfully changed.',
-      icon: 'success'
-    }).then(function () {
-      page.changeFileLength()
-    })
-  }).catch(function (error) {
-    console.log(error)
-    page.isLoading(element, false)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
 }
 
 page.changeToken = function () {
@@ -1566,7 +1530,7 @@ page.changeToken = function () {
     `
     page.fadeAndScroll()
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -1595,7 +1559,7 @@ page.getNewToken = function (element) {
       page.changeToken()
     })
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     page.isLoading(element, false)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
@@ -1608,13 +1572,13 @@ page.changePassword = function () {
       <div class="field">
         <label class="label">New password:</label>
         <div class="control">
-          <input id="password" class="input" type="password">
+          <input id="password" class="input" type="password" min="6" max="64">
         </div>
       </div>
       <div class="field">
         <label class="label">Re-type new password:</label>
         <div class="control">
-          <input id="passwordConfirm" class="input" type="password">
+          <input id="passwordConfirm" class="input" type="password" min="6" max="64">
         </div>
       </div>
       <div class="field">
@@ -1664,7 +1628,7 @@ page.sendNewPassword = function (pass, element) {
       page.changePassword()
     })
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     page.isLoading(element, false)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
@@ -1713,7 +1677,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="jumpToPage" class="input is-small" type="text" value="${pageNum + 1}">
+                <input id="jumpToPage" class="input is-small" type="number" value="${pageNum + 1}">
               </div>
               <div class="control">
                 <button type="submit" class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
@@ -1765,10 +1729,9 @@ page.getUsers = function ({ pageNum } = {}, element) {
             <tr>
               <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all users" data-action="select-all"></th>
               <th>ID</th>
-              <th style="width: 25%">Username</th>
+              <th style="width: 20%">Username</th>
               <th>Uploads</th>
               <th>Usage</th>
-              <th>File length</th>
               <th>Group</th>
               <th></th>
             </tr>
@@ -1780,7 +1743,6 @@ page.getUsers = function ({ pageNum } = {}, element) {
       <hr>
       ${pagination}
     `
-    page.fadeAndScroll()
 
     const table = document.querySelector('#table')
 
@@ -1813,7 +1775,6 @@ page.getUsers = function ({ pageNum } = {}, element) {
         <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</td>
         <th>${user.uploadsCount}</th>
         <td>${page.getPrettyBytes(user.diskUsage)}</td>
-        <td>${user.fileLength || 'default'}</td>
         <td>${displayGroup}</td>
         <td class="controls" style="text-align: right">
           <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
@@ -1842,6 +1803,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
       table.appendChild(tr)
       page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
     }
+    page.fadeAndScroll()
 
     if (allSelected && response.data.users.length) {
       const selectAll = document.querySelector('#selectAll')
@@ -1851,7 +1813,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
     page.views.users.pageNum = response.data.users.length ? pageNum : 0
   }).catch(function (error) {
     if (element) page.isLoading(element, false)
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -1935,7 +1897,7 @@ page.editUser = function (id) {
         const div = document.createElement('div')
         div.innerHTML = `
           <p>${user.username}'s new password is:</p>
-          <p class="is-code">${response.data.password}</p>
+          <p><code>${response.data.password}</code></p>
         `
         swal({
           title: 'Success!',
@@ -1950,7 +1912,7 @@ page.editUser = function (id) {
 
       page.getUsers(page.views.users)
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -1990,7 +1952,7 @@ page.disableUser = function (id) {
       swal('Success!', 'The user has been disabled.', 'success')
       page.getUsers(page.views.users)
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -2069,32 +2031,41 @@ page.getServerStats = function (element) {
     const keys = Object.keys(response.data.stats)
     for (let i = 0; i < keys.length; i++) {
       let rows = ''
-      if (!response.data.stats[keys[i]]) {
+      if (!response.data.stats[keys[i]])
         rows += `
           <tr>
             <td>Generating, please try again later\u2026</td>
             <td></td>
           </tr>
         `
-      } else {
-        const valKeys = Object.keys(response.data.stats[keys[i]])
-        for (let j = 0; j < valKeys.length; j++) {
-          const _value = response.data.stats[keys[i]][valKeys[j]]
-          let value = _value
-          if (['albums', 'users', 'uploads'].includes(keys[i]))
-            value = _value.toLocaleString()
-          if (['memoryUsage', 'size'].includes(valKeys[j]))
-            value = page.getPrettyBytes(_value)
-          if (valKeys[j] === 'systemMemory')
-            value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
-          rows += `
-            <tr>
-              <th>${valKeys[j].replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
-              <td>${value}</td>
-            </tr>
-          `
+      else
+        try {
+          const valKeys = Object.keys(response.data.stats[keys[i]])
+          for (let j = 0; j < valKeys.length; j++) {
+            const _value = response.data.stats[keys[i]][valKeys[j]]
+            let value = _value
+            if (['albums', 'users', 'uploads'].includes(keys[i]))
+              value = _value.toLocaleString()
+            if (['memoryUsage', 'size'].includes(valKeys[j]))
+              value = page.getPrettyBytes(_value)
+            if (valKeys[j] === 'systemMemory')
+              value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
+            rows += `
+              <tr>
+                <th>${valKeys[j].replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
+                <td>${value}</td>
+              </tr>
+            `
+          }
+        } catch (error) {
+          console.error(error)
+          rows = `
+              <tr>
+                <td>Error parsing response. Try again?</td>
+                <td></td>
+              </tr>
+            `
         }
-      }
 
       content += `
         <div class="table-container">
@@ -2117,7 +2088,6 @@ page.getServerStats = function (element) {
       <h2 class="subtitle">Statistics</h2>
       ${content}
     `
-
     page.fadeAndScroll()
   })
 }

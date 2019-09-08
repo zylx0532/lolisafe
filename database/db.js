@@ -34,6 +34,7 @@ const init = function (db) {
       table.string('ip')
       table.integer('albumid')
       table.integer('timestamp')
+      table.integer('expirydate')
     }).then(() => {})
   })
 
@@ -46,7 +47,6 @@ const init = function (db) {
       table.string('token')
       table.integer('enabled')
       table.integer('timestamp')
-      table.integer('fileLength')
       table.integer('permission')
     }).then(() => {
       db.table('users').where({ username: 'root' }).then((user) => {

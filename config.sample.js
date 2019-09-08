@@ -197,6 +197,38 @@ module.exports = {
     urlExtensionsFilter: [],
 
     /*
+      An array of allowed ages for uploads (in hours).
+
+      Default age will be the value at the very top of the array.
+      If the array is populated but do not have a zero value,
+      permanent uploads will be rejected.
+      This only applies to new files uploaded after enabling the option.
+
+      If the array is empty or is set to falsy value, temporary uploads
+      feature will be disabled, and all uploads will be permanent (original behavior).
+
+      When temporary uploads feature is disabled, any existing temporary uploads
+      will not ever be automatically deleted, since the safe will not start the
+      periodical checkup task.
+    */
+    temporaryUploadAges: [
+      0, // permanent
+      1 / 60 * 15, // 15 minutes
+      1 / 60 * 30, // 30 minutes
+      1, // 1 hour
+      6, // 6 hours
+      12, // 12 hours
+      24, // 24 hours (1 day)
+      168 // 168 hours (7 days)
+    ],
+
+    /*
+      Interval of the periodical check up tasks for temporary uploads (in milliseconds).
+      NOTE: Set to falsy value if you prefer to use your own external script.
+    */
+    temporaryUploadsInterval: 1 * 60000, // 1 minute
+
+    /*
       Scan files using ClamAV through clamd.
     */
     scan: {
@@ -248,10 +280,9 @@ module.exports = {
       may not be used by more than a single file (e.i. if "abcd.jpg" already exists, a new PNG
       file may not be named as "abcd.png").
 
-      If this is enabled, the safe will then attempt to read file list of the uploads directory
-      during first launch, parse the names, then cache the identifiers into memory.
-      Its downside is that it will use a bit more memory, generally a few MBs increase
-      on a safe with over >10k uploads.
+      If this is enabled, the safe will query files from the database during first launch,
+      parse their names, then cache the identifiers into memory.
+      Its downside is that it will use a bit more memory.
 
       If this is disabled, collision check will become less strict.
       As in, the same identifier may be used by multiple different extensions (e.i. if "abcd.jpg"

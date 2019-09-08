@@ -1,7 +1,8 @@
 const config = require('./../config')
-const routes = require('express').Router()
 const db = require('knex')(config.database)
 const path = require('path')
+const paths = require('./../controllers/pathsController')
+const routes = require('express').Router()
 const utils = require('./../controllers/utilsController')
 
 const homeDomain = config.homeDomain || config.domain
@@ -22,9 +23,9 @@ routes.get('/a/:identifier', async (req, res, next) => {
     .first()
 
   if (!album)
-    return res.status(404).sendFile('404.html', { root: './pages/error/' })
+    return res.status(404).sendFile(path.join(paths.errorRoot, config.errorPages[404]))
   else if (album.public === 0)
-    return res.status(401).json({
+    return res.status(403).json({
       success: false,
       description: 'This album is not available for public.'
     })
@@ -44,11 +45,10 @@ routes.get('/a/:identifier', async (req, res, next) => {
     if (utils.mayGenerateThumb(file.extname)) {
       file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -file.extname.length)}.png`
       /*
-        If thumbnail for album is still not set, do it.
-        A potential improvement would be to let the user upload a specific image as an album cover
-        since embedding the first image could potentially result in nsfw content when pasting links.
+        If thumbnail for album is still not set, set it to current file's full URL.
+        A potential improvement would be to let the user set a specific image as an album cover.
       */
-      if (thumb === '') thumb = file.thumb
+      if (thumb === '') thumb = file.file
     }
     totalSize += parseInt(file.size)
   }
@@ -61,7 +61,9 @@ routes.get('/a/:identifier', async (req, res, next) => {
     files,
     identifier,
     generateZips: config.uploads.generateZips,
-    downloadLink: album.download === 0 ? null : `../api/album/zip/${album.identifier}?v=${album.editedAt}`,
+    downloadLink: album.download === 0
+      ? null
+      : `${homeDomain}/api/album/zip/${album.identifier}?v=${album.editedAt}`,
     editedAt: album.editedAt,
     url: `${homeDomain}/a/${album.identifier}`,
     totalSize,

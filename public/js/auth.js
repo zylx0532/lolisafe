@@ -14,18 +14,17 @@ const page = {
 }
 
 page.do = function (dest) {
-  const user = page.user.value
-  const pass = page.pass.value
-
+  const user = page.user.value.trim()
   if (!user)
     return swal('An error occurred!', 'You need to specify a username.', 'error')
 
+  const pass = page.pass.value.trim()
   if (!pass)
     return swal('An error occurred!', 'You need to specify a password.', 'error')
 
   axios.post(`api/${dest}`, {
-    username: user.trim(),
-    password: pass.trim()
+    username: user,
+    password: pass
   }).then(function (response) {
     if (response.data.success === false)
       return swal(`Unable to ${dest}!`, response.data.description, 'error')
@@ -49,7 +48,7 @@ page.verify = function () {
 
     window.location = 'dashboard'
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     const description = error.response.data && error.response.data.description
       ? error.response.data.description
       : 'There was an error with the request, please check the console for more information.'

@@ -4,9 +4,22 @@
 lsKeys.siBytes = 'siBytes'
 
 page.prepareShareX = function () {
-  if (!page.token) return
+  const values = {
+    token: page.token || '',
+    albumid: page.album || '',
+    filelength: page.fileLength || '',
+    age: page.uploadAge || ''
+  }
+
+  const headers = []
+  const keys = Object.keys(values)
+  for (let i = 0; i < keys.length; i++)
+    // Pad by 4 space
+    headers.push(`    "${keys[i]}": "${values[keys[i]]}"`)
+
   const origin = (location.hostname + location.pathname).replace(/\/(dashboard)?$/, '')
   const originClean = origin.replace(/\//g, '_')
+
   const sharexElement = document.querySelector('#ShareX')
   const sharexFile = `{
   "Name": "${originClean}",
@@ -15,12 +28,13 @@ page.prepareShareX = function () {
   "RequestURL": "${location.protocol}//${origin}/api/upload",
   "FileFormName": "files[]",
   "Headers": {
-    "token": "${page.token}"
+${headers.join(',\n')}
   },
   "ResponseType": "Text",
   "URL": "$json:files[0].url$",
   "ThumbnailURL": "$json:files[0].url$"
-}\n`
+}`
+
   const sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
   sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
   sharexElement.setAttribute('download', `${originClean}.sxcu`)

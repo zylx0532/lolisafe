@@ -31,13 +31,6 @@
   color: #bdc3c7;
 }
 
-.swal-content .is-code {
-  font-family: 'Courier New', Courier, monospace;
-  border: 1px dashed #eff0f1;
-  border-radius: 5px;
-  margin-top: 5px;
-}
-
 .swal-button {
   background-color: #3794d2;
   color: #eff0f1;
@@ -94,6 +87,7 @@
   0% {
     border-color: #ffaa60;
   }
+
   to {
     border-color: #f67400;
   }
@@ -103,6 +97,7 @@
   0% {
     border-color: #ffaa60;
   }
+
   to {
     border-color: #f67400;
   }
@@ -112,6 +107,7 @@
   0% {
     background-color: #ffaa60;
   }
+
   to {
     background-color: #f67400;
   }
@@ -121,6 +117,7 @@
   0% {
     background-color: #ffaa60;
   }
+
   to {
     background-color: #f67400;
   }

@@ -2,10 +2,10 @@ const bodyParser = require('body-parser')
 const clamd = require('clamdjs')
 const config = require('./config')
 const express = require('express')
-const fs = require('fs')
 const helmet = require('helmet')
 const logger = require('./logger')
 const nunjucks = require('nunjucks')
+const path = require('path')
 const RateLimit = require('express-rate-limit')
 const readline = require('readline')
 const safe = express()
@@ -17,6 +17,7 @@ process.on('unhandledRejection', error => {
   logger.error(error, { prefix: 'Unhandled Rejection (Promise): ' })
 })
 
+const paths = require('./controllers/pathsController')
 const utils = require('./controllers/utilsController')
 
 const album = require('./routes/album')
@@ -25,14 +26,6 @@ const nojs = require('./routes/nojs')
 
 const db = require('knex')(config.database)
 require('./database/db.js')(db)
-
-// Check and create missing directories
-fs.existsSync('./pages/custom') || fs.mkdirSync('./pages/custom')
-fs.existsSync(`./${config.logsFolder}`) || fs.mkdirSync(`./${config.logsFolder}`)
-fs.existsSync(`./${config.uploads.folder}`) || fs.mkdirSync(`./${config.uploads.folder}`)
-fs.existsSync(`./${config.uploads.folder}/chunks`) || fs.mkdirSync(`./${config.uploads.folder}/chunks`)
-fs.existsSync(`./${config.uploads.folder}/thumbs`) || fs.mkdirSync(`./${config.uploads.folder}/thumbs`)
-fs.existsSync(`./${config.uploads.folder}/zips`) || fs.mkdirSync(`./${config.uploads.folder}/zips`)
 
 safe.use(helmet())
 if (config.trustProxy) safe.set('trust proxy', 1)
@@ -57,7 +50,7 @@ if (Array.isArray(config.rateLimits) && config.rateLimits.length)
 safe.use(bodyParser.urlencoded({ extended: true }))
 safe.use(bodyParser.json())
 
-// safe.fiery.me-exclusive cache control
+// Cache control (safe.fiery.me)
 if (config.cacheControl) {
   const cacheControls = {
     // max-age: 30 days
@@ -79,9 +72,9 @@ if (config.cacheControl) {
   }
 
   if (config.serveFilesWithNode)
-    safe.use('/', express.static(config.uploads.folder, { setHeaders }))
+    safe.use('/', express.static(paths.uploads, { setHeaders }))
 
-  safe.use('/', express.static('./public', { setHeaders }))
+  safe.use('/', express.static(paths.public, { setHeaders }))
 
   // Do NOT cache these dynamic routes
   safe.use(['/a', '/api', '/nojs'], (req, res, next) => {
@@ -102,112 +95,107 @@ if (config.cacheControl) {
   })
 } else {
   if (config.serveFilesWithNode)
-    safe.use('/', express.static(config.uploads.folder))
+    safe.use('/', express.static(paths.uploads))
 
-  safe.use('/', express.static('./public'))
+  safe.use('/', express.static(paths.public))
 }
 
 safe.use('/', album)
 safe.use('/', nojs)
 safe.use('/api', api)
 
-if (!Array.isArray(config.pages) || !config.pages.length) {
-  logger.error('Config does not haves any frontend pages enabled')
-  process.exit(1)
-}
+;(async () => {
+  try {
+    // Verify paths, create missing ones, clean up temp ones
+    await paths.init()
 
-for (const page of config.pages)
-  if (fs.existsSync(`./pages/custom/${page}.html`)) {
-    safe.get(`/${page}`, (req, res, next) => res.sendFile(`${page}.html`, {
-      root: './pages/custom/'
-    }))
-  } else if (page === 'home') {
-    safe.get('/', (req, res, next) => res.render('home', {
-      maxSize: config.uploads.maxSize,
-      urlMaxSize: config.uploads.urlMaxSize,
-      urlDisclaimerMessage: config.uploads.urlDisclaimerMessage,
-      urlExtensionsFilterMode: config.uploads.urlExtensionsFilterMode,
-      urlExtensionsFilter: config.uploads.urlExtensionsFilter,
-      gitHash: safe.get('git-hash')
-    }))
-  } else if (page === 'faq') {
-    const fileLength = config.uploads.fileLength
-    safe.get('/faq', (req, res, next) => res.render('faq', {
-      whitelist: config.extensionsFilterMode === 'whitelist',
-      extensionsFilter: config.extensionsFilter,
-      fileLength,
-      tooShort: (fileLength.max - fileLength.default) > (fileLength.default - fileLength.min),
-      noJsMaxSize: parseInt(config.cloudflare.noJsMaxSize) < parseInt(config.uploads.maxSize),
-      chunkSize: config.uploads.chunkSize
-    }))
-  } else {
-    safe.get(`/${page}`, (req, res, next) => res.render(page))
-  }
-
-safe.use((req, res, next) => {
-  res.status(404).sendFile(config.errorPages[404], { root: config.errorPages.rootDir })
-})
-safe.use((error, req, res, next) => {
-  logger.error(error)
-  res.status(500).sendFile(config.errorPages[500], { root: config.errorPages.rootDir })
-})
-
-const start = async () => {
-  if (config.showGitHash) {
-    const gitHash = await new Promise((resolve, reject) => {
-      require('child_process').exec('git rev-parse HEAD', (error, stdout) => {
-        if (error) return reject(error)
-        resolve(stdout.replace(/\n$/, ''))
-      })
-    }).catch(logger.error)
-    if (!gitHash) return
-    logger.log(`Git commit: ${gitHash}`)
-    safe.set('git-hash', gitHash)
-  }
-
-  const scan = config.uploads.scan
-  if (scan && scan.enabled) {
-    const createScanner = async () => {
-      try {
-        if (!scan.ip || !scan.port)
-          throw new Error('clamd IP or port is missing')
-
-        const version = await clamd.version(scan.ip, scan.port)
-        logger.log(`${scan.ip}:${scan.port} ${version}`)
-
-        const scanner = clamd.createScanner(scan.ip, scan.port)
-        safe.set('clam-scanner', scanner)
-        return true
-      } catch (error) {
-        logger.error(`[ClamAV]: ${error.toString()}`)
-        return false
-      }
+    if (!Array.isArray(config.pages) || !config.pages.length) {
+      logger.error('Config file does not have any frontend pages enabled')
+      process.exit(1)
     }
-    if (!await createScanner()) return process.exit(1)
-  }
 
-  if (config.uploads.cacheFileIdentifiers) {
-    // Cache tree of uploads directory
-    const setSize = await new Promise((resolve, reject) => {
-      const uploadsDir = `./${config.uploads.folder}`
-      fs.readdir(uploadsDir, (error, names) => {
-        if (error) return reject(error)
-        const set = new Set()
-        names.forEach(name => set.add(name.split('.')[0]))
-        safe.set('uploads-set', set)
-        resolve(set.size)
+    for (const page of config.pages) {
+      const customPage = path.join(paths.customPages, `${page}.html`)
+      if (!await paths.access(customPage).catch(() => true))
+        safe.get(`/${page === 'home' ? '' : page}`, (req, res, next) => res.sendFile(customPage))
+      else if (page === 'home')
+        safe.get('/', (req, res, next) => res.render('home', {
+          maxSize: parseInt(config.uploads.maxSize),
+          urlMaxSize: parseInt(config.uploads.urlMaxSize),
+          urlDisclaimerMessage: config.uploads.urlDisclaimerMessage,
+          urlExtensionsFilterMode: config.uploads.urlExtensionsFilterMode,
+          urlExtensionsFilter: config.uploads.urlExtensionsFilter,
+          temporaryUploadAges: Array.isArray(config.uploads.temporaryUploadAges) &&
+            config.uploads.temporaryUploadAges.length,
+          gitHash: utils.gitHash
+        }))
+      else if (page === 'faq')
+        safe.get('/faq', (req, res, next) => res.render('faq', {
+          whitelist: config.extensionsFilterMode === 'whitelist',
+          extensionsFilter: config.extensionsFilter,
+          noJsMaxSize: parseInt(config.cloudflare.noJsMaxSize) < parseInt(config.uploads.maxSize),
+          chunkSize: parseInt(config.uploads.chunkSize)
+        }))
+      else
+        safe.get(`/${page}`, (req, res, next) => res.render(page))
+    }
+
+    // Error pages
+    safe.use((req, res, next) => {
+      res.status(404).sendFile(path.join(paths.errorRoot, config.errorPages[404]))
+    })
+
+    safe.use((error, req, res, next) => {
+      logger.error(error)
+      res.status(500).sendFile(path.join(paths.errorRoot, config.errorPages[500]))
+    })
+
+    // Git hash
+    if (config.showGitHash) {
+      utils.gitHash = await new Promise((resolve, reject) => {
+        require('child_process').exec('git rev-parse HEAD', (error, stdout) => {
+          if (error) return reject(error)
+          resolve(stdout.replace(/\n$/, ''))
+        })
       })
-    }).catch(error => logger.error(error.toString()))
-    if (!setSize) return process.exit(1)
-    logger.log(`Cached ${setSize} identifiers in uploads directory`)
-  }
+      logger.log(`Git commit: ${utils.gitHash}`)
+    }
 
-  safe.listen(config.port, async () => {
+    // Clamd scanner
+    if (config.uploads.scan && config.uploads.scan.enabled) {
+      const { ip, port } = config.uploads.scan
+      const version = await clamd.version(ip, port)
+      logger.log(`${ip}:${port} ${version}`)
+
+      utils.clamd.scanner = clamd.createScanner(ip, port)
+      if (!utils.clamd.scanner)
+        throw 'Could not create clamd scanner'
+    }
+
+    // Cache file identifiers
+    if (config.uploads.cacheFileIdentifiers) {
+      utils.idSet = await db.table('files')
+        .select('name')
+        .then(rows => {
+          return new Set(rows.map(row => row.name.split('.')[0]))
+        })
+      logger.log(`Cached ${utils.idSet.size} file identifiers`)
+    }
+
+    // Binds Express to port
+    await new Promise((resolve, reject) => {
+      try {
+        safe.listen(config.port, () => resolve())
+      } catch (error) {
+        reject(error)
+      }
+    })
+
     logger.log(`lolisafe started on port ${config.port}`)
 
-    // safe.fiery.me-exclusive cache control
+    // Cache control (safe.fiery.me)
     if (config.cacheControl) {
-      logger.log('Cache control enabled')
+      logger.log('Cache control enabled, purging...')
       const routes = config.pages.concat(['api/check'])
       const results = await utils.purgeCloudflareCache(routes)
       let errored = false
@@ -222,6 +210,32 @@ const start = async () => {
       }
       if (!errored)
         logger.log(`Purged ${succeeded} Cloudflare's cache`)
+    }
+
+    // Temporary uploads
+    if (Array.isArray(config.uploads.temporaryUploadAges) && config.uploads.temporaryUploadAges.length) {
+      let temporaryUploadsInProgress = false
+      const temporaryUploadCheck = async () => {
+        if (temporaryUploadsInProgress)
+          return
+
+        temporaryUploadsInProgress = true
+        const result = await utils.bulkDeleteExpired()
+
+        if (result.expired.length) {
+          let logMessage = `Deleted ${result.expired.length} expired upload(s)`
+          if (result.failed.length)
+            logMessage += ` but unable to delete ${result.failed.length}`
+
+          logger.log(logMessage)
+        }
+
+        temporaryUploadsInProgress = false
+      }
+      temporaryUploadCheck()
+
+      if (config.uploads.temporaryUploadsInterval)
+        setInterval(temporaryUploadCheck, config.uploads.temporaryUploadsInterval)
     }
 
     // NODE_ENV=development yarn start
@@ -242,9 +256,10 @@ const start = async () => {
       }).on('SIGINT', () => {
         process.exit(0)
       })
-      logger.log('Development mode enabled (disabled Nunjucks caching & enabled readline interface)')
+      logger.log('Development mode (disabled nunjucks caching & enabled readline interface)')
     }
-  })
-}
-
-start()
+  } catch (error) {
+    logger.error(error)
+    process.exit(1)
+  }
+})()

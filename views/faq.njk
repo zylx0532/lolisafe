@@ -1,5 +1,12 @@
 {% extends "_layout.njk" %}
 
+{% macro extensions(obj) %}
+{% set space = joiner(' ') %}
+{% for id, val in obj -%}
+{{ space() }}{{ id }}="{{ val }}"
+{%- endfor %}
+{% endmacro %}
+
 {% block content %}
 {{ super() }}
 <section class="section">
@@ -95,7 +102,7 @@
     <h2 class='subtitle'>Does your API support chunked uploads?</h2>
     <article class="message">
       <div class="message-body">
-        Yes, the homepage uploader is hard-coded to chunk uploads into {{ chunkSize }} pieces by default.<br>
+        Yes, the homepage uploader is hard-coded to chunk uploads into {{ chunkSize }} MB pieces by default.<br>
         If you want to chunk your API uploads, feel free to read the source code to see how it works.
       </div>
     </article>
@@ -104,23 +111,18 @@
     <h2 class='subtitle'>What are the allowed extensions here?</h2>
     <article class="message">
       <div class="message-body">
-        {% if extensionsFilter.length and not whitelist -%}
-        We support any file extensions except the following: {{ extensionsFilter | join(', ') }}.
-        {%- elif extensionsFilter.length and whitelist -%}
-        We only support the following extensions: {{ extensionsFilter | join(', ') }}.
+        {% if extensionsFilter.length -%}
+          {%- if whitelist -%}
+          We support any file extensions except the following: {{ extensionsFilter | join(', ') }}.
+          {%- else -%}
+          We only support the following extensions:
+          {%- endif -%}<br>
+          {% set comma = joiner(' ') -%}
+          {%- for extension in extensionsFilter -%}
+          {{ comma() }}<code>{{ extension }}</code>
+          {%- endfor -%}
         {%- else -%}
         We support any file extensions.
-        {%- endif %}
-      </div>
-    </article>
-
-    <h2 class='subtitle'>How are the file URLs be determined?</h2>
-    <article class="message">
-      <div class="message-body">
-        The safe will generate random {{ fileLength.default }}-letter identifiers.
-        {% if fileLength.userChangeable %}<br>
-        If you find that too {{ "short" if tooShort else "long" }}, you can create an account which will let you to set your preferred length.<br>
-        You can choose from {{ fileLength.min }} to {{ fileLength.max }} letters.
         {%- endif %}
       </div>
     </article>

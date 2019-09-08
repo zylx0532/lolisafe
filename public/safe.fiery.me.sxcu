@@ -5,7 +5,10 @@
   "RequestURL": "https://safe.fiery.me/api/upload",
   "FileFormName": "files[]",
   "Headers": {
-    "token": ""
+    "token": "",
+    "albumid": "",
+    "filelength": "",
+    "age": ""
   },
   "ResponseType": "Text",
   "URL": "$json:files[0].url$",

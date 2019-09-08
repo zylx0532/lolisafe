@@ -3,7 +3,9 @@
 const lsKeys = {
   token: 'token',
   chunkSize: 'chunkSize',
-  parallelUploads: 'parallelUploads'
+  parallelUploads: 'parallelUploads',
+  fileLength: 'fileLength',
+  uploadAge: 'uploadAge'
 }
 
 const page = {
@@ -15,15 +17,22 @@ const page = {
   enableUserAccounts: null,
   maxSize: null,
   chunkSize: null,
+  temporaryUploadAges: null,
+  fileIdentifierLength: null,
 
   // store album id that will be used with upload requests
   album: null,
 
   parallelUploads: null,
+  fileLength: null,
+  uploadAge: null,
+
   maxSizeBytes: null,
   urlMaxSize: null,
   urlMaxSizeBytes: null,
 
+  tabs: null,
+  activeTab: null,
   albumSelect: null,
   previewTemplate: null,
 
@@ -40,10 +49,14 @@ page.checkIfPublic = function () {
     page.enableUserAccounts = response.data.enableUserAccounts
     page.maxSize = parseInt(response.data.maxSize)
     page.maxSizeBytes = page.maxSize * 1e6
-    page.chunkSize = response.data.chunkSize
+    page.chunkSize = parseInt(response.data.chunkSize)
+    page.temporaryUploadAges = response.data.temporaryUploadAges
+    page.fileIdentifierLength = response.data.fileIdentifierLength
     page.preparePage()
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
+    document.querySelector('#albumDiv').style.display = 'none'
+    document.querySelector('#tabs').style.display = 'none'
     const button = document.querySelector('#loginToUpload')
     button.classList.remove('is-loading')
     button.innerText = 'Error occurred. Reload the page?'
@@ -88,7 +101,7 @@ page.verifyToken = function (token, reloadOnError) {
     page.token = token
     return page.prepareUpload()
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -99,6 +112,9 @@ page.prepareUpload = function () {
     page.albumSelect = document.querySelector('#albumSelect')
     page.albumSelect.addEventListener('change', function () {
       page.album = parseInt(page.albumSelect.value)
+      // Re-generate ShareX config file
+      if (typeof page.prepareShareX === 'function')
+        page.prepareShareX()
     })
 
     page.prepareAlbums()
@@ -121,6 +137,10 @@ page.prepareUpload = function () {
 
   page.prepareDropzone()
 
+  // Generate ShareX config file
+  if (typeof page.prepareShareX === 'function')
+    page.prepareShareX()
+
   const urlMaxSize = document.querySelector('#urlMaxSize')
   if (urlMaxSize) {
     page.urlMaxSize = parseInt(urlMaxSize.innerHTML)
@@ -132,13 +152,13 @@ page.prepareUpload = function () {
   }
 
   const tabs = document.querySelector('#tabs')
-  tabs.style.display = 'flex'
-  const items = tabs.getElementsByTagName('li')
-  for (let i = 0; i < items.length; i++)
-    items[i].addEventListener('click', function () {
+  page.tabs = tabs.querySelectorAll('li')
+  for (let i = 0; i < page.tabs.length; i++)
+    page.tabs[i].addEventListener('click', function () {
       page.setActiveTab(this.dataset.id)
     })
   page.setActiveTab('tab-files')
+  tabs.style.display = 'flex'
 }
 
 page.prepareAlbums = function () {
@@ -169,7 +189,7 @@ page.prepareAlbums = function () {
       page.albumSelect.appendChild(option)
     }
   }).catch(function (error) {
-    console.log(error)
+    console.error(error)
     const description = error.response.data && error.response.data.description
       ? error.response.data.description
       : 'There was an error with the request, please check the console for more information.'
@@ -177,18 +197,19 @@ page.prepareAlbums = function () {
   })
 }
 
-page.setActiveTab = function (activeId) {
-  const items = document.querySelector('#tabs').getElementsByTagName('li')
-  for (let i = 0; i < items.length; i++) {
-    const tabId = items[i].dataset.id
-    if (tabId === activeId) {
-      items[i].classList.add('is-active')
-      document.getElementById(tabId).style.display = 'block'
+page.setActiveTab = function (tabId) {
+  if (tabId === page.activeTab) return
+  for (let i = 0; i < page.tabs.length; i++) {
+    const id = page.tabs[i].dataset.id
+    if (id === tabId) {
+      page.tabs[i].classList.add('is-active')
+      document.querySelector(`#${id}`).style.display = 'block'
     } else {
-      items[i].classList.remove('is-active')
-      document.getElementById(tabId).style.display = 'none'
+      page.tabs[i].classList.remove('is-active')
+      document.querySelector(`#${id}`).style.display = 'none'
     }
   }
+  page.activeTab = tabId
 }
 
 page.prepareDropzone = function () {
@@ -207,9 +228,10 @@ page.prepareDropzone = function () {
 
   const previewsContainer = tabDiv.querySelector('#tab-files .field.uploads')
 
-  page.dropzone = new Dropzone('#dropzone', {
+  page.dropzone = new Dropzone(document.body, {
     url: 'api/upload',
     paramName: 'files[]',
+    clickable: tabDiv.querySelector('#dropzone'),
     maxFilesize: page.maxSizeBytes / 1024 / 1024, // this option expects MiB
     parallelUploads: page.parallelUploads,
     uploadMultiple: false,
@@ -230,14 +252,20 @@ page.prepareDropzone = function () {
         files: [{
           uuid: file.upload.uuid,
           original: file.name,
-          size: file.size,
           type: file.type,
-          count: file.upload.totalChunkCount,
-          albumid: page.album
+          albumid: page.album,
+          filelength: page.fileLength,
+          age: page.uploadAge
         }]
       }, {
-        headers: {
-          token: page.token
+        headers: { token: page.token }
+      }).catch(function (error) {
+        if (error.response.data) return error.response
+        return {
+          data: {
+            success: false,
+            description: error.toString()
+          }
         }
       }).then(function (response) {
         file.previewElement.querySelector('.progress').style.display = 'none'
@@ -249,24 +277,24 @@ page.prepareDropzone = function () {
           page.updateTemplate(file, response.data.files[0])
 
         return done()
-      }).catch(function (error) {
-        return {
-          success: false,
-          description: error.toString()
-        }
       })
     }
   })
 
   page.dropzone.on('addedfile', function (file) {
+    // Set active tab to file uploads
+    page.setActiveTab('tab-files')
+    // Add file entry
     tabDiv.querySelector('.uploads').style.display = 'block'
     file.previewElement.querySelector('.name').innerHTML = file.name
   })
 
-  // Add the selected albumid, if an album is selected, as a header
   page.dropzone.on('sending', function (file, xhr) {
     if (file.upload.chunked) return
-    if (page.album) xhr.setRequestHeader('albumid', page.album)
+    // Add headers if not uploading chunks
+    if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
+    if (page.fileLength !== null) xhr.setRequestHeader('filelength', page.fileLength)
+    if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
   })
 
   // Update the total progress bar
@@ -290,16 +318,16 @@ page.prepareDropzone = function () {
   })
 
   page.dropzone.on('error', function (file, error) {
+    // Clean up file size errors
     if ((typeof error === 'string' && /^File is too big/.test(error)) ||
-      error.description === 'MulterError: File too large')
+      (typeof error === 'object' && /File too large/.test(error.description)))
       error = `File too large (${page.getPrettyBytes(file.size)}).`
+
     page.updateTemplateIcon(file.previewElement, 'icon-block')
     file.previewElement.querySelector('.progress').style.display = 'none'
     file.previewElement.querySelector('.name').innerHTML = file.name
     file.previewElement.querySelector('.error').innerHTML = error.description || error
   })
-
-  if (typeof page.prepareShareX === 'function') page.prepareShareX()
 }
 
 page.uploadUrls = function (button) {
@@ -315,7 +343,13 @@ page.uploadUrls = function (button) {
   }
 
   function run () {
-    const albumid = page.album
+    const headers = {
+      token: page.token,
+      albumid: page.album,
+      age: page.uploadAge,
+      filelength: page.fileLength
+    }
+
     const previewsContainer = tabDiv.querySelector('.uploads')
     const urls = document.querySelector('#urls').value
       .split(/\r?\n/)
@@ -334,38 +368,29 @@ page.uploadUrls = function (button) {
       previewTemplate.innerHTML = page.previewTemplate.trim()
       const previewElement = previewTemplate.content.firstChild
       previewElement.querySelector('.name').innerHTML = url
-      previewElement.querySelector('.progress').removeAttribute('value')
       previewsContainer.appendChild(previewElement)
-      return {
-        url,
-        previewElement
-      }
+      return { url, previewElement }
     })
 
     function post (i) {
-      if (i === files.length) return done()
-
-      const file = files[i]
+      if (i === files.length)
+        return done()
 
       function posted (result) {
-        file.previewElement.querySelector('.progress').style.display = 'none'
+        files[i].previewElement.querySelector('.progress').style.display = 'none'
         if (result.success) {
-          page.updateTemplate(file, result.files[0])
+          page.updateTemplate(files[i], result.files[0])
         } else {
-          page.updateTemplateIcon(file.previewElement, 'icon-block')
-          file.previewElement.querySelector('.error').innerHTML = result.description
+          page.updateTemplateIcon(files[i].previewElement, 'icon-block')
+          files[i].previewElement.querySelector('.error').innerHTML = result.description
         }
         return post(i + 1)
       }
 
-      axios.post('api/upload', {
-        urls: [file.url]
-      }, {
-        headers: {
-          token: page.token,
-          albumid
-        }
-      }).then(function (response) {
+      // Animate progress bar
+      files[i].previewElement.querySelector('.progress').removeAttribute('value')
+
+      axios.post('api/upload', { urls: [files[i].url] }, { headers }).then(function (response) {
         return posted(response.data)
       }).catch(function (error) {
         return posted({
@@ -409,6 +434,12 @@ page.updateTemplate = function (file, response) {
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
   } else {
     page.updateTemplateIcon(file.previewElement, 'icon-doc-inv')
+  }
+
+  if (response.expirydate) {
+    const expiryDate = file.previewElement.querySelector('.expiry-date')
+    expiryDate.innerHTML = `Expiry date: ${page.getPrettyDate(new Date(response.expirydate * 1000))}`
+    expiryDate.style.display = 'block'
   }
 }
 
@@ -456,10 +487,10 @@ page.createAlbum = function () {
   }).then(function (value) {
     if (!value) return
 
-    const name = document.querySelector('#swalName').value
+    const name = document.querySelector('#swalName').value.trim()
     axios.post('api/albums', {
       name,
-      description: document.querySelector('#swalDescription').value,
+      description: document.querySelector('#swalDescription').value.trim(),
       download: document.querySelector('#swalDownload').checked,
       public: document.querySelector('#swalPublic').checked
     }, {
@@ -478,7 +509,7 @@ page.createAlbum = function () {
 
       swal('Woohoo!', 'Album was created successfully.', 'success')
     }).catch(function (error) {
-      console.log(error)
+      console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
@@ -486,16 +517,88 @@ page.createAlbum = function () {
 
 page.prepareUploadConfig = function () {
   const fallback = {
-    chunkSize: parseInt(page.chunkSize),
+    chunkSize: page.chunkSize,
     parallelUploads: 2
   }
-  document.querySelector('#defaultChunkSize').innerHTML = `${fallback.chunkSize} MB`
-  document.querySelector('#defaultParallelUploads').innerHTML = `${fallback.parallelUploads}`
 
-  page.chunkSize = localStorage[lsKeys.chunkSize] || fallback.chunkSize
-  page.parallelUploads = localStorage[lsKeys.parallelUploads] || fallback.parallelUploads
+  page.chunkSize = parseInt(localStorage[lsKeys.chunkSize]) || fallback.chunkSize
+  page.parallelUploads = parseInt(localStorage[lsKeys.parallelUploads]) || fallback.parallelUploads
   document.querySelector('#chunkSize').value = page.chunkSize
   document.querySelector('#parallelUploads').value = page.parallelUploads
+
+  const numConfig = {
+    chunkSize: { min: 1, max: 95 },
+    parallelUploads: { min: 1, max: Number.MAX_SAFE_INTEGER }
+  }
+
+  document.querySelector('#chunkSizeDiv .help').innerHTML =
+    `Default is ${fallback.chunkSize} MB. Max is ${numConfig.chunkSize.max}.`
+  document.querySelector('#parallelUploadsDiv .help').innerHTML =
+    `Default is ${fallback.parallelUploads}.`
+
+  const fileLengthDiv = document.querySelector('#fileLengthDiv')
+  if (page.fileIdentifierLength && fileLengthDiv) {
+    const element = document.querySelector('#fileLength')
+    const stored = parseInt(localStorage[lsKeys.fileLength])
+
+    fallback.fileLength = page.fileIdentifierLength.default
+    let helpText = `Default is ${page.fileIdentifierLength.default}.`
+
+    const range = typeof page.fileIdentifierLength.min === 'number' &&
+      typeof page.fileIdentifierLength.max === 'number'
+
+    if (range) {
+      helpText += ` Min is ${page.fileIdentifierLength.min}. Max is ${page.fileIdentifierLength.max}`
+      numConfig.fileLength = {
+        min: page.fileIdentifierLength.min,
+        max: page.fileIdentifierLength.max
+      }
+    }
+
+    if (page.fileIdentifierLength.force) {
+      helpText += ' This option is currently disabled.'
+      element.disabled = true
+    }
+
+    if (page.fileIdentifierLength.force ||
+      isNaN(stored) ||
+      !range ||
+      stored < page.fileIdentifierLength.min ||
+      stored > page.fileIdentifierLength.max) {
+      element.value = fallback.fileLength
+      page.fileLength = null
+    } else {
+      element.value = stored
+      page.fileLength = stored
+    }
+
+    fileLengthDiv.style.display = 'block'
+    fileLengthDiv.querySelector('.help').innerHTML = helpText
+  }
+
+  Object.keys(numConfig).forEach(function (key) {
+    document.querySelector(`#${key}`).setAttribute('min', numConfig[key].min)
+    document.querySelector(`#${key}`).setAttribute('max', numConfig[key].max)
+  })
+
+  const uploadAgeDiv = document.querySelector('#uploadAgeDiv')
+  if (Array.isArray(page.temporaryUploadAges) && page.temporaryUploadAges.length && uploadAgeDiv) {
+    const element = document.querySelector('#uploadAge')
+    const stored = parseFloat(localStorage[lsKeys.uploadAge])
+    for (let i = 0; i < page.temporaryUploadAges.length; i++) {
+      const age = page.temporaryUploadAges[i]
+      const option = document.createElement('option')
+      option.value = i === 0 ? 'default' : age
+      option.innerHTML = page.getPrettyUploadAge(age) +
+        (i === 0 ? ' (default)' : '')
+      element.appendChild(option)
+      if (age === stored) {
+        element.value = option.value
+        page.uploadAge = stored
+      }
+    }
+    uploadAgeDiv.style.display = 'block'
+  }
 
   const tabContent = document.querySelector('#tab-config')
   const form = tabContent.querySelector('form')
@@ -506,27 +609,23 @@ page.prepareUploadConfig = function () {
   const siBytes = localStorage[lsKeys.siBytes] !== '0'
   if (!siBytes) document.querySelector('#siBytes').value = '0'
 
-  // Always display this in MB?
-  const maxChunkSize = 95
-  document.querySelector('#maxChunkSize').innerHTML = `${maxChunkSize} MB`
-  document.querySelector('#chunkSize').setAttribute('max', maxChunkSize)
-
   document.querySelector('#saveConfig').addEventListener('click', function () {
-    const prefKeys = ['siBytes']
+    if (!form.checkValidity())
+      return
+
+    const prefKeys = ['siBytes', 'uploadAge']
     for (let i = 0; i < prefKeys.length; i++) {
       const value = form.elements[prefKeys[i]].value
-      if (value !== '0' && value !== fallback[prefKeys[i]])
-        localStorage.removeItem(lsKeys[prefKeys[i]])
-      else
+      if (value !== 'default' && value !== fallback[prefKeys[i]])
         localStorage[lsKeys[prefKeys[i]]] = value
+      else
+        localStorage.removeItem(lsKeys[prefKeys[i]])
     }
 
-    const numKeys = ['chunkSize', 'parallelUploads']
+    const numKeys = Object.keys(numConfig)
     for (let i = 0; i < numKeys.length; i++) {
-      const parsed = parseInt(form.elements[numKeys[i]].value)
-      let value = isNaN(parsed) ? 0 : Math.max(parsed, 0)
-      if (numKeys[i] === 'chunkSize') value = Math.min(value, maxChunkSize)
-      value = Math.min(value, Number.MAX_SAFE_INTEGER)
+      const parsed = parseInt(form.elements[numKeys[i]].value) || 0
+      const value = Math.min(Math.max(parsed, numConfig[numKeys[i]].min), numConfig[numKeys[i]].max)
       if (value > 0 && value !== fallback[numKeys[i]])
         localStorage[lsKeys[numKeys[i]]] = value
       else
@@ -535,12 +634,26 @@ page.prepareUploadConfig = function () {
 
     swal({
       title: 'Woohoo!',
-      text: 'Upload configuration saved.',
+      text: 'Configuration saved into this browser.',
       icon: 'success'
     }).then(function () {
       location.reload()
     })
   })
+}
+
+page.getPrettyUploadAge = function (hours) {
+  if (hours === 0) {
+    return 'Permanent'
+  } else if (hours < 1) {
+    const minutes = hours * 60
+    return `${minutes} minute${minutes === 1 ? '' : 's'}`
+  } else if (hours > 24) {
+    const days = hours / 24
+    return `${days} day${days === 1 ? '' : 's'}`
+  } else {
+    return `${hours} hour${hours === 1 ? '' : 's'}`
+  }
 }
 
 // Handle image paste event

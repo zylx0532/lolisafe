@@ -1,26 +1,26 @@
 const { inspect } = require('util')
 
-const logger = {}
+const self = {}
 
-logger.clean = item => {
+const clean = item => {
   if (typeof item === 'string') return item
   const cleaned = inspect(item, { depth: 0 })
   return cleaned
 }
 
-logger.write = (content, options = {}) => {
+const write = (content, options = {}) => {
   const date = new Date().toISOString()
     .replace(/T/, ' ')
     .replace(/\..*/, '')
   const stream = options.error ? process.stderr : process.stdout
-  stream.write(`[${date}]: ${options.prefix || ''}${logger.clean(content)}\n`)
+  stream.write(`[${date}]: ${options.prefix || ''}${clean(content)}\n`)
 }
 
-logger.log = logger.write
+self.log = write
 
-logger.error = (content, options = {}) => {
+self.error = (content, options = {}) => {
   options.error = true
-  logger.write(content, options)
+  write(content, options)
 }
 
-module.exports = logger
+module.exports = self

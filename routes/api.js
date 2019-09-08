@@ -11,7 +11,9 @@ routes.get('/check', (req, res, next) => {
     private: config.private,
     enableUserAccounts: config.enableUserAccounts,
     maxSize: config.uploads.maxSize,
-    chunkSize: config.uploads.chunkSize
+    chunkSize: config.uploads.chunkSize,
+    temporaryUploadAges: config.uploads.temporaryUploadAges,
+    fileIdentifierLength: config.uploads.fileIdentifierLength
   })
 })
 

@@ -1,6 +1,7 @@
 const config = require('./../config')
 const routes = require('express').Router()
 const uploadController = require('./../controllers/uploadController')
+const utils = require('./../controllers/utilsController')
 
 const renderOptions = {
   uploadDisabled: false,
@@ -16,19 +17,18 @@ if (config.private)
 
 routes.get('/nojs', async (req, res, next) => {
   const options = { renderOptions }
-  options.gitHash = req.app.get('git-hash')
+  options.gitHash = utils.gitHash
 
   return res.render('nojs', options)
 })
 
 routes.post('/nojs', (req, res, next) => {
-  // TODO: Support upload by URLs.
   res._json = res.json
   res.json = (...args) => {
     const result = args[0]
 
     const options = { renderOptions }
-    options.gitHash = req.app.get('git-hash')
+    options.gitHash = utils.utils
 
     options.errorMessage = result.success ? '' : (result.description || 'An unexpected error occurred.')
     options.files = result.files || [{}]
