@@ -8,7 +8,7 @@ page.prepareShareX = function () {
     token: page.token || '',
     albumid: page.album || ''
   } : {}
-  values.filelength = page.filelength || ''
+  values.filelength = page.fileLength || ''
   values.age = page.uploadAge || ''
 
   const headers = []
