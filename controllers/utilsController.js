@@ -571,6 +571,7 @@ self.stats = async (req, res, next) => {
             '--apparent-size',
             '--block-size=1',
             '--dereference',
+            '--max-depth=1',
             '--separate-dirs',
             paths.uploads
           ])
