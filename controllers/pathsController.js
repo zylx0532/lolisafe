@@ -16,7 +16,8 @@ const fsFuncs = [
   'rename',
   'rmdir',
   'symlink',
-  'unlink'
+  'unlink',
+  'writeFile'
 ]
 
 for (const fsFunc of fsFuncs)

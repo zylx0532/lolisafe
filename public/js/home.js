@@ -55,11 +55,12 @@ page.checkIfPublic = function () {
     page.preparePage()
   }).catch(function (error) {
     console.error(error)
-    document.querySelector('#albumDiv').style.display = 'none'
-    document.querySelector('#tabs').style.display = 'none'
+    document.querySelector('#albumDiv').classList.add('is-hidden')
+    document.querySelector('#tabs').classList.add('is-hidden')
     const button = document.querySelector('#loginToUpload')
-    button.classList.remove('is-loading')
     button.innerText = 'Error occurred. Reload the page?'
+    button.classList.remove('is-loading')
+    button.classList.remove('is-hidden')
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
@@ -74,9 +75,9 @@ page.preparePage = function () {
       button.classList.remove('is-loading')
 
       if (page.enableUserAccounts)
-        button.innerText = 'Anonymous upload is disabled. Log in to page.'
+        button.innerText = 'Anonymous upload is disabled. Log in to upload.'
       else
-        button.innerText = 'Running in private mode. Log in to page.'
+        button.innerText = 'Running in private mode. Log in to upload.'
     }
   else
     return page.prepareUpload()
@@ -120,13 +121,13 @@ page.prepareUpload = function () {
     page.prepareAlbums()
 
     // Display the album selection
-    document.querySelector('#albumDiv').style.display = 'flex'
+    document.querySelector('#albumDiv').classList.remove('is-hidden')
   }
 
   page.prepareUploadConfig()
 
   document.querySelector('#maxSize').innerHTML = `Maximum upload size per file is ${page.getPrettyBytes(page.maxSizeBytes)}`
-  document.querySelector('#loginToUpload').style.display = 'none'
+  document.querySelector('#loginToUpload').classList.add('is-hidden')
 
   if (!page.token && page.enableUserAccounts)
     document.querySelector('#loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
@@ -158,7 +159,7 @@ page.prepareUpload = function () {
       page.setActiveTab(this.dataset.id)
     })
   page.setActiveTab('tab-files')
-  tabs.style.display = 'flex'
+  tabs.classList.remove('is-hidden')
 }
 
 page.prepareAlbums = function () {
@@ -203,10 +204,10 @@ page.setActiveTab = function (tabId) {
     const id = page.tabs[i].dataset.id
     if (id === tabId) {
       page.tabs[i].classList.add('is-active')
-      document.querySelector(`#${id}`).style.display = 'block'
+      document.querySelector(`#${id}`).classList.remove('is-hidden')
     } else {
       page.tabs[i].classList.remove('is-active')
-      document.querySelector(`#${id}`).style.display = 'none'
+      document.querySelector(`#${id}`).classList.add('is-hidden')
     }
   }
   page.activeTab = tabId
@@ -268,7 +269,7 @@ page.prepareDropzone = function () {
           }
         }
       }).then(function (response) {
-        file.previewElement.querySelector('.progress').style.display = 'none'
+        file.previewElement.querySelector('.progress').classList.add('is-hidden')
 
         if (response.data.success === false)
           file.previewElement.querySelector('.error').innerHTML = response.data.description
@@ -285,7 +286,7 @@ page.prepareDropzone = function () {
     // Set active tab to file uploads
     page.setActiveTab('tab-files')
     // Add file entry
-    tabDiv.querySelector('.uploads').style.display = 'block'
+    tabDiv.querySelector('.uploads').classList.remove('is-hidden')
     file.previewElement.querySelector('.name').innerHTML = file.name
   })
 
@@ -308,7 +309,7 @@ page.prepareDropzone = function () {
 
   page.dropzone.on('success', function (file, response) {
     if (!response) return
-    file.previewElement.querySelector('.progress').style.display = 'none'
+    file.previewElement.querySelector('.progress').classList.add('is-hidden')
 
     if (response.success === false)
       file.previewElement.querySelector('.error').innerHTML = response.description
@@ -324,7 +325,7 @@ page.prepareDropzone = function () {
       error = `File too large (${page.getPrettyBytes(file.size)}).`
 
     page.updateTemplateIcon(file.previewElement, 'icon-block')
-    file.previewElement.querySelector('.progress').style.display = 'none'
+    file.previewElement.querySelector('.progress').classList.add('is-hidden')
     file.previewElement.querySelector('.name').innerHTML = file.name
     file.previewElement.querySelector('.error').innerHTML = error.description || error
   })
@@ -362,7 +363,7 @@ page.uploadUrls = function (button) {
       // eslint-disable-next-line prefer-promise-reject-errors
       return done('You have not entered any URLs.')
 
-    tabDiv.querySelector('.uploads').style.display = 'block'
+    tabDiv.querySelector('.uploads').classList.remove('is-hidden')
     const files = urls.map(function (url) {
       const previewTemplate = document.createElement('template')
       previewTemplate.innerHTML = page.previewTemplate.trim()
@@ -377,7 +378,7 @@ page.uploadUrls = function (button) {
         return done()
 
       function posted (result) {
-        files[i].previewElement.querySelector('.progress').style.display = 'none'
+        files[i].previewElement.querySelector('.progress').classList.add('is-hidden')
         if (result.success) {
           page.updateTemplate(files[i], result.files[0])
         } else {
@@ -408,7 +409,7 @@ page.updateTemplateIcon = function (templateElement, iconClass) {
   const iconElement = templateElement.querySelector('.icon')
   if (!iconElement) return
   iconElement.classList.add(iconClass)
-  iconElement.style.display = ''
+  iconElement.classList.remove('is-hidden')
 }
 
 page.updateTemplate = function (file, response) {
@@ -417,19 +418,19 @@ page.updateTemplate = function (file, response) {
   const a = file.previewElement.querySelector('.link > a')
   const clipboard = file.previewElement.querySelector('.clipboard-mobile > .clipboard-js')
   a.href = a.innerHTML = clipboard.dataset.clipboardText = response.url
-  clipboard.parentElement.style.display = 'block'
+  clipboard.parentElement.classList.remove('is-hidden')
 
   const exec = /.[\w]+(\?|$)/.exec(response.url)
   if (exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())) {
     const img = file.previewElement.querySelector('img')
     img.setAttribute('alt', response.name || '')
     img.dataset.src = response.url
-    img.style.display = ''
+    img.classList.remove('is-hidden')
     img.onerror = function () {
       // Hide image elements that fail to load
       // Consequently include WEBP in browsers that do not have WEBP support (Firefox/IE)
-      this.style.display = 'none'
-      file.previewElement.querySelector('.icon').style.display = ''
+      this.classList.add('is-hidden')
+      file.previewElement.querySelector('.icon').classList.remove('is-hidden')
     }
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
   } else {
@@ -439,7 +440,7 @@ page.updateTemplate = function (file, response) {
   if (response.expirydate) {
     const expiryDate = file.previewElement.querySelector('.expiry-date')
     expiryDate.innerHTML = `Expiry date: ${page.getPrettyDate(new Date(response.expirydate * 1000))}`
-    expiryDate.style.display = 'block'
+    expiryDate.classList.remove('is-hidden')
   }
 }
 
@@ -572,7 +573,7 @@ page.prepareUploadConfig = function () {
       page.fileLength = stored
     }
 
-    fileLengthDiv.style.display = 'block'
+    fileLengthDiv.classList.remove('is-hidden')
     fileLengthDiv.querySelector('.help').innerHTML = helpText
   }
 
@@ -597,7 +598,7 @@ page.prepareUploadConfig = function () {
         page.uploadAge = stored
       }
     }
-    uploadAgeDiv.style.display = 'block'
+    uploadAgeDiv.classList.remove('is-hidden')
   }
 
   const tabContent = document.querySelector('#tab-config')
@@ -664,8 +665,9 @@ window.addEventListener('paste', function (event) {
     const item = items[index[i]]
     if (item.kind === 'file') {
       const blob = item.getAsFile()
-      const file = new File([blob], `pasted-image.${blob.type.match(/(?:[^/]*\/)([^;]*)/)[1]}`)
-      file.type = blob.type
+      const file = new File([blob], `pasted-image.${blob.type.match(/(?:[^/]*\/)([^;]*)/)[1]}`, {
+        type: blob.type
+      })
       page.dropzone.addFile(file)
     }
   }

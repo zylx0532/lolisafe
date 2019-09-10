@@ -3,9 +3,7 @@ body {
   animation: none;
 }
 
-#auth,
 #dashboard {
-  display: none;
   -webkit-animation: fadeInOpacity .5s;
   animation: fadeInOpacity .5s;
 }
@@ -102,15 +100,11 @@ li[data-action="page-ellipsis"] {
 
 .no-touch .image-container .checkbox {
   opacity: .5;
-  -webkit-transition: opacity .25s;
-  transition: opacity .25s;
 }
 
 .no-touch .image-container .controls,
 .no-touch .image-container .details {
   opacity: 0;
-  -webkit-transition: opacity .25s;
-  transition: opacity .25s;
 }
 
 .no-touch .image-container:hover .checkbox,

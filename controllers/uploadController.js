@@ -312,12 +312,7 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
       const name = await self.getUniqueRandomName(length, extname)
 
       const destination = path.join(paths.uploads, name)
-      await new Promise((resolve, reject) => {
-        fs.writeFile(destination, file, error => {
-          if (error) return reject(error)
-          return resolve()
-        })
-      })
+      await paths.writeFile(destination, file)
       downloaded.push(destination)
 
       infoMap.push({

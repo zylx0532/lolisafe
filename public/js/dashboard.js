@@ -24,6 +24,9 @@ const page = {
   username: null,
   permissions: null,
 
+  // sidebar menus
+  menus: [],
+
   currentView: null,
   views: {
     // config of uploads view
@@ -75,7 +78,8 @@ const page = {
   clipboardJS: null,
   lazyLoad: null,
 
-  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png'],
+  imageExts: ['.webp', '.jpg', '.jpeg', '.gif', '.png', '.tiff', '.tif', '.svg'],
+  videoExts: ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv'],
 
   fadingIn: null
 }
@@ -115,77 +119,64 @@ page.verifyToken = function (token, reloadOnError) {
 
 page.prepareDashboard = function () {
   page.dom = document.querySelector('#page')
+
+  // Capture all click events
   page.dom.addEventListener('click', page.domClick, true)
 
+  // Capture all submit events
   page.dom.addEventListener('submit', function (event) {
-    const element = event.target
-    if (element && element.classList.contains('prevent-default'))
+    // Prevent default if necessary
+    if (event.target && event.target.classList.contains('prevent-default'))
       return event.preventDefault()
   }, true)
 
-  document.querySelector('#dashboard').style.display = 'block'
+  // All item menus in the sidebar
+  const itemMenus = [
+    { selector: '#itemUploads', onclick: page.getUploads },
+    { selector: '#itemDeleteUploadsByNames', onclick: page.deleteUploadsByNames },
+    { selector: '#itemManageAlbums', onclick: page.getAlbums },
+    { selector: '#itemManageToken', onclick: page.changeToken },
+    { selector: '#itemChangePassword', onclick: page.changePassword },
+    { selector: '#itemLogout', onclick: page.logout, inactive: true },
+    { selector: '#itemManageUploads', onclick: page.getUploads, params: [{ all: true }], group: 'moderator' },
+    { selector: '#itemStatistics', onclick: page.getStatistics, group: 'admin' },
+    { selector: '#itemManageUsers', onclick: page.getUsers, group: 'admin' }
+  ]
 
+  for (let i = 0; i < itemMenus.length; i++) {
+    // Skip item menu if not enough permission
+    if (itemMenus[i].group && !page.permissions[itemMenus[i].group])
+      continue
+
+    // Add onclick event listener
+    const item = document.querySelector(itemMenus[i].selector)
+    item.addEventListener('click', function () {
+      itemMenus[i].onclick.apply(null, itemMenus[i].params)
+      if (!itemMenus[i].inactive)
+        page.setActiveMenu(this)
+    })
+
+    item.classList.remove('is-hidden')
+    page.menus.push(item)
+  }
+
+  // If at least a moderator, show administration section
   if (page.permissions.moderator) {
-    document.querySelector('#itemLabelAdmin').style.display = 'block'
-    document.querySelector('#itemListAdmin').style.display = 'block'
-    const itemManageUploads = document.querySelector('#itemManageUploads')
-    itemManageUploads.addEventListener('click', function () {
-      page.setActiveMenu(this)
-      page.getUploads({ all: true })
-    })
+    document.querySelector('#itemLabelAdmin').classList.remove('is-hidden')
+    document.querySelector('#itemListAdmin').classList.remove('is-hidden')
   }
 
-  if (page.permissions.admin) {
-    const itemServerStats = document.querySelector('#itemServerStats')
-    itemServerStats.addEventListener('click', function () {
-      page.setActiveMenu(this)
-      page.getServerStats()
-    })
+  // Update text of logout button
+  document.querySelector('#itemLogout').innerHTML = `Logout ( ${page.username} )`
 
-    const itemManageUsers = document.querySelector('#itemManageUsers')
-    itemManageUsers.addEventListener('click', function () {
-      page.setActiveMenu(this)
-      page.getUsers()
-    })
-  } else {
-    document.querySelector('#itemServerStats').style.display = 'none'
-    document.querySelector('#itemManageUsers').style.display = 'none'
-  }
+  // Finally display dashboard
+  document.querySelector('#dashboard').classList.remove('is-hidden')
 
-  document.querySelector('#itemUploads').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.getUploads({ all: false })
-  })
-
-  document.querySelector('#itemDeleteByNames').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.deleteByNames()
-  })
-
-  document.querySelector('#itemManageGallery').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.getAlbums()
-  })
-
-  document.querySelector('#itemTokens').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.changeToken()
-  })
-
-  document.querySelector('#itemPassword').addEventListener('click', function () {
-    page.setActiveMenu(this)
-    page.changePassword()
-  })
-
-  const logoutBtn = document.querySelector('#itemLogout')
-  logoutBtn.addEventListener('click', function () {
-    page.logout()
-  })
-  logoutBtn.innerHTML = `Logout ( ${page.username} )`
-
+  // Load albums sidebar
   page.getAlbumsSidebar()
 
-  if (typeof page.prepareShareX === 'function') page.prepareShareX()
+  if (typeof page.prepareShareX === 'function')
+    page.prepareShareX()
 }
 
 page.logout = function () {
@@ -234,22 +225,20 @@ page.domClick = function (event) {
       return page.setUploadsView('thumbs', element)
     case 'clear-selection':
       return page.clearSelection()
-    case 'add-selected-files-to-album':
-      return page.addSelectedFilesToAlbum()
-    case 'bulk-delete':
-      return page.deleteSelectedFiles()
+    case 'add-selected-uploads-to-album':
+      return page.addSelectedUploadsToAlbum()
     case 'select':
       return page.select(element, event)
-    case 'add-to-album':
-      return page.addSingleFileToAlbum(id)
-    case 'delete-file':
-      return page.deleteFile(id)
     case 'select-all':
       return page.selectAll(element)
+    case 'add-to-album':
+      return page.addToAlbum(id)
+    case 'delete-upload':
+      return page.deleteUpload(id)
+    case 'bulk-delete-uploads':
+      return page.bulkDeleteUploads()
     case 'display-thumbnail':
       return page.displayThumbnail(id)
-    case 'delete-file-by-names':
-      return page.deleteFileByNames()
     case 'submit-album':
       return page.submitAlbum(element)
     case 'edit-album':
@@ -457,12 +446,12 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
             </span>
           </a>
           ${all ? '' : `
-          <a class="button is-small is-warning" title="Add selected uploads to album" data-action="add-selected-files-to-album">
+          <a class="button is-small is-warning" title="Bulk add to album" data-action="add-selected-uploads-to-album">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
           </a>`}
-          <a class="button is-small is-danger" title="Bulk delete" data-action="bulk-delete">
+          <a class="button is-small is-danger" title="Bulk delete" data-action="bulk-delete-uploads">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -472,8 +461,8 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
       </div>
     `
 
-    // Set to true to tick "all files" checkbox in list view
-    let allSelected = true
+    // Whether there are any unselected items
+    let unselected = false
 
     const hasExpiryDateColumn = files.some(file => file.expirydate !== undefined)
 
@@ -501,7 +490,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
 
       // Update selected status
       files[i].selected = page.selected[page.currentView].includes(files[i].id)
-      if (allSelected && !files[i].selected) allSelected = false
+      if (!files[i].selected) unselected = true
 
       // Appendix (display album or user)
       if (all)
@@ -539,7 +528,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><h1 class="title">${upload.extname || 'N/A'}</h1></a>`
 
         div.innerHTML += `
-          <input type="checkbox" class="checkbox" title="Select this file" data-action="select"${upload.selected ? ' checked' : ''}>
+          <input type="checkbox" class="checkbox" title="Select" data-action="select"${upload.selected ? ' checked' : ''}>
           <div class="controls">
             <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
@@ -556,7 +545,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
                 <i class="icon-plus"></i>
               </span>
             </a>
-            <a class="button is-small is-danger" title="Delete file" data-action="delete-file">
+            <a class="button is-small is-danger" title="Delete" data-action="delete-upload">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -581,7 +570,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
           <table class="table is-narrow is-fullwidth is-hoverable">
             <thead>
               <tr>
-                <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all uploads" data-action="select-all"></th>
+                <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all" data-action="select-all"></th>
                 <th style="width: 20%">File</th>
                 <th>${all ? 'User' : 'Album'}</th>
                 <th>Size</th>
@@ -606,7 +595,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
         const tr = document.createElement('tr')
         tr.dataset.id = upload.id
         tr.innerHTML = `
-          <td class="controls"><input type="checkbox" class="checkbox" title="Select this file" data-action="select"${upload.selected ? ' checked' : ''}></td>
+          <td class="controls"><input type="checkbox" class="checkbox" title="Select" data-action="select"${upload.selected ? ' checked' : ''}></td>
           <th><a href="${upload.file}" target="_blank" rel="noopener" title="${upload.file}">${upload.name}</a></th>
           <th>${upload.appendix}</th>
           <td>${upload.prettyBytes}</td>
@@ -630,7 +619,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
                 <i class="icon-plus"></i>
               </span>
             </a>`}
-            <a class="button is-small is-danger" title="Delete file" data-action="delete-file">
+            <a class="button is-small is-danger" title="Delete" data-action="delete-upload">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -642,12 +631,14 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
         page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
       }
     }
-    page.fadeAndScroll()
 
-    if (allSelected && files.length) {
-      const selectAll = document.querySelector('#selectAll')
-      if (selectAll) selectAll.checked = true
+    const selectAll = document.querySelector('#selectAll')
+    if (selectAll && !unselected) {
+      selectAll.checked = true
+      selectAll.title = 'Unselect all'
     }
+
+    page.fadeAndScroll()
 
     if (page.currentView === 'uploads') page.views.uploads.album = album
     if (page.currentView === 'uploadsAll') page.views.uploadsAll.filters = filters
@@ -693,27 +684,28 @@ page.displayThumbnail = function (id) {
 
       const thumb = div.querySelector('#swalThumb')
       const exec = /.[\w]+(\?|$)/.exec(original)
-      const isimage = exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())
+      if (!exec || !exec[0]) return
 
-      if (isimage) {
+      const extname = exec[0].toLowerCase()
+      if (page.imageExts.includes(extname)) {
         thumb.src = file.original
         thumb.onload = function () {
-          button.style.display = 'none'
+          button.classList.add('is-hidden')
           document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
         }
         thumb.onerror = function () {
           button.className = 'button is-danger'
           button.innerHTML = 'Unable to load original'
         }
-      } else {
-        thumb.style.display = 'none'
+      } else if (page.videoExts.includes(extname)) {
+        thumb.classList.add('is-hidden')
         const video = document.createElement('video')
         video.id = 'swalVideo'
         video.controls = true
         video.src = file.original
         thumb.insertAdjacentElement('afterend', video)
 
-        button.style.display = 'none'
+        button.classList.add('is-hidden')
         document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
       }
     })
@@ -732,68 +724,76 @@ page.displayThumbnail = function (id) {
 }
 
 page.selectAll = function (element) {
-  const checkboxes = page.checkboxes[page.currentView]
-  const selected = page.selected[page.currentView]
-
-  for (let i = 0; i < checkboxes.length; i++) {
-    const id = page.getItemID(checkboxes[i])
+  for (let i = 0; i < page.checkboxes[page.currentView].length; i++) {
+    const id = page.getItemID(page.checkboxes[page.currentView][i])
     if (isNaN(id)) continue
-    if (checkboxes[i].checked !== element.checked) {
-      checkboxes[i].checked = element.checked
-      if (checkboxes[i].checked)
-        selected.push(id)
+    if (page.checkboxes[page.currentView][i].checked !== element.checked) {
+      page.checkboxes[page.currentView][i].checked = element.checked
+      if (page.checkboxes[page.currentView][i].checked)
+        page.selected[page.currentView].push(id)
       else
-        selected.splice(selected.indexOf(id), 1)
+        page.selected[page.currentView].splice(page.selected[page.currentView].indexOf(id), 1)
     }
   }
 
-  localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(selected)
-  page.selected[page.currentView] = selected
-  element.title = element.checked ? 'Unselect all uploads' : 'Select all uploads'
+  if (page.selected[page.currentView].length)
+    localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+  else
+    delete localStorage[lsKeys.selected[page.currentView]]
+
+  element.title = element.checked ? 'Unselect all' : 'Select all'
 }
 
 page.selectInBetween = function (element, lastElement) {
-  if (!element || !lastElement) return
-  if (element === lastElement) return
+  if (!element || !lastElement || element === lastElement)
+    return
 
-  const checkboxes = page.checkboxes[page.currentView]
-  if (!checkboxes || !checkboxes.length) return
+  if (!Array.isArray(page.checkboxes[page.currentView]) || !page.checkboxes[page.currentView].length)
+    return
 
-  const thisIndex = checkboxes.indexOf(element)
-  const lastIndex = checkboxes.indexOf(lastElement)
+  const thisIndex = page.checkboxes[page.currentView].indexOf(element)
+  const lastIndex = page.checkboxes[page.currentView].indexOf(lastElement)
 
   const distance = thisIndex - lastIndex
-  if (distance >= -1 && distance <= 1) return
+  if (distance >= -1 && distance <= 1)
+    return
 
-  for (let i = 0; i < checkboxes.length; i++)
+  for (let i = 0; i < page.checkboxes[page.currentView].length; i++)
     if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
       (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
-      checkboxes[i].checked = true
-      page.selected[page.currentView].push(page.getItemID(checkboxes[i]))
+      // Check or uncheck depending on the state of the initial checkbox
+      page.checkboxes[page.currentView][i].checked = lastElement.checked
+      const id = page.getItemID(page.checkboxes[page.currentView][i])
+      if (!page.selected[page.currentView].includes(id) && page.checkboxes[page.currentView][i].checked)
+        page.selected[page.currentView].push(id)
+      else if (page.selected[page.currentView].includes(id) && !page.checkboxes[page.currentView][i].checked)
+        page.selected[page.currentView].splice(page.selected[page.currentView].indexOf(id), 1)
     }
-
-  localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
-  page.checkboxes[page.currentView] = checkboxes
 }
 
 page.select = function (element, event) {
-  const lastSelected = page.lastSelected[page.currentView]
-  if (event.shiftKey && lastSelected)
-    page.selectInBetween(element, lastSelected)
-  else
-    page.lastSelected[page.currentView] = element
-
   const id = page.getItemID(element)
   if (isNaN(id)) return
 
-  const selected = page.selected[page.currentView]
-  if (!selected.includes(id) && element.checked)
-    selected.push(id)
-  else if (selected.includes(id) && !element.checked)
-    selected.splice(selected.indexOf(id), 1)
+  const lastSelected = page.lastSelected[page.currentView]
+  if (event.shiftKey && lastSelected) {
+    page.selectInBetween(element, lastSelected)
+    // Check or uncheck depending on the state of the initial checkbox
+    element.checked = lastSelected.checked
+  } else {
+    page.lastSelected[page.currentView] = element
+  }
 
-  localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(selected)
-  page.selected[page.currentView] = selected
+  if (!page.selected[page.currentView].includes(id) && element.checked)
+    page.selected[page.currentView].push(id)
+  else if (page.selected[page.currentView].includes(id) && !element.checked)
+    page.selected[page.currentView].splice(page.selected[page.currentView].indexOf(id), 1)
+
+  // Update local storage
+  if (page.selected[page.currentView].length)
+    localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+  else
+    delete localStorage[lsKeys.selected[page.currentView]]
 }
 
 page.clearSelection = function () {
@@ -830,7 +830,7 @@ page.filtersHelp = function (element) {
   const content = document.createElement('div')
   content.style = 'text-align: left'
   content.innerHTML = `
-    This supports 3 filter keys, namely <b>user</b> (username), <b>ip</b> and <b>name</b> (file name).
+    This supports 3 filter keys, namely <b>user</b> (username), <b>ip</b> and <b>name</b> (upload name).
     Each key can be specified more than once.
     Backlashes should be used if the usernames have spaces.
     There are also 2 additional flags, namely <b>-user</b> and <b>-ip</b>, which will match uploads by non-registered users and have no IPs respectively.
@@ -847,7 +847,7 @@ page.filtersHelp = function (element) {
     Uploads from users with username either "John Doe" OR "demo":
     <code>user:John\\ Doe user:demo</code>
 
-    Uploads from IP "127.0.0.1" AND which file names match "*.rar" OR "*.zip":
+    Uploads from IP "127.0.0.1" AND which upload names match "*.rar" OR "*.zip":
     <code>ip:127.0.0.1 name:*.rar name:*.zip</code>
 
     Uploads from user with username "test" OR from non-registered users:
@@ -864,56 +864,133 @@ page.filterUploads = function (element) {
 page.viewUserUploads = function (id) {
   const user = page.cache.users[id]
   if (!user) return
-  page.setActiveMenu(document.querySelector('#itemManageUploads'))
   page.getUploads({ all: true, filters: `user:${user.username.replace(/ /g, '\\ ')}` })
+  page.setActiveMenu(document.querySelector('#itemManageUploads'))
 }
 
-page.deleteFile = function (id) {
-  // TODO: Share function with bulk delete, just like 'add selected uploads to album' and 'add single file to album'
-  swal({
-    title: 'Are you sure?',
-    text: 'You won\'t be able to recover the file!',
-    icon: 'warning',
-    dangerMode: true,
-    buttons: {
-      cancel: true,
-      confirm: {
-        text: 'Yes, delete it!',
-        closeModal: false
-      }
-    }
-  }).then(function (proceed) {
-    if (!proceed) return
+page.deleteUpload = function (id) {
+  page.postBulkDeleteUploads({
+    field: 'id',
+    values: [id],
+    cb (failed) {
+      // Remove from remembered checkboxes if necessary
+      if (!failed.length && page.selected[page.currentView].includes(id))
+        page.selected[page.currentView].splice(page.selected[page.currentView].indexOf(id), 1)
 
-    axios.post('api/upload/delete', { id }).then(function (response) {
-      if (!response) return
+      // Update local storage
+      if (page.selected[page.currentView].length)
+        localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+      else
+        delete localStorage[lsKeys.selected[page.currentView]]
 
-      if (response.data.success === false)
-        if (response.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', response.data.description, 'error')
-        }
-
-      swal('Deleted!', 'The file has been deleted.', 'success')
-
+      // Reload upload list
       const views = Object.assign({}, page.views[page.currentView])
       views.autoPage = true
       page.getUploads(views)
-    }).catch(function (error) {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }
   })
 }
 
-page.deleteSelectedFiles = function () {
+page.bulkDeleteUploads = function () {
   const count = page.selected[page.currentView].length
   if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
 
-  const suffix = `upload${count === 1 ? '' : 's'}`
-  let text = `You won't be able to recover ${count} ${suffix}!`
+  page.postBulkDeleteUploads({
+    field: 'id',
+    values: page.selected[page.currentView],
+    cb (failed) {
+      // Update state of checkboxes
+      if (failed.length)
+        page.selected[page.currentView] = page.selected[page.currentView]
+          .filter(function (id) {
+            return failed.includes(id)
+          })
+      else
+        page.selected[page.currentView] = []
+
+      // Update local storage
+      if (page.selected[page.currentView].length)
+        localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
+      else
+        delete localStorage[lsKeys.selected[page.currentView]]
+
+      // Reload uploads list
+      const views = Object.assign({}, page.views[page.currentView])
+      views.autoPage = true
+      page.getUploads(views)
+    }
+  })
+}
+
+page.deleteUploadsByNames = function () {
+  let appendix = ''
+  if (page.permissions.moderator)
+    appendix = '<br>As a staff, you can use this feature to delete uploads from other users.'
+
+  page.dom.innerHTML = `
+    <form class="prevent-default">
+      <div class="field">
+        <label class="label">Upload names:</label>
+        <div class="control">
+          <textarea id="bulkDeleteNames" class="textarea"></textarea>
+        </div>
+        <p class="help">Separate each entry with a new line.${appendix}</p>
+      </div>
+      <div class="field">
+        <div class="control">
+          <button type="submit" id="submitBulkDelete" class="button is-danger is-fullwidth">
+            <span class="icon">
+              <i class="icon-trash"></i>
+            </span>
+            <span>Bulk delete</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  `
+  page.fadeAndScroll()
+
+  document.querySelector('#submitBulkDelete').addEventListener('click', function () {
+    const textArea = document.querySelector('#bulkDeleteNames')
+
+    // Clean up
+    const seen = {}
+    const names = textArea.value
+      .split(/\r?\n/)
+      .map(function (name) {
+        const trimmed = name.trim()
+        return /^[^\s]+$/.test(trimmed)
+          ? trimmed
+          : ''
+      })
+      .filter(function (name) {
+        // Filter out invalid and duplicate names
+        return (!name || Object.prototype.hasOwnProperty.call(seen, name))
+          ? false
+          : (seen[name] = true)
+      })
+
+    // Update textarea with cleaned names
+    textArea.value = names.join('\n')
+
+    if (!names.length)
+      return swal('An error occurred!', 'You have not entered any upload names.', 'error')
+
+    page.postBulkDeleteUploads({
+      field: 'name',
+      values: names,
+      cb (failed) {
+        textArea.value = failed.join('\n')
+      }
+    })
+  })
+}
+
+page.postBulkDeleteUploads = function ({ field, values, cb } = {}) {
+  const count = values.length
+  const objective = `${values.length} upload${count === 1 ? '' : 's'}`
+  let text = `You won't be able to recover ${objective}!`
   if (page.currentView === 'uploadsAll')
     text += '\nBe aware, you may be nuking uploads by other users!'
 
@@ -925,41 +1002,32 @@ page.deleteSelectedFiles = function () {
     buttons: {
       cancel: true,
       confirm: {
-        text: `Yes, nuke the ${suffix}!`,
+        text: `Yes, nuke ${values.length === 1 ? 'it' : 'them'}!`,
         closeModal: false
       }
     }
   }).then(function (proceed) {
     if (!proceed) return
 
-    axios.post('api/upload/bulkdelete', {
-      field: 'id',
-      values: page.selected[page.currentView]
-    }).then(function (bulkdelete) {
-      if (!bulkdelete) return
+    axios.post('api/upload/bulkdelete', { field, values }).then(function (response) {
+      if (!response) return
 
-      if (bulkdelete.data.success === false)
-        if (bulkdelete.data.description === 'No token provided') {
+      if (response.data.success === false)
+        if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
         } else {
-          return swal('An error occurred!', bulkdelete.data.description, 'error')
+          return swal('An error occurred!', response.data.description, 'error')
         }
 
-      if (Array.isArray(bulkdelete.data.failed) && bulkdelete.data.failed.length) {
-        page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
-          return bulkdelete.data.failed.includes(id)
-        })
-        localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
-        swal('An error ocurrred!', `From ${count} ${suffix}, unable to delete ${bulkdelete.data.failed.length} of them.`, 'error')
-      } else {
-        page.selected[page.currentView] = []
-        delete localStorage[lsKeys.selected[page.currentView]]
-        swal('Deleted!', `${count} ${suffix} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
-      }
+      const failed = Array.isArray(response.data.failed) ? response.data.failed : []
+      if (failed.length === values.length)
+        swal('An error occurred!', `Unable to delete any of the ${objective}.`, 'error')
+      else if (failed.length && failed.length < values.length)
+        swal('Warning!', `From ${objective}, unable to delete ${failed.length} of them.`, 'warning')
+      else
+        swal('Deleted!', `${objective} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
 
-      const views = Object.assign({}, page.views[page.currentView])
-      views.autoPage = true
-      page.getUploads(views)
+      if (typeof cb === 'function') cb(failed)
     }).catch(function (error) {
       console.error(error)
       swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
@@ -967,94 +1035,7 @@ page.deleteSelectedFiles = function () {
   })
 }
 
-page.deleteByNames = function () {
-  let appendix = ''
-  if (page.permissions.moderator)
-    appendix = '<br>As a staff, you can use this feature to delete uploads by other users.'
-
-  page.dom.innerHTML = `
-    <h2 class="subtitle">Delete by names</h2>
-    <div class="field">
-      <label class="label">File names:</label>
-      <div class="control">
-        <textarea id="names" class="textarea"></textarea>
-      </div>
-      <p class="help">Separate each entry with a new line.${appendix}</p>
-    </div>
-    <div class="field">
-      <div class="control">
-        <a class="button is-danger is-fullwidth" data-action="delete-file-by-names">
-          <span class="icon">
-            <i class="icon-trash"></i>
-          </span>
-          <span>Bulk delete</span>
-        </a>
-      </div>
-    </div>
-  `
-  page.fadeAndScroll()
-}
-
-page.deleteFileByNames = function () {
-  const names = document.querySelector('#names').value
-    .split(/\r?\n/)
-    .filter(function (n) {
-      return n.trim().length
-    })
-  const count = names.length
-  if (!count)
-    return swal('An error occurred!', 'You have not entered any file names.', 'error')
-
-  const suffix = `file${count === 1 ? '' : 's'}`
-  swal({
-    title: 'Are you sure?',
-    text: `You won't be able to recover ${count} ${suffix}!`,
-    icon: 'warning',
-    dangerMode: true,
-    buttons: {
-      cancel: true,
-      confirm: {
-        text: `Yes, nuke the ${suffix}!`,
-        closeModal: false
-      }
-    }
-  }).then(function (proceed) {
-    if (!proceed) return
-
-    axios.post('api/upload/bulkdelete', {
-      field: 'name',
-      values: names
-    }).then(function (bulkdelete) {
-      if (!bulkdelete) return
-
-      if (bulkdelete.data.success === false)
-        if (bulkdelete.data.description === 'No token provided') {
-          return page.verifyToken(page.token)
-        } else {
-          return swal('An error occurred!', bulkdelete.data.description, 'error')
-        }
-
-      if (Array.isArray(bulkdelete.data.failed) && bulkdelete.data.failed.length) {
-        page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
-          return bulkdelete.data.failed.includes(id)
-        })
-        localStorage[lsKeys.selected[page.currentView]] = JSON.stringify(page.selected[page.currentView])
-        swal('An error ocurrred!', `From ${count} ${suffix}, unable to delete ${bulkdelete.data.failed.length} of them.`, 'error')
-      } else {
-        page.selected[page.currentView] = []
-        delete localStorage[lsKeys.selected[page.currentView]]
-        swal('Deleted!', `${count} ${suffix} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
-      }
-
-      document.querySelector('#names').value = bulkdelete.data.failed.join('\n')
-    }).catch(function (error) {
-      console.error(error)
-      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
-  })
-}
-
-page.addSelectedFilesToAlbum = function () {
+page.addSelectedUploadsToAlbum = function () {
   if (page.currentView !== 'uploads')
     return
 
@@ -1062,7 +1043,7 @@ page.addSelectedFilesToAlbum = function () {
   if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
 
-  page.addFilesToAlbum(page.selected[page.currentView], function (failed) {
+  page.addUploadsToAlbum(page.selected[page.currentView], function (failed) {
     if (!failed) return
     if (failed.length)
       page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
@@ -1076,21 +1057,21 @@ page.addSelectedFilesToAlbum = function () {
   })
 }
 
-page.addSingleFileToAlbum = function (id) {
-  page.addFilesToAlbum([id], function (failed) {
+page.addToAlbum = function (id) {
+  page.addUploadsToAlbum([id], function (failed) {
     if (!failed) return
     page.getUploads(page.views[page.currentView])
   })
 }
 
-page.addFilesToAlbum = function (ids, callback) {
+page.addUploadsToAlbum = function (ids, callback) {
   const count = ids.length
 
   const content = document.createElement('div')
   content.innerHTML = `
     <div class="field has-text-centered">
-      <p>You are about to add <b>${count}</b> file${count === 1 ? '' : 's'} to an album.</p>
-      <p><b>If a file is already in an album, it will be moved.</b></p>
+      <p>You are about to add <b>${count}</b> upload${count === 1 ? '' : 's'} to an album.</p>
+      <p><b>If an upload is already in an album, it will be moved.</b></p>
     </div>
     <div class="field">
       <div class="control">
@@ -1140,7 +1121,7 @@ page.addFilesToAlbum = function (ids, callback) {
       if (add.data.failed && add.data.failed.length)
         added -= add.data.failed.length
 
-      const suffix = `file${ids.length === 1 ? '' : 's'}`
+      const suffix = `upload${ids.length === 1 ? '' : 's'}`
       if (!added)
         return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
 
@@ -1469,9 +1450,17 @@ page.getAlbumsSidebar = function () {
       }
 
     const albumsContainer = document.querySelector('#albumsContainer')
-    albumsContainer.innerHTML = ''
 
-    if (response.data.albums === undefined) return
+    // Clear albums sidebar if necessary
+    const oldAlbums = albumsContainer.querySelectorAll('li > a')
+    if (oldAlbums.length) {
+      for (let i = 0; i < oldAlbums.length; i++)
+        page.menus.splice(page.menus.indexOf(oldAlbums[i]), 1)
+      albumsContainer.innerHTML = ''
+    }
+
+    if (response.data.albums === undefined)
+      return
 
     for (let i = 0; i < response.data.albums.length; i++) {
       const album = response.data.albums[i]
@@ -1481,8 +1470,10 @@ page.getAlbumsSidebar = function () {
       a.innerHTML = album.name
 
       a.addEventListener('click', function () {
-        page.getAlbum(this)
+        page.getUploads({ album: this.id })
+        page.setActiveMenu(this)
       })
+      page.menus.push(a)
 
       li.appendChild(a)
       albumsContainer.appendChild(li)
@@ -1491,11 +1482,6 @@ page.getAlbumsSidebar = function () {
     console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
-}
-
-page.getAlbum = function (album) {
-  page.setActiveMenu(album)
-  page.getUploads({ album: album.id })
 }
 
 page.changeToken = function () {
@@ -1508,7 +1494,6 @@ page.changeToken = function () {
       }
 
     page.dom.innerHTML = `
-      <h2 class="subtitle">Manage your token</h2>
       <div class="field">
         <label class="label">Your current token:</label>
         <div class="field">
@@ -1567,7 +1552,6 @@ page.getNewToken = function (element) {
 
 page.changePassword = function () {
   page.dom.innerHTML = `
-    <h2 class="subtitle">Change your password</h2>
     <form class="prevent-default">
       <div class="field">
         <label class="label">New password:</label>
@@ -1634,13 +1618,11 @@ page.sendNewPassword = function (pass, element) {
   })
 }
 
-page.setActiveMenu = function (activeItem) {
-  const menu = document.querySelector('#menu')
-  const items = menu.getElementsByTagName('a')
-  for (let i = 0; i < items.length; i++)
-    items[i].classList.remove('is-active')
+page.setActiveMenu = function (element) {
+  for (let i = 0; i < page.menus.length; i++)
+    page.menus[i].classList.remove('is-active')
 
-  activeItem.classList.add('is-active')
+  element.classList.add('is-active')
 }
 
 page.getUsers = function ({ pageNum } = {}, element) {
@@ -1717,7 +1699,8 @@ page.getUsers = function ({ pageNum } = {}, element) {
       </div>
     `
 
-    let allSelected = true
+    // Whether there are any unselected items
+    let unselected = false
 
     page.dom.innerHTML = `
       ${pagination}
@@ -1727,7 +1710,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
         <table class="table is-narrow is-fullwidth is-hoverable">
           <thead>
             <tr>
-              <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all users" data-action="select-all"></th>
+              <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all" data-action="select-all"></th>
               <th>ID</th>
               <th style="width: 20%">Username</th>
               <th>Uploads</th>
@@ -1749,7 +1732,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
     for (let i = 0; i < response.data.users.length; i++) {
       const user = response.data.users[i]
       const selected = page.selected.users.includes(user.id)
-      if (!selected && allSelected) allSelected = false
+      if (!selected) unselected = true
 
       let displayGroup = null
       const groups = Object.keys(user.groups)
@@ -1770,11 +1753,11 @@ page.getUsers = function ({ pageNum } = {}, element) {
       const tr = document.createElement('tr')
       tr.dataset.id = user.id
       tr.innerHTML = `
-        <td class="controls"><input type="checkbox" class="checkbox" title="Select this user" data-action="select"${selected ? ' checked' : ''}></td>
+        <td class="controls"><input type="checkbox" class="checkbox" title="Select" data-action="select"${selected ? ' checked' : ''}></td>
         <th>${user.id}</th>
         <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</td>
-        <th>${user.uploadsCount}</th>
-        <td>${page.getPrettyBytes(user.diskUsage)}</td>
+        <th>${user.uploads}</th>
+        <td>${page.getPrettyBytes(user.usage)}</td>
         <td>${displayGroup}</td>
         <td class="controls" style="text-align: right">
           <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
@@ -1803,12 +1786,14 @@ page.getUsers = function ({ pageNum } = {}, element) {
       table.appendChild(tr)
       page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
     }
-    page.fadeAndScroll()
 
-    if (allSelected && response.data.users.length) {
-      const selectAll = document.querySelector('#selectAll')
-      if (selectAll) selectAll.checked = true
+    const selectAll = document.querySelector('#selectAll')
+    if (selectAll && !unselected) {
+      selectAll.checked = true
+      selectAll.title = 'Unselect all'
     }
+
+    page.fadeAndScroll()
 
     page.views.users.pageNum = response.data.users.length ? pageNum : 0
   }).catch(function (error) {
@@ -2008,7 +1993,7 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
   `
 }
 
-page.getServerStats = function (element) {
+page.getStatistics = function (element) {
   if (!page.permissions.admin)
     return swal('An error occurred!', 'You can not do this!', 'error')
 
@@ -2016,7 +2001,6 @@ page.getServerStats = function (element) {
     Please wait, this may take a while\u2026
     <progress class="progress is-breeze" max="100" style="margin-top: 10px"></progress>
   `
-  page.fadeAndScroll()
 
   const url = 'api/stats'
   axios.get(url).then(function (response) {
@@ -2040,20 +2024,31 @@ page.getServerStats = function (element) {
         `
       else
         try {
+          const types = response.data.stats[keys[i]]._types || {}
           const valKeys = Object.keys(response.data.stats[keys[i]])
           for (let j = 0; j < valKeys.length; j++) {
-            const _value = response.data.stats[keys[i]][valKeys[j]]
-            let value = _value
-            if (['albums', 'users', 'uploads'].includes(keys[i]))
-              value = _value.toLocaleString()
-            if (['memoryUsage', 'size'].includes(valKeys[j]))
-              value = page.getPrettyBytes(_value)
-            if (valKeys[j] === 'systemMemory')
-              value = `${page.getPrettyBytes(_value.used)} / ${page.getPrettyBytes(_value.total)} (${Math.round(_value.used / _value.total * 100)}%)`
+            // Skip keys that starts with an underscore
+            if (/^_/.test(valKeys[j]))
+              continue
+
+            const value = response.data.stats[keys[i]][valKeys[j]]
+            let parsed = value
+
+            // Parse values with some preset formatting
+            if ((types.number || []).includes(valKeys[j]))
+              parsed = value.toLocaleString()
+            if ((types.byte || []).includes(valKeys[j]))
+              parsed = page.getPrettyBytes(value)
+            if ((types.byteUsage || []).includes(valKeys[j]))
+              parsed = `${page.getPrettyBytes(value.used)} / ${page.getPrettyBytes(value.total)} (${Math.round(value.used / value.total * 100)}%)`
+
+            const string = valKeys[j]
+              .replace(/([A-Z])/g, ' $1')
+              .toUpperCase()
             rows += `
               <tr>
-                <th>${valKeys[j].replace(/([A-Z])/g, ' $1').toUpperCase()}</th>
-                <td>${value}</td>
+                <th>${string}</th>
+                <td>${parsed}</td>
               </tr>
             `
           }
@@ -2084,11 +2079,16 @@ page.getServerStats = function (element) {
       `
     }
 
-    page.dom.innerHTML = `
-      <h2 class="subtitle">Statistics</h2>
-      ${content}
-    `
+    page.dom.innerHTML = content
     page.fadeAndScroll()
+  }).catch(function (error) {
+    console.error(error)
+    const description = error.response.data && error.response.data.description
+      ? error.response.data && error.response.data.description
+      : 'There was an error with the request, please check the console for more information.'
+    page.dom.innerHTML = `<p>${description}</p>`
+    page.fadeAndScroll()
+    return swal('An error occurred!', description, 'error')
   })
 }
 

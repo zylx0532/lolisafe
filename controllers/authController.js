@@ -205,33 +205,22 @@ self.listUsers = async (req, res, next) => {
       .offset(25 * offset)
       .select('id', 'username', 'enabled', 'permission')
 
-    const userids = []
-
+    const pointers = {}
     for (const user of users) {
       user.groups = perms.mapPermissions(user)
       delete user.permission
-
-      userids.push(user.id)
-      user.uploadsCount = 0
-      user.diskUsage = 0
+      user.uploads = 0
+      user.usage = 0
+      pointers[user.id] = user
     }
 
-    const maps = {}
     const uploads = await db.table('files')
-      .whereIn('userid', userids)
+      .whereIn('userid', Object.keys(pointers))
+      .select('userid', 'size')
 
     for (const upload of uploads) {
-      if (maps[upload.userid] === undefined)
-        maps[upload.userid] = { count: 0, size: 0 }
-
-      maps[upload.userid].count++
-      maps[upload.userid].size += parseInt(upload.size)
-    }
-
-    for (const user of users) {
-      if (!maps[user.id]) continue
-      user.uploadsCount = maps[user.id].count
-      user.diskUsage = maps[user.id].size
+      pointers[upload.userid].uploads++
+      pointers[upload.userid].usage += parseInt(upload.size)
     }
 
     return res.json({ success: true, users, count })
