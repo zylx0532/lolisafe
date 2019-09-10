@@ -1765,7 +1765,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
               <i class="icon-pencil-1"></i>
             </span>
           </a>
-          <a class="button is-small is-info" title="View uploads" data-action="view-user-uploads" ${user.uploadsCount ? '' : 'disabled'}>
+          <a class="button is-small is-info" title="View uploads" data-action="view-user-uploads" ${user.uploads ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-docs"></i>
             </span>
