@@ -2,7 +2,7 @@ const logger = require('./../logger')
 const perms = require('./../controllers/permissionController')
 const randomstring = require('randomstring')
 
-// TODO: Auto-detect missing tables/columns here
+// TODO: Auto-detect missing columns here
 // That way we will no longer need the migration script
 
 const init = function (db) {
