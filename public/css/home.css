@@ -17,43 +17,43 @@
   -webkit-animation-timing-function: cubic-bezier(0, 0.71, 0.29, 1);
   animation-timing-function: cubic-bezier(0, 0.71, 0.29, 1);
   -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
 }
 
 #b img.logo {
-  max-height: 200px;
+  max-height: 200px
 }
 
 #dropzone * {
-  pointer-events: none;
+  pointer-events: none
 }
 
 #tokenContainer,
 #panel {
-  display: none;
+  display: none
 }
 
 #maxSize {
-  font-size: 1rem;
+  font-size: 1rem
 }
 
 .dz-preview .dz-details {
   display: -webkit-box;
   display: -ms-flexbox;
-  display: flex;
+  display: flex
 }
 
 .dz-preview .dz-details .dz-size,
 .dz-preview .dz-details .dz-filename {
   -webkit-box-flex: 1;
   -ms-flex: 1;
-  flex: 1;
+  flex: 1
 }
 
 .dz-preview img,
 .dz-preview .dz-success-mark,
 .dz-preview .dz-error-mark {
-  display: none;
+  display: none
 }
 
 @-webkit-keyframes floatUp {
@@ -62,25 +62,25 @@
     -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
     -webkit-transform: scale(0.86);
-    transform: scale(0.86);
+    transform: scale(0.86)
   }
 
   25% {
-    opacity: 100;
+    opacity: 100
   }
 
   67% {
     -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     -webkit-transform: scale(1);
-    transform: scale(1);
+    transform: scale(1)
   }
 
   100% {
     -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     -webkit-transform: scale(1);
-    transform: scale(1);
+    transform: scale(1)
   }
 }
 
@@ -90,147 +90,147 @@
     -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
     -webkit-transform: scale(0.86);
-    transform: scale(0.86);
+    transform: scale(0.86)
   }
 
   25% {
-    opacity: 100;
+    opacity: 100
   }
 
   67% {
     -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     -webkit-transform: scale(1);
-    transform: scale(1);
+    transform: scale(1)
   }
 
   100% {
     -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     -webkit-transform: scale(1);
-    transform: scale(1);
+    transform: scale(1)
   }
 }
 
-.uploads>div {
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
-  margin: 1rem;
+.uploads > div {
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s;
+  margin: 1rem
 }
 
-.uploads>div:first-child {
-  margin-top: 1.5rem;
+.uploads > div:first-child {
+  margin-top: 1.5rem
 }
 
 .uploads.nojs {
-  margin-bottom: 0;
+  margin-bottom: 0
 }
 
 .uploads .icon:not(.icon-block) {
-  color: #3794d2;
+  color: #3794d2
 }
 
 .uploads .icon.icon-block {
-  color: #da4453;
+  color: #da4453
 }
 
 .uploads progress {
-  margin-top: .5rem;
-  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem
 }
 
 .uploads img {
-  max-width: 200px;
+  max-width: 200px
 }
 
 .name {
   font-size: 1rem;
   color: #bdc3c7;
-  word-break: break-all;
+  word-break: break-all
 }
 
-.link>a {
-  word-break: break-all;
+.link > a {
+  word-break: break-all
 }
 
 .clipboard-mobile {
-  margin-top: 5px;
+  margin-top: 5px
 }
 
 #albumDiv {
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 #albumDiv .control {
-  text-align: inherit;
+  text-align: inherit
 }
 
 #linksColumn {
   margin-top: -0.25rem;
   margin-left: -0.25rem;
   margin-right: -0.25rem;
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 #linksColumn .column {
-  padding: 0.25rem;
+  padding: 0.25rem
 }
 
-#linksColumn>span {
+#linksColumn > span {
   padding: 0 0.3rem;
-  color: #7f8c8d;
+  color: #7f8c8d
+}
+
+.git-commit a {
+  display: inline-block;
+  word-break: break-all
 }
 
 #tabs {
   margin-bottom: 1rem;
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 #tabs ul {
-  border-bottom: 1px solid #898b8d;
+  border-bottom: 1px solid #898b8d
 }
 
 #tabs li a {
   color: #bdc3c7;
-  border-bottom-color: #898b8d;
+  border-bottom-color: #898b8d
 }
 
 #tabs.is-boxed li.is-active a {
   color: #3794d2;
   background: #232629;
   border-color: #898b8d;
-  border-bottom-color: #232629;
+  border-bottom-color: #232629
 }
 
 #tabs.is-boxed li:not(.is-active) a:hover {
-  background: #4d4d4d;
+  background: #4d4d4d
 }
 
 .tab-content {
-  margin-bottom: -.75rem;
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  margin-bottom: -0.75rem;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 .tab-content .label {
   color: #bdc3c7;
-  font-weight: normal;
+  font-weight: normal
 }
 
 #tab-config.tab-content form {
-  margin-bottom: .75rem;
-}
-
-.git-commit a {
-  display: inline-block;
-  word-break: break-all;
+  margin-bottom: 0.75rem
 }
 
 #urlMaxSize {
-  font-weight: bold;
+  font-weight: bold
 }
 
 .render {
@@ -239,18 +239,18 @@
   bottom: 0;
   font-size: 1rem;
   color: #bdc3c7;
-  cursor: pointer;
+  cursor: pointer
 }
 
 .render.button {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   right: 1%;
-  opacity: .25;
-  -webkit-transition: opacity .25s;
-  transition: opacity .25s;
+  opacity: 0.25;
+  -webkit-transition: opacity 0.25s;
+  transition: opacity 0.25s
 }
 
 .render.button:hover {
-  opacity: 1;
+  opacity: 1
 }

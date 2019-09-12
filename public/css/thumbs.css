@@ -12,12 +12,12 @@
   align-items: center;
   position: relative;
   -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
 }
 
 .image-container .title {
   font-weight: normal;
-  word-break: break-all;
+  word-break: break-all
 }
 
 .image-container .image {
@@ -31,14 +31,14 @@
   align-items: center;
   -webkit-box-pack: center;
   -ms-flex-pack: center;
-  justify-content: center;
+  justify-content: center
 }
 
 .image-container .image img {
   max-height: 100%;
   max-width: 100%;
   height: auto;
-  width: auto;
+  width: auto
 }
 
 .image-container .controls {
@@ -46,36 +46,36 @@
   display: -ms-flexbox;
   display: flex;
   position: absolute;
-  top: .75rem;
-  right: .75rem;
+  top: 0.75rem;
+  right: 0.75rem
 }
 
 .image-container .controls .button {
-  border-radius: 0;
+  border-radius: 0
 }
 
 .image-container .controls .button:not(:active):not(:hover) {
   color: #fff;
-  background-color: rgba(49, 54, 59, .75);
+  background-color: rgba(49, 54, 59, 0.75)
 }
 
 .image-container .details {
   position: absolute;
-  left: .75rem;
-  bottom: .75rem;
-  right: .75rem;
-  background-color: rgba(49, 54, 59, .75);
+  left: 0.75rem;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  background-color: rgba(49, 54, 59, 0.75);
   color: #eff0f1;
-  padding: .25rem;
-  font-size: .75rem;
+  padding: 0.25rem;
+  font-size: 0.75rem
 }
 
 .image-container .details p {
   display: block;
   text-overflow: ellipsis;
-  overflow: hidden;
+  overflow: hidden
 }
 
 .image-container .details p span {
-  font-weight: bold;
+  font-weight: bold
 }

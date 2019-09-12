@@ -1,62 +1,82 @@
 html {
   background-color: #232629;
-  overflow-y: auto;
+  overflow-y: auto
 }
 
 body {
   color: #eff0f1;
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 @-webkit-keyframes fadeInOpacity {
   0% {
-    opacity: 0;
+    opacity: 0
   }
 
   100% {
-    opacity: 1;
+    opacity: 1
   }
 }
 
 @keyframes fadeInOpacity {
   0% {
-    opacity: 0;
+    opacity: 0
   }
 
   100% {
-    opacity: 1;
+    opacity: 1
   }
 }
 
 a {
-  color: #3794d2;
+  color: #3794d2
 }
 
 a:hover {
-  color: #60a8dc;
+  color: #60a8dc
 }
 
 hr {
-  background-color: #898b8d;
+  background-color: #898b8d
 }
 
 code,
 .message-body code {
   background-color: #222528;
-  border-radius: 5px;
+  border-radius: 5px
 }
 
 .title {
-  color: #eff0f1;
+  color: #eff0f1
 }
 
 .subtitle {
-  color: #bdc3c7;
+  color: #bdc3c7
 }
 
 .subtitle strong {
-  color: #bdc3c7;
+  color: #bdc3c7
+}
+
+.input::-moz-placeholder,
+.textarea::-moz-placeholder {
+  color: #7f8c8d
+}
+
+.input::-webkit-input-placeholder,
+.textarea::-webkit-input-placeholder {
+  color: #7f8c8d
+}
+
+.input:-moz-placeholder,
+.textarea:-moz-placeholder {
+  color: #7f8c8d
+}
+
+.input:-ms-input-placeholder,
+.textarea:-ms-input-placeholder {
+  color: #7f8c8d
 }
 
 .input.is-active,
@@ -67,85 +87,65 @@ code,
 .textarea.is-focused,
 .textarea:active,
 .textarea:focus {
-  border-color: #3794d2;
+  border-color: #3794d2
 }
 
 .table.is-hoverable tbody tr:not(.is-selected):hover {
-  background-color: #4d4d4d;
+  background-color: #4d4d4d
 }
 
 .table td,
 .table th {
-  vertical-align: middle;
+  vertical-align: middle
 }
 
 .help {
-  color: #7f8c8d;
-}
-
-.input::-moz-placeholder,
-.textarea::-moz-placeholder {
-  color: #7f8c8d;
-}
-
-.input::-webkit-input-placeholder,
-.textarea::-webkit-input-placeholder {
-  color: #7f8c8d;
-}
-
-.input:-moz-placeholder,
-.textarea:-moz-placeholder {
-  color: #7f8c8d;
-}
-
-.input:-ms-input-placeholder,
-.textarea:-ms-input-placeholder {
-  color: #7f8c8d;
+  color: #7f8c8d
 }
 
 .button.is-breeze {
   background-color: #3794d2;
   border-color: transparent;
-  color: #fff;
+  color: #fff
 }
 
 .button.is-breeze.is-hovered,
 .button.is-breeze:hover {
   background-color: #60a8dc;
   border-color: transparent;
-  color: #fff;
+  color: #fff
 }
 
 .button.is-breeze.is-active,
 .button.is-breeze:active {
   background-color: #60a8dc;
   border-color: transparent;
-  color: #fff;
+  color: #fff
 }
 
 .button.is-breeze.is-focus,
 .button.is-breeze:focus {
   border-color: transparent;
-  color: #fff;
+  color: #fff
 }
 
 .checkbox:hover,
 .radio:hover {
-  color: #7f8c8d;
+  color: #7f8c8d
 }
 
 .progress.is-breeze:indeterminate {
   background-image: -webkit-gradient(linear, left top, right top, color-stop(30%, #60a8dc), color-stop(30%, #eff0f1));
-  background-image: linear-gradient(to right, #60a8dc 30%, #eff0f1 30%);
+  background-image: linear-gradient(to right, #60a8dc 30%, #eff0f1 30%)
 }
 
 .message {
-  background-color: #31363b;
+  background-color: #31363b
 }
 
 .message-body {
   color: #eff0f1;
   border: 0;
   -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
+  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
 }

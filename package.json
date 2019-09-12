@@ -2,13 +2,12 @@
   "name": "lolisafe",
   "version": "3.0.0",
   "description": "Blazing fast file uploader and awesome bunker written in node! 🚀",
-  "author": "Pitu",
   "repository": {
     "type": "git",
-    "url": "https://github.com/WeebDev/lolisafe"
+    "url": "https://github.com/BobbyWibowo/lolisafe"
   },
   "bugs": {
-    "url": "https://github.com/WeebDev/lolisafe/issues"
+    "url": "https://github.com/BobbyWibowo/lolisafe/issues"
   },
   "engines": {
     "node": ">=8.0.0"
@@ -19,6 +18,7 @@
     "startdev": "env NODE_ENV=development node ./lolisafe.js",
     "pm2": "pm2 start --name safe ./lolisafe.js",
     "cf-purge": "node ./scripts/cf-purge.js",
+    "clean-up": "node ./scripts/clean-up.js",
     "delete-expired": "node ./scripts/delete-expired.js",
     "thumbs": "node ./scripts/thumbs.js",
     "pull": "git stash; git pull; yarn install --production; git stash pop; echo OK."
@@ -32,7 +32,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "helmet": "^3.21.0",
     "jszip": "^3.2.2",
-    "knex": "^0.19.3",
+    "knex": "^0.19.4",
     "multer": "^1.4.2",
     "node-fetch": "^2.6.0",
     "nunjucks": "^3.2.0",
@@ -48,6 +48,8 @@
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-node": "^10.0.0",
     "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.1"
+    "eslint-plugin-standard": "^4.0.1",
+    "stylelint": "^10.1.0",
+    "stylelint-config-standard": "^18.3.0"
   }
 }

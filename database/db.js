@@ -2,6 +2,9 @@ const logger = require('./../logger')
 const perms = require('./../controllers/permissionController')
 const randomstring = require('randomstring')
 
+// TODO: Auto-detect missing tables/columns here
+// That way we will no longer need the migration script
+
 const init = function (db) {
   // Create the tables we need to store galleries and files
   db.schema.hasTable('albums').then(exists => {

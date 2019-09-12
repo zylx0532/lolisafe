@@ -1,15 +1,15 @@
 body {
   -webkit-animation: none;
-  animation: none;
+  animation: none
 }
 
 #dashboard {
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 .section {
-  background: none;
+  background: none
 }
 
 .menu-list a {
@@ -18,49 +18,49 @@ body {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  user-select: none;
+  user-select: none
 }
 
 .menu-list a:hover {
   color: #60a8dc;
-  background-color: #4d4d4d;
+  background-color: #4d4d4d
 }
 
 .menu-list a.is-active {
   color: #eff0f1;
-  background-color: #3794d2;
+  background-color: #3794d2
 }
 
 .menu-list a[disabled] {
   color: #7a7a7a;
-  cursor: not-allowed;
+  cursor: not-allowed
 }
 
 .menu-list a[disabled]:hover {
-  background: none;
+  background: none
 }
 
 ul#albumsContainer {
   border-left: 0;
-  padding-left: 0;
+  padding-left: 0
 }
 
 ul#albumsContainer li {
   border-left: 1px solid #898b8d;
-  padding-left: .75em;
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s;
+  padding-left: 0.75em;
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 #page.fade-in {
-  -webkit-animation: fadeInOpacity .5s;
-  animation: fadeInOpacity .5s
+  -webkit-animation: fadeInOpacity 0.5s;
+  animation: fadeInOpacity 0.5s
 }
 
 .pagination a:not([disabled]) {
   color: #eff0f1;
   border-color: #4d4d4d;
-  background-color: #31363b;
+  background-color: #31363b
 }
 
 a.pagination-link:not(.is-current):hover,
@@ -68,96 +68,96 @@ a.pagination-next:not([disabled]):hover,
 a.pagination-previous:not([disabled]):hover {
   color: #eff0f1;
   border-color: #60a8dc;
-  background-color: #31363b;
+  background-color: #31363b
 }
 
 a.pagination-link.is-current {
   background-color: #3794d2;
-  border-color: #3794d2;
+  border-color: #3794d2
 }
 
 a.pagination-link.is-current:hover {
-  border-color: #60a8dc;
+  border-color: #60a8dc
 }
 
 li[data-action="page-ellipsis"] {
-  cursor: pointer;
+  cursor: pointer
 }
 
 .label {
-  color: #bdc3c7;
+  color: #bdc3c7
 }
 
 .menu-list li ul {
-  border-left-color: #898b8d;
+  border-left-color: #898b8d
 }
 
 .image-container .checkbox {
   position: absolute;
-  top: .75rem;
-  left: .75rem;
+  top: 0.75rem;
+  left: 0.75rem
 }
 
 .no-touch .image-container .checkbox {
-  opacity: .5;
+  opacity: 0.5
 }
 
 .no-touch .image-container .controls,
 .no-touch .image-container .details {
-  opacity: 0;
+  opacity: 0
 }
 
 .no-touch .image-container:hover .checkbox,
 .no-touch .image-container:hover .controls,
 .no-touch .image-container:hover .details {
-  opacity: 1;
+  opacity: 1
 }
 
 #page {
   /* fix overflow issue with flex */
-  min-width: 0;
+  min-width: 0
 }
 
 .table-container {
-  overflow-x: auto;
+  overflow-x: auto
 }
 
 .table {
   color: #bdc3c7;
   background-color: #31363b;
-  font-size: .75rem;
+  font-size: 0.75rem
 }
 
 .table tr:hover,
 .table.is-striped tbody tr:nth-child(2n) {
-  background: none;
+  background: none
 }
 
 .table.is-striped tbody tr:hover,
 .table.is-striped tbody tr:nth-child(2n):hover,
 .tag {
-  background-color: #4d4d4d;
-}
-
-.table thead td,
-.table thead th {
-  color: #eff0f1;
-  background-color: #ff3860;
+  background-color: #4d4d4d
 }
 
 .table td,
 .table th {
   border: 0;
-  white-space: nowrap;
+  white-space: nowrap
 }
 
 .table th {
   color: #eff0f1;
-  height: 2.25em;
+  height: 2.25em
+}
+
+.table thead td,
+.table thead th {
+  color: #eff0f1;
+  background-color: #ff3860
 }
 
 .table .cell-indent {
-  padding-left: 2.25em;
+  padding-left: 2.25em
 }
 
 .is-linethrough {
