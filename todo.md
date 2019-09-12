@@ -3,7 +3,7 @@
 Normal priority:
 
 * [ ] Improve performance of album public pages, and maybe paginate them.
-* [ ] Use - [native lazy-load tag](https://web.dev/native-lazy-loading) to nojs pages.
+* [ ] Use [native lazy-load tag](https://web.dev/native-lazy-loading) on nojs pages.
 * [ ] Use incremental version numbering instead of randomized strings.
 * [ ] Use versioning in APIs, somehow.
 * [ ] Better `df` handling (system disk stats).
