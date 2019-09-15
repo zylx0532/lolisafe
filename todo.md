@@ -3,7 +3,7 @@
 Normal priority:
 
 * [ ] Improve performance of album public pages, and maybe paginate them.
-* [ ] Use [native lazy-load tag](https://web.dev/native-lazy-loading) on nojs pages.
+* [x] Use [native lazy-load tag](https://web.dev/native-lazy-loading) on nojs album pages.
 * [ ] Use incremental version numbering instead of randomized strings.
 * [ ] Use versioning in APIs, somehow.
 * [ ] Better `df` handling (system disk stats).
@@ -14,8 +14,9 @@ Normal priority:
 * [x] Use Gatsby logo for link to [blog.fiery.me](https://blog.fiery.me/) on the homepage.
 * [ ] Auto-detect missing columns in `database/db.js`.
 * [x] Better error message when server is down.
-* [ ] Show expiry date in thumbs view.
+* [x] Show expiry date in thumbs view.
 * [ ] Add Select all checkbox somewhere in thumbs view.
+* [x] Display renders after API check.
 
 Low priority:
 

@@ -128,5 +128,3 @@ page.doRender = () => {
   element.addEventListener('click', page.doRenderSwal)
   document.body.appendChild(element)
 }
-
-page.doRender()

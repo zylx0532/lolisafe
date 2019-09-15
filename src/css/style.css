@@ -138,3 +138,14 @@ code,
   top: calc(50% - (1em / 2));
   position: absolute !important
 }
+
+/* https://github.com/philipwalton/flexbugs#flexbug-3 */
+.hero.is-fullheight > .hero-body {
+  min-height: 100vh;
+  height: 100%
+}
+
+/* https://github.com/philipwalton/flexbugs#flexbug-2 */
+.hero.is-fullheight > .hero-body > .container {
+  width: 100%
+}

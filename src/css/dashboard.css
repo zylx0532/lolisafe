@@ -89,8 +89,8 @@ li[data-action="page-ellipsis"] {
 
 .image-container .checkbox {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem
+  top: 12px;
+  left: 12px
 }
 
 .no-touch .image-container .checkbox {
@@ -161,4 +161,8 @@ li[data-action="page-ellipsis"] {
 
 #statistics tr *:nth-child(2) {
   min-width: 50%
+}
+
+.expirydate {
+  color: #bdc3c7
 }

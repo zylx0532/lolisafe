@@ -1,3 +1,4 @@
 **/*.min.js
 dist/js/*
 public/libs/*
+src/libs/*

@@ -509,7 +509,7 @@ page.getUploads = (params = {}) => {
       if (hasExpiryDateColumn)
         files[i].prettyExpiryDate = files[i].expirydate
           ? page.getPrettyDate(new Date(files[i].expirydate * 1000))
-          : '-'
+          : null
 
       // Update selected status
       files[i].selected = page.selected[page.currentView].includes(files[i].id)
@@ -578,6 +578,8 @@ page.getUploads = (params = {}) => {
           <div class="details">
             <p><span class="name" title="${upload.file}">${upload.name}</span></p>
             <p>${upload.appendix ? `<span>${upload.appendix}</span> – ` : ''}${upload.prettyBytes}</p>
+            ${hasExpiryDateColumn && upload.prettyExpiryDate ? `
+            <p class="expirydate">EXP: ${upload.prettyExpiryDate}</p>` : ''}
           </div>
         `
 
@@ -625,7 +627,7 @@ page.getUploads = (params = {}) => {
           <td>${upload.prettyBytes}</td>
           ${params.all ? `<td>${upload.ip || ''}</td>` : ''}
           <td>${upload.prettyDate}</td>
-          ${hasExpiryDateColumn ? `<td>${upload.prettyExpiryDate}</td>` : ''}
+          ${hasExpiryDateColumn ? `<td>${upload.prettyExpiryDate || '-'}</td>` : ''}
           <td class="controls has-text-right">
             <a class="button is-small is-primary" title="${upload.thumb ? 'View thumbnail' : 'File doesn\'t have thumbnail'}" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">

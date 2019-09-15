@@ -87,7 +87,7 @@
           <a class="image" href="{{ file.file }}" target="_blank" rel="noopener">
             {% if file.thumb -%}
               {% if nojs -%}
-              <img alt="{{ file.name }}" src="{{ file.thumb }}">
+              <img alt="{{ file.name }}" src="{{ file.thumb }}" width="200" height="200" loading="lazy">
               {%- else -%}
               <img alt="{{ file.name }}" data-src="{{ file.thumb }}">
               {%- endif %}

@@ -14,13 +14,17 @@ const terser = require('gulp-terser')
 /** TASKS: LINT */
 
 gulp.task('lint:js', () => {
-  return gulp.src('./src/js/**/*.js')
+  return gulp.src('./src/**/*.js', {
+    ignore: './src/libs/**/*'
+  })
     .pipe(eslint())
     .pipe(eslint.failAfterError())
 })
 
 gulp.task('lint:css', () => {
-  return gulp.src('./src/css/**/*.css')
+  return gulp.src('./src/**/*.css', {
+    ignore: './src/libs/**/*'
+  })
     .pipe(stylelint())
 })
 
@@ -29,14 +33,26 @@ gulp.task('lint', gulp.parallel('lint:js', 'lint:css'))
 /** TASKS: CLEAN */
 
 gulp.task('clean:css', () => {
-  return del(['dist/css'])
+  return del([
+    './dist/**/*.css',
+    './dist/**/*.css.map'
+  ])
 })
 
 gulp.task('clean:js', () => {
-  return del(['dist/js'])
+  return del([
+    './dist/**/*.js',
+    './dist/**/*.js.map'
+  ])
 })
 
-gulp.task('clean', gulp.parallel('clean:css', 'clean:js'))
+gulp.task('clean:rest', () => {
+  return del([
+    './dist/*'
+  ])
+})
+
+gulp.task('clean', gulp.parallel('clean:css', 'clean:js', 'clean:rest'))
 
 /** TASKS: BUILD */
 
@@ -49,21 +65,21 @@ gulp.task('build:css', () => {
   if (process.env.NODE_ENV !== 'development')
     plugins.push(cssnano())
 
-  return gulp.src('./src/css/**/*.css')
+  return gulp.src('./src/**/*.css')
     .pipe(sourcemaps.init())
     .pipe(postcss(plugins))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('./dist/css'))
+    .pipe(gulp.dest('./dist'))
 })
 
 gulp.task('build:js', () => {
-  return gulp.src('./src/js/**/*.js')
+  return gulp.src('./src/**/*.js')
     .pipe(sourcemaps.init())
     .pipe(buble())
     // Minify on production
     .pipe(gulpif(process.env.NODE_ENV !== 'development', terser()))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('./dist/js'))
+    .pipe(gulp.dest('./dist'))
 })
 
 gulp.task('build', gulp.parallel('build:css', 'build:js'))

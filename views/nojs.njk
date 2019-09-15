@@ -17,7 +17,7 @@
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
       <h3 class="subtitle" id="maxSize">
-        Maximum upload size per file is {{ renderOptions.maxFileSize }}
+        Maximum total size per upload attempt is {{ renderOptions.maxFileSize }} MB
       </h3>
 
       <div class="columns is-gapless">
@@ -28,14 +28,14 @@
             {{ renderOptions.uploadDisabled }}
           </a>
           {%- else -%}
-          <form id="form" class="field" action="?no-cache" method="post" enctype="multipart/form-data">
+          <form id="form" class="field" action="" method="post" enctype="multipart/form-data">
             <div class="field">
-              <p class="control is-expanded">
-                <input type="file" name="files[]" multiple="multiple">
+              <p class="control">
+                <input type="file" class="is-fullwidth" name="files[]" multiple="multiple">
               </p>
             </div>
             <div class="field">
-              <p class="control is-expanded">
+              <p class="control">
                 <input type="submit" class="button is-danger is-fullwidth" value="Upload">
               </p>
               <p class="help">

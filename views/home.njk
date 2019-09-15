@@ -111,7 +111,7 @@
               </p>
             </div>
             <div class="field">
-              <div class="control is-expanded">
+              <div class="control">
                 <a id="uploadUrls" class="button is-danger is-fullwidth is-unselectable">
                   <span class="icon">
                     <i class="icon-upload-cloud"></i>
@@ -127,7 +127,7 @@
             <form>
               <div class="field">
                 <label class="label">File size display</label>
-                <div class="control is-expanded">
+                <div class="control">
                   <div class="select is-fullwidth">
                     <select id="siBytes">
                       <option value="default">1000 B = 1 kB = 1 Kilobyte (default)</option>
@@ -139,7 +139,7 @@
               </div>
               <div id="fileLengthDiv" class="field is-hidden">
                 <label class="label">File identifier length</label>
-                <div class="control is-expanded">
+                <div class="control">
                   <input id="fileLength" class="input is-fullwidth" type="number" min="0">
                 </div>
                 <p class="help"></p>
@@ -147,7 +147,7 @@
               {%- if temporaryUploadAges %}
               <div id="uploadAgeDiv" class="field is-hidden">
                 <label class="label">Upload age</label>
-                <div class="control is-expanded">
+                <div class="control">
                   <div class="select is-fullwidth">
                     <select id="uploadAge"></select>
                   </div>
@@ -157,21 +157,21 @@
               {%- endif %}
               <div id="chunkSizeDiv" class="field">
                 <label class="label">Upload chunk size (MB)</label>
-                <div class="control is-expanded">
+                <div class="control">
                   <input id="chunkSize" class="input is-fullwidth" type="number" min="0">
                 </div>
                 <p class="help"></p>
               </div>
               <div id="parallelUploadsDiv" class="field">
                 <label class="label">Parallel uploads</label>
-                <div class="control is-expanded">
+                <div class="control">
                   <input id="parallelUploads" class="input is-fullwidth" type="number" name="parallelUploads" min="0">
                 </div>
                 <p class="help"></p>
               </div>
               <div class="field">
                 <label class="label">Uploads history order</label>
-                <div class="control is-expanded">
+                <div class="control">
                   <div class="select is-fullwidth">
                     <select id="uploadsHistoryOrder">
                       <option value="default">Older files on top (default)</option>
@@ -182,7 +182,7 @@
                 <p class="help">Newer files on top only works in <a href="https://caniuse.com/#feat=mdn-css_properties_flex-direction" target="_blank" rel="noopener">these browsers</a>.</p>
               </div>
               <div class="field">
-                <p class="control is-expanded">
+                <p class="control">
                   <button id="saveConfig" type="submit" class="button is-danger is-fullwidth">
                     <span class="icon">
                       <i class="icon-floppy"></i>

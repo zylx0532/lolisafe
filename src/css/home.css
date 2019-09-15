@@ -234,3 +234,7 @@
 .render.button:hover {
   opacity: 1
 }
+
+input[type="file"].is-fullwidth {
+  width: 100%
+}

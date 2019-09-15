@@ -45,25 +45,92 @@ const page = {
   imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.svg']
 }
 
-page.checkIfPublic = onFailure => {
-  return axios.get('api/check')
-    .then(response => {
-      page.private = response.data.private
-      page.enableUserAccounts = response.data.enableUserAccounts
-      page.maxSize = parseInt(response.data.maxSize)
-      page.maxSizeBytes = page.maxSize * 1e6
-      page.chunkSize = parseInt(response.data.chunkSize)
-      page.temporaryUploadAges = response.data.temporaryUploadAges
-      page.fileIdentifierLength = response.data.fileIdentifierLength
-      return page.preparePage(onFailure)
-    })
-    .catch(onFailure)
+// Error handler for all API requests on init
+page.onInitError = error => {
+  console.error(error)
+
+  // Hide these elements
+  document.querySelector('#albumDiv').classList.add('is-hidden')
+  document.querySelector('#tabs').classList.add('is-hidden')
+  document.querySelectorAll('.tab-content').forEach(element => {
+    return element.classList.add('is-hidden')
+  })
+
+  // Update upload button
+  const uploadButton = document.querySelector('#loginToUpload')
+  uploadButton.innerText = 'An error occurred. Try to reload?'
+  uploadButton.classList.remove('is-loading')
+  uploadButton.classList.remove('is-hidden')
+
+  uploadButton.addEventListener('click', () => {
+    location.reload()
+  })
+
+  // Defer to the other handler if not API errors
+  if (!error.response)
+    return page.onUnexpectedError(error, true)
+
+  // Better error messages for Cloudflare errors
+  const cloudflareErrors = {
+    520: 'Unknown Error',
+    521: 'Web Server Is Down',
+    522: 'Connection Timed Out',
+    523: 'Origin Is Unreachable',
+    524: 'A Timeout Occurred',
+    525: 'SSL Handshake Failed',
+    526: 'Invalid SSL Certificate',
+    527: 'Railgun Error',
+    530: 'Origin DNS Error'
+  }
+  const statusText = cloudflareErrors[error.response.status] || error.response.statusText
+  const description = error.response.data && error.response.data.description
+    ? error.response.data.description
+    : 'Please check the console for more information.'
+  return swal(`${error.response.status} ${statusText}`, description, 'error')
 }
 
-page.preparePage = onFailure => {
+// Error handler for all other unexpected errors
+page.onUnexpectedError = (error, skipLog) => {
+  if (!skipLog) console.error(error)
+
+  if (error.response)
+    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+
+  const content = document.createElement('div')
+  content.innerHTML = `<code>${error.toString()}</code>`
+  return swal({
+    title: 'An error occurred!',
+    icon: 'error',
+    content
+  })
+}
+
+page.checkIfPublic = onFailure => {
+  let renderShown = false
+  return axios.get('api/check', {
+    onDownloadProgress: () => {
+      // Only show render after this request has been initiated
+      if (!renderShown && typeof page.doRender === 'function') {
+        page.doRender()
+        renderShown = true
+      }
+    }
+  }).then(response => {
+    page.private = response.data.private
+    page.enableUserAccounts = response.data.enableUserAccounts
+    page.maxSize = parseInt(response.data.maxSize)
+    page.maxSizeBytes = page.maxSize * 1e6
+    page.chunkSize = parseInt(response.data.chunkSize)
+    page.temporaryUploadAges = response.data.temporaryUploadAges
+    page.fileIdentifierLength = response.data.fileIdentifierLength
+    return page.preparePage(onFailure)
+  }).catch(page.onInitError)
+}
+
+page.preparePage = () => {
   if (page.private)
     if (page.token) {
-      return page.verifyToken(page.token, onFailure, true)
+      return page.verifyToken(page.token, true)
     } else {
       const button = document.querySelector('#loginToUpload')
       button.href = 'auth'
@@ -74,10 +141,10 @@ page.preparePage = onFailure => {
         button.innerText = 'Running in private mode. Log in to upload.'
     }
   else
-    return page.prepareUpload(onFailure)
+    return page.prepareUpload()
 }
 
-page.verifyToken = (token, onFailure, reloadOnError) => {
+page.verifyToken = (token, reloadOnError) => {
   return axios.post('api/tokens/verify', { token }).then(response => {
     if (response.data.success === false)
       return swal({
@@ -92,11 +159,11 @@ page.verifyToken = (token, onFailure, reloadOnError) => {
 
     localStorage.token = token
     page.token = token
-    return page.prepareUpload(onFailure)
-  }).catch(onFailure)
+    return page.prepareUpload()
+  }).catch(page.onInitError)
 }
 
-page.prepareUpload = onFailure => {
+page.prepareUpload = () => {
   // I think this fits best here because we need to check for a valid token before we can get the albums
   if (page.token) {
     // Display the album selection
@@ -111,7 +178,7 @@ page.prepareUpload = onFailure => {
     })
 
     // Fetch albums
-    page.fetchAlbums(onFailure)
+    page.fetchAlbums()
   }
 
   // Prepare & generate config tab
@@ -175,7 +242,7 @@ page.setActiveTab = index => {
     }
 }
 
-page.fetchAlbums = onFailure => {
+page.fetchAlbums = () => {
   return axios.get('api/albums', { headers: { token: page.token } }).then(response => {
     if (response.data.success === false)
       return swal('An error occurred!', response.data.description, 'error')
@@ -189,7 +256,7 @@ page.fetchAlbums = onFailure => {
         option.innerHTML = album.name
         page.albumSelect.appendChild(option)
       }
-  }).catch(onFailure)
+  }).catch(page.onInitError)
 }
 
 page.prepareDropzone = () => {
@@ -492,10 +559,7 @@ page.createAlbum = () => {
       option.selected = true
 
       swal('Woohoo!', 'Album was created successfully.', 'success')
-    }).catch(error => {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }).catch(page.onUnexpectedError)
   })
 }
 
@@ -665,60 +729,7 @@ window.addEventListener('paste', event => {
 })
 
 window.onload = () => {
-  // Global error callback
-  function onFailure (error) {
-    if (error === undefined) return
-    console.error(error)
-
-    // Hide these elements
-    document.querySelector('#albumDiv').classList.add('is-hidden')
-    document.querySelector('#tabs').classList.add('is-hidden')
-    document.querySelectorAll('.tab-content').forEach(element => {
-      return element.classList.add('is-hidden')
-    })
-
-    // Update upload button
-    const uploadButton = document.querySelector('#loginToUpload')
-    uploadButton.innerText = 'An error occurred. Try to reload?'
-    uploadButton.classList.remove('is-loading')
-    uploadButton.classList.remove('is-hidden')
-
-    uploadButton.addEventListener('click', () => {
-      location.reload()
-    })
-
-    // Show alert modal
-    if (error.response) {
-      console.error(error.response)
-      // Better error messages for Cloudflare errors
-      const cloudflareErrors = {
-        520: 'Unknown Error',
-        521: 'Web Server Is Down',
-        522: 'Connection Timed Out',
-        523: 'Origin Is Unreachable',
-        524: 'A Timeout Occurred',
-        525: 'SSL Handshake Failed',
-        526: 'Invalid SSL Certificate',
-        527: 'Railgun Error',
-        530: 'Origin DNS Error'
-      }
-      const statusText = cloudflareErrors[error.response.status] || error.response.statusText
-      const description = error.response.data && error.response.data.description
-        ? error.response.data.description
-        : 'Please check the console for more information.'
-      return swal(`${error.response.status} ${statusText}`, description, 'error')
-    } else {
-      const content = document.createElement('div')
-      content.innerHTML = `<code>${error.toString()}</code>`
-      return swal({
-        title: 'An error occurred!',
-        icon: 'error',
-        content
-      })
-    }
-  }
-
-  page.checkIfPublic(onFailure)
+  page.checkIfPublic()
 
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
@@ -726,7 +737,7 @@ window.onload = () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  page.clipboardJS.on('error', onFailure)
+  page.clipboardJS.on('error', page.onUnexpectedError)
 
   page.lazyLoad = new LazyLoad({
     elements_selector: '.field.uploads img'

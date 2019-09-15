@@ -5,7 +5,7 @@ const config = require('./../config')
 
 const renderOptions = {
   uploadDisabled: false,
-  maxFileSize: config.cloudflare.noJsMaxSize || config.uploads.maxSize
+  maxFileSize: parseInt(config.cloudflare.noJsMaxSize || config.uploads.maxSize)
 }
 
 if (config.private)
