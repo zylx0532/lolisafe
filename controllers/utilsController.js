@@ -1,15 +1,15 @@
 const { promisify } = require('util')
 const { spawn } = require('child_process')
-const config = require('./../config')
-const db = require('knex')(config.database)
 const fetch = require('node-fetch')
 const ffmpeg = require('fluent-ffmpeg')
-const logger = require('./../logger')
 const path = require('path')
-const paths = require('./pathsController')
-const perms = require('./permissionController')
 const sharp = require('sharp')
 const si = require('systeminformation')
+const paths = require('./pathsController')
+const perms = require('./permissionController')
+const config = require('./../config')
+const logger = require('./../logger')
+const db = require('knex')(config.database)
 
 const self = {
   clamd: {
@@ -146,6 +146,18 @@ self.escape = (string) => {
   return lastIndex !== index
     ? html + str.substring(lastIndex, index)
     : html
+}
+
+self.stripIndents = string => {
+  if (!string) return
+  const result = string.replace(/^[^\S\n]+/gm, '')
+  const match = result.match(/^[^\S\n]*(?=\S)/gm)
+  const indent = match && Math.min(...match.map(el => el.length))
+  if (indent) {
+    const regexp = new RegExp(`^.{${indent}}`, 'gm')
+    return result.replace(regexp, '')
+  }
+  return result
 }
 
 self.authorize = async (req, res) => {

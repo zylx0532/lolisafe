@@ -1,7 +1,7 @@
-const config = require('./../config')
 const routes = require('express').Router()
 const uploadController = require('./../controllers/uploadController')
 const utils = require('./../controllers/utilsController')
+const config = require('./../config')
 
 const renderOptions = {
   uploadDisabled: false,

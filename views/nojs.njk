@@ -23,18 +23,24 @@
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
         <div class="column">
-          <p class="subtitle" style="font-size: 1rem">
-            Files uploaded through this No-JS uploader will not be associated to your account, if you have any.
-          </p>
           {% if renderOptions.uploadDisabled -%}
-          <a class="button is-danger" style="display: flex" href="auth">{{ renderOptions.uploadDisabled }}</a>
+          <a class="button is-danger is-flex" href="auth">
+            {{ renderOptions.uploadDisabled }}
+          </a>
           {%- else -%}
-          <form id="form" class="field" action="" method="post" enctype="multipart/form-data">
+          <form id="form" class="field" action="?no-cache" method="post" enctype="multipart/form-data">
             <div class="field">
-              <input type="file" name="files[]" multiple="multiple" style="width: 100%">
+              <p class="control is-expanded">
+                <input type="file" name="files[]" multiple="multiple">
+              </p>
             </div>
             <div class="field">
-              <input type="submit" class="button is-danger" value="Upload" style="width: 100%">
+              <p class="control is-expanded">
+                <input type="submit" class="button is-danger is-fullwidth" value="Upload">
+              </p>
+              <p class="help">
+                Files uploaded through this form will not be associated with your account, if you have any.
+              </p>
             </div>
           </form>
           {%- endif %}

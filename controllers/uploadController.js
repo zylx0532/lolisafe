@@ -1,15 +1,15 @@
-const config = require('./../config')
 const crypto = require('crypto')
-const db = require('knex')(config.database)
 const fetch = require('node-fetch')
 const fs = require('fs')
-const logger = require('./../logger')
 const multer = require('multer')
 const path = require('path')
+const randomstring = require('randomstring')
 const paths = require('./pathsController')
 const perms = require('./permissionController')
-const randomstring = require('randomstring')
 const utils = require('./utilsController')
+const config = require('./../config')
+const logger = require('./../logger')
+const db = require('knex')(config.database)
 
 const self = {}
 
@@ -563,6 +563,11 @@ self.storeFilesToDb = async (req, res, user, infoMap) => {
       // Continue even when encountering errors
       await utils.unlinkFile(info.data.filename).catch(logger.error)
       // logger.log(`Unlinked ${info.data.filename} since a duplicate named ${dbFile.name} exists`)
+
+      // If on /nojs route, append original file name reported by client
+      if (req.path === '/nojs')
+        dbFile.original = info.data.originalname
+
       exists.push(dbFile)
       continue
     }
@@ -635,11 +640,11 @@ self.sendUploadResponse = async (req, res, result) => {
         url: `${config.domain}/${file.name}`
       }
 
-      // Add expiry date if a temporary upload
+      // If a temporary upload, add expiry date
       if (file.expirydate)
         map.expirydate = file.expirydate
 
-      // Add original name if on /nojs route
+      // If on /nojs route, add original name
       if (req.path === '/nojs')
         map.original = file.original
 

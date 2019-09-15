@@ -1,7 +1,6 @@
-const { stripIndents } = require('./_utils')
 const path = require('path')
-const paths = require('./../controllers/pathsController')
-const utils = require('./../controllers/utilsController')
+const paths = require('../controllers/pathsController')
+const utils = require('../controllers/utilsController')
 
 const self = {
   mode: null,
@@ -40,7 +39,7 @@ self.getFiles = async directory => {
     ![0, 1].includes(self.verbose) ||
     args.includes('--help') ||
     args.includes('-h'))
-    return console.log(stripIndents(`
+    return console.log(utils.stripIndents(`
       Generate thumbnails.
 
       Usage  :

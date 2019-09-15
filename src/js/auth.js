@@ -13,7 +13,7 @@ const page = {
   pass: null
 }
 
-page.do = function (dest) {
+page.do = (dest, trigger) => {
   const user = page.user.value.trim()
   if (!user)
     return swal('An error occurred!', 'You need to specify a username.', 'error')
@@ -22,32 +22,36 @@ page.do = function (dest) {
   if (!pass)
     return swal('An error occurred!', 'You need to specify a password.', 'error')
 
+  trigger.classList.add('is-loading')
   axios.post(`api/${dest}`, {
     username: user,
     password: pass
-  }).then(function (response) {
-    if (response.data.success === false)
+  }).then(response => {
+    if (response.data.success === false) {
+      trigger.classList.remove('is-loading')
       return swal(`Unable to ${dest}!`, response.data.description, 'error')
+    }
 
     localStorage.token = response.data.token
     window.location = 'dashboard'
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
+    trigger.classList.remove('is-loading')
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.verify = function () {
+page.verify = () => {
   if (!page.token) return
 
   axios.post('api/tokens/verify', {
     token: page.token
-  }).then(function (response) {
+  }).then(response => {
     if (response.data.success === false)
       return swal('An error occurred!', response.data.description, 'error')
 
     window.location = 'dashboard'
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
     const description = error.response.data && error.response.data.description
       ? error.response.data.description
@@ -56,22 +60,22 @@ page.verify = function () {
   })
 }
 
-window.onload = function () {
+window.onload = () => {
   page.verify()
 
   page.user = document.querySelector('#user')
   page.pass = document.querySelector('#pass')
 
   // Prevent default form's submit action
-  document.querySelector('#authForm').addEventListener('submit', function (event) {
+  document.querySelector('#authForm').addEventListener('submit', event => {
     event.preventDefault()
   })
 
-  document.querySelector('#loginBtn').addEventListener('click', function () {
-    page.do('login')
+  document.querySelector('#loginBtn').addEventListener('click', event => {
+    page.do('login', event.currentTarget)
   })
 
-  document.querySelector('#registerBtn').addEventListener('click', function () {
-    page.do('register')
+  document.querySelector('#registerBtn').addEventListener('click', event => {
+    page.do('register', event.currentTarget)
   })
 }

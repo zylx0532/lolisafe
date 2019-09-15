@@ -1,6 +1,6 @@
-const logger = require('./../logger')
-const perms = require('./../controllers/permissionController')
 const randomstring = require('randomstring')
+const perms = require('./../controllers/permissionController')
+const logger = require('./../logger')
 
 // TODO: Auto-detect missing columns here
 // That way we will no longer need the migration script

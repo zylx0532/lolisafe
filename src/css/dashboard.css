@@ -1,10 +1,8 @@
 body {
-  -webkit-animation: none;
   animation: none
 }
 
 #dashboard {
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
@@ -13,12 +11,7 @@ body {
 }
 
 .menu-list a {
-  color: #3794d2;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none
+  color: #3794d2
 }
 
 .menu-list a:hover {
@@ -48,13 +41,15 @@ ul#albumsContainer {
 ul#albumsContainer li {
   border-left: 1px solid #898b8d;
   padding-left: 0.75em;
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
 #page.fade-in {
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
+}
+
+.pagination {
+  margin-bottom: 1.25rem
 }
 
 .pagination a:not([disabled]) {
@@ -118,10 +113,6 @@ li[data-action="page-ellipsis"] {
   min-width: 0
 }
 
-.table-container {
-  overflow-x: auto
-}
-
 .table {
   color: #bdc3c7;
   background-color: #31363b;
@@ -162,4 +153,12 @@ li[data-action="page-ellipsis"] {
 
 .is-linethrough {
   text-decoration: line-through
+}
+
+#menu.is-loading li a {
+  cursor: progress
+}
+
+#statistics tr *:nth-child(2) {
+  min-width: 50%
 }

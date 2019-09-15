@@ -1,5 +1,4 @@
-const { stripIndents } = require('./_utils')
-const utils = require('./../controllers/utilsController')
+const utils = require('../controllers/utilsController')
 
 const self = {
   mode: null
@@ -12,7 +11,7 @@ const self = {
   self.mode = parseInt(args[0]) || 0
 
   if (args.includes('--help') || args.includes('-h'))
-    return console.log(stripIndents(`
+    return console.log(utils.stripIndents(`
       Bulk delete expired files.
 
       Usage:

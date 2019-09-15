@@ -1,17 +1,11 @@
 .image-container {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
   width: 200px;
   height: 200px;
   margin: 9px;
   background-color: #31363b;
   overflow: hidden;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
   align-items: center;
-  position: relative;
-  -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
   box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
 }
 
@@ -21,16 +15,10 @@
 }
 
 .image-container .image {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
   height: 100%;
   width: 100%;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
   align-items: center;
-  -webkit-box-pack: center;
-  -ms-flex-pack: center;
   justify-content: center
 }
 
@@ -42,8 +30,6 @@
 }
 
 .image-container .controls {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
   position: absolute;
   top: 0.75rem;

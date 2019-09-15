@@ -31,7 +31,7 @@ const page = {
   urlMaxSize: null,
   urlMaxSizeBytes: null,
 
-  tabs: null,
+  tabs: [],
   activeTab: null,
   albumSelect: null,
   previewTemplate: null,
@@ -43,56 +43,46 @@ const page = {
   imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.svg']
 }
 
-page.checkIfPublic = function () {
-  axios.get('api/check').then(function (response) {
-    page.private = response.data.private
-    page.enableUserAccounts = response.data.enableUserAccounts
-    page.maxSize = parseInt(response.data.maxSize)
-    page.maxSizeBytes = page.maxSize * 1e6
-    page.chunkSize = parseInt(response.data.chunkSize)
-    page.temporaryUploadAges = response.data.temporaryUploadAges
-    page.fileIdentifierLength = response.data.fileIdentifierLength
-    page.preparePage()
-  }).catch(function (error) {
-    console.error(error)
-    document.querySelector('#albumDiv').classList.add('is-hidden')
-    document.querySelector('#tabs').classList.add('is-hidden')
-    const button = document.querySelector('#loginToUpload')
-    button.innerText = 'Error occurred. Reload the page?'
-    button.classList.remove('is-loading')
-    button.classList.remove('is-hidden')
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
+page.checkIfPublic = onFailure => {
+  return axios.get('api/check')
+    .then(response => {
+      page.private = response.data.private
+      page.enableUserAccounts = response.data.enableUserAccounts
+      page.maxSize = parseInt(response.data.maxSize)
+      page.maxSizeBytes = page.maxSize * 1e6
+      page.chunkSize = parseInt(response.data.chunkSize)
+      page.temporaryUploadAges = response.data.temporaryUploadAges
+      page.fileIdentifierLength = response.data.fileIdentifierLength
+      return page.preparePage(onFailure)
+    })
+    .catch(onFailure)
 }
 
-page.preparePage = function () {
+page.preparePage = onFailure => {
   if (page.private)
     if (page.token) {
-      return page.verifyToken(page.token, true)
+      return page.verifyToken(page.token, onFailure, true)
     } else {
       const button = document.querySelector('#loginToUpload')
       button.href = 'auth'
       button.classList.remove('is-loading')
-
       if (page.enableUserAccounts)
         button.innerText = 'Anonymous upload is disabled. Log in to upload.'
       else
         button.innerText = 'Running in private mode. Log in to upload.'
     }
   else
-    return page.prepareUpload()
+    return page.prepareUpload(onFailure)
 }
 
-page.verifyToken = function (token, reloadOnError) {
-  if (reloadOnError === undefined) reloadOnError = false
-
-  axios.post('api/tokens/verify', { token }).then(function (response) {
+page.verifyToken = (token, onFailure, reloadOnError) => {
+  return axios.post('api/tokens/verify', { token }).then(response => {
     if (response.data.success === false)
       return swal({
         title: 'An error occurred!',
         text: response.data.description,
         icon: 'error'
-      }).then(function () {
+      }).then(() => {
         if (!reloadOnError) return
         localStorage.removeItem('token')
         location.reload()
@@ -100,120 +90,113 @@ page.verifyToken = function (token, reloadOnError) {
 
     localStorage.token = token
     page.token = token
-    return page.prepareUpload()
-  }).catch(function (error) {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
+    return page.prepareUpload(onFailure)
+  }).catch(onFailure)
 }
 
-page.prepareUpload = function () {
+page.prepareUpload = onFailure => {
   // I think this fits best here because we need to check for a valid token before we can get the albums
   if (page.token) {
+    // Display the album selection
+    document.querySelector('#albumDiv').classList.remove('is-hidden')
+
     page.albumSelect = document.querySelector('#albumSelect')
-    page.albumSelect.addEventListener('change', function () {
+    page.albumSelect.addEventListener('change', () => {
       page.album = parseInt(page.albumSelect.value)
       // Re-generate ShareX config file
       if (typeof page.prepareShareX === 'function')
         page.prepareShareX()
     })
 
-    page.prepareAlbums()
-
-    // Display the album selection
-    document.querySelector('#albumDiv').classList.remove('is-hidden')
+    // Fetch albums
+    page.fetchAlbums(onFailure)
   }
 
+  // Prepare & generate config tab
   page.prepareUploadConfig()
 
-  document.querySelector('#maxSize').innerHTML = `Maximum upload size per file is ${page.getPrettyBytes(page.maxSizeBytes)}`
+  // Update elements wherever applicable
+  document.querySelector('#maxSize > span').innerHTML = page.getPrettyBytes(page.maxSizeBytes)
   document.querySelector('#loginToUpload').classList.add('is-hidden')
 
   if (!page.token && page.enableUserAccounts)
     document.querySelector('#loginLinkText').innerHTML = 'Create an account and keep track of your uploads'
 
-  const previewNode = document.querySelector('#tpl')
-  page.previewTemplate = previewNode.innerHTML
-  previewNode.parentNode.removeChild(previewNode)
-
+  // Prepare & generate files upload tab
   page.prepareDropzone()
 
   // Generate ShareX config file
   if (typeof page.prepareShareX === 'function')
     page.prepareShareX()
 
+  // Prepare urls upload tab
   const urlMaxSize = document.querySelector('#urlMaxSize')
   if (urlMaxSize) {
     page.urlMaxSize = parseInt(urlMaxSize.innerHTML)
     page.urlMaxSizeBytes = page.urlMaxSize * 1e6
     urlMaxSize.innerHTML = page.getPrettyBytes(page.urlMaxSizeBytes)
-    document.querySelector('#uploadUrls').addEventListener('click', function () {
-      page.uploadUrls(this)
+    document.querySelector('#uploadUrls').addEventListener('click', event => {
+      page.uploadUrls(event.currentTarget)
     })
   }
 
-  const tabs = document.querySelector('#tabs')
-  page.tabs = tabs.querySelectorAll('li')
-  for (let i = 0; i < page.tabs.length; i++)
-    page.tabs[i].addEventListener('click', function () {
-      page.setActiveTab(this.dataset.id)
+  // Get all tabs
+  const tabsContainer = document.querySelector('#tabs')
+  const tabs = tabsContainer.querySelectorAll('li')
+  for (let i = 0; i < tabs.length; i++) {
+    const id = tabs[i].dataset.id
+    const tabContent = document.querySelector(`#${id}`)
+    if (!tabContent) continue
+
+    tabs[i].addEventListener('click', () => {
+      page.setActiveTab(i)
     })
-  page.setActiveTab('tab-files')
-  tabs.classList.remove('is-hidden')
+    page.tabs.push({ tab: tabs[i], content: tabContent })
+  }
+
+  // Set first valid tab as the default active tab
+  if (page.tabs.length) {
+    page.setActiveTab(0)
+    tabsContainer.classList.remove('is-hidden')
+  }
 }
 
-page.prepareAlbums = function () {
-  const option = document.createElement('option')
-  option.value = ''
-  option.innerHTML = 'Upload to album'
-  option.selected = true
-  page.albumSelect.appendChild(option)
-
-  axios.get('api/albums', {
-    headers: {
-      token: page.token
+page.setActiveTab = index => {
+  for (let i = 0; i < page.tabs.length; i++)
+    if (i === index) {
+      page.tabs[i].tab.classList.add('is-active')
+      page.tabs[i].content.classList.remove('is-hidden')
+      page.activeTab = index
+    } else {
+      page.tabs[i].tab.classList.remove('is-active')
+      page.tabs[i].content.classList.add('is-hidden')
     }
-  }).then(function (response) {
+}
+
+page.fetchAlbums = onFailure => {
+  return axios.get('api/albums', { headers: { token: page.token } }).then(response => {
     if (response.data.success === false)
       return swal('An error occurred!', response.data.description, 'error')
 
-    // If the user doesn't have any albums we don't really need to display
-    // an album selection
-    if (!response.data.albums.length) return
-
-    // Loop through the albums and create an option for each album
-    for (let i = 0; i < response.data.albums.length; i++) {
-      const album = response.data.albums[i]
-      const option = document.createElement('option')
-      option.value = album.id
-      option.innerHTML = album.name
-      page.albumSelect.appendChild(option)
-    }
-  }).catch(function (error) {
-    console.error(error)
-    const description = error.response.data && error.response.data.description
-      ? error.response.data.description
-      : 'There was an error with the request, please check the console for more information.'
-    return swal(`${error.response.status} ${error.response.statusText}`, description, 'error')
-  })
+    // Create an option for each album
+    if (Array.isArray(response.data.albums) && response.data.albums.length)
+      for (let i = 0; i < response.data.albums.length; i++) {
+        const album = response.data.albums[i]
+        const option = document.createElement('option')
+        option.value = album.id
+        option.innerHTML = album.name
+        page.albumSelect.appendChild(option)
+      }
+  }).catch(onFailure)
 }
 
-page.setActiveTab = function (tabId) {
-  if (tabId === page.activeTab) return
-  for (let i = 0; i < page.tabs.length; i++) {
-    const id = page.tabs[i].dataset.id
-    if (id === tabId) {
-      page.tabs[i].classList.add('is-active')
-      document.querySelector(`#${id}`).classList.remove('is-hidden')
-    } else {
-      page.tabs[i].classList.remove('is-active')
-      document.querySelector(`#${id}`).classList.add('is-hidden')
-    }
-  }
-  page.activeTab = tabId
-}
+page.prepareDropzone = () => {
+  // Parse template element
+  const previewNode = document.querySelector('#tpl')
+  page.previewTemplate = previewNode.innerHTML
+  previewNode.parentNode.removeChild(previewNode)
 
-page.prepareDropzone = function () {
+  // Generate files upload tab
   const tabDiv = document.querySelector('#tab-files')
   const div = document.createElement('div')
   div.className = 'control is-expanded'
@@ -258,17 +241,15 @@ page.prepareDropzone = function () {
           filelength: page.fileLength,
           age: page.uploadAge
         }]
-      }, {
-        headers: { token: page.token }
-      }).catch(function (error) {
-        if (error.response.data) return error.response
-        return {
+      }, { headers: { token: page.token } }).catch(error => {
+        // Format error for display purpose
+        return error.response.data ? error.response : {
           data: {
             success: false,
             description: error.toString()
           }
         }
-      }).then(function (response) {
+      }).then(response => {
         file.previewElement.querySelector('.progress').classList.add('is-hidden')
 
         if (response.data.success === false)
@@ -282,15 +263,16 @@ page.prepareDropzone = function () {
     }
   })
 
-  page.dropzone.on('addedfile', function (file) {
-    // Set active tab to file uploads
-    page.setActiveTab('tab-files')
+  page.dropzone.on('addedfile', file => {
+    // Set active tab to file uploads, if necessary
+    if (page.activeTab !== 0)
+      page.setActiveTab(0)
     // Add file entry
     tabDiv.querySelector('.uploads').classList.remove('is-hidden')
     file.previewElement.querySelector('.name').innerHTML = file.name
   })
 
-  page.dropzone.on('sending', function (file, xhr) {
+  page.dropzone.on('sending', (file, xhr) => {
     if (file.upload.chunked) return
     // Add headers if not uploading chunks
     if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
@@ -299,7 +281,7 @@ page.prepareDropzone = function () {
   })
 
   // Update the total progress bar
-  page.dropzone.on('uploadprogress', function (file, progress) {
+  page.dropzone.on('uploadprogress', (file, progress) => {
     // For some reason, chunked uploads fire 100% progress event
     // for each chunk's successful uploads
     if (file.upload.chunked && progress === 100) return
@@ -307,7 +289,7 @@ page.prepareDropzone = function () {
     file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
   })
 
-  page.dropzone.on('success', function (file, response) {
+  page.dropzone.on('success', (file, response) => {
     if (!response) return
     file.previewElement.querySelector('.progress').classList.add('is-hidden')
 
@@ -318,7 +300,7 @@ page.prepareDropzone = function () {
       page.updateTemplate(file, response.files[0])
   })
 
-  page.dropzone.on('error', function (file, error) {
+  page.dropzone.on('error', (file, error) => {
     // Clean up file size errors
     if ((typeof error === 'string' && /^File is too big/.test(error)) ||
       (typeof error === 'object' && /File too large/.test(error.description)))
@@ -331,11 +313,11 @@ page.prepareDropzone = function () {
   })
 }
 
-page.uploadUrls = function (button) {
+page.uploadUrls = button => {
   const tabDiv = document.querySelector('#tab-urls')
-  if (!tabDiv) return
+  if (!tabDiv || button.classList.contains('is-loading'))
+    return
 
-  if (button.classList.contains('is-loading')) return
   button.classList.add('is-loading')
 
   function done (error) {
@@ -354,17 +336,16 @@ page.uploadUrls = function (button) {
     const previewsContainer = tabDiv.querySelector('.uploads')
     const urls = document.querySelector('#urls').value
       .split(/\r?\n/)
-      .filter(function (url) {
+      .filter(url => {
         return url.trim().length
       })
     document.querySelector('#urls').value = urls.join('\n')
 
     if (!urls.length)
-      // eslint-disable-next-line prefer-promise-reject-errors
       return done('You have not entered any URLs.')
 
     tabDiv.querySelector('.uploads').classList.remove('is-hidden')
-    const files = urls.map(function (url) {
+    const files = urls.map(url => {
       const previewTemplate = document.createElement('template')
       previewTemplate.innerHTML = page.previewTemplate.trim()
       const previewElement = previewTemplate.content.firstChild
@@ -391,9 +372,9 @@ page.uploadUrls = function (button) {
       // Animate progress bar
       files[i].previewElement.querySelector('.progress').removeAttribute('value')
 
-      axios.post('api/upload', { urls: [files[i].url] }, { headers }).then(function (response) {
+      return axios.post('api/upload', { urls: [files[i].url] }, { headers }).then(response => {
         return posted(response.data)
-      }).catch(function (error) {
+      }).catch(error => {
         return posted({
           success: false,
           description: error.response ? error.response.data.description : error.toString()
@@ -405,14 +386,14 @@ page.uploadUrls = function (button) {
   return run()
 }
 
-page.updateTemplateIcon = function (templateElement, iconClass) {
+page.updateTemplateIcon = (templateElement, iconClass) => {
   const iconElement = templateElement.querySelector('.icon')
   if (!iconElement) return
   iconElement.classList.add(iconClass)
   iconElement.classList.remove('is-hidden')
 }
 
-page.updateTemplate = function (file, response) {
+page.updateTemplate = (file, response) => {
   if (!response.url) return
 
   const a = file.previewElement.querySelector('.link > a')
@@ -426,11 +407,11 @@ page.updateTemplate = function (file, response) {
     img.setAttribute('alt', response.name || '')
     img.dataset.src = response.url
     img.classList.remove('is-hidden')
-    img.onerror = function () {
+    img.onerror = event => {
       // Hide image elements that fail to load
-      // Consequently include WEBP in browsers that do not have WEBP support (Firefox/IE)
-      this.classList.add('is-hidden')
-      file.previewElement.querySelector('.icon').classList.remove('is-hidden')
+      // Consequently include WEBP in browsers that do not have WEBP support (e.i. IE)
+      event.currentTarget.classList.add('is-hidden')
+      page.updateTemplateIcon(file.previewElement, 'icon-picture')
     }
     page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
   } else {
@@ -444,7 +425,7 @@ page.updateTemplate = function (file, response) {
   }
 }
 
-page.createAlbum = function () {
+page.createAlbum = () => {
   const div = document.createElement('div')
   div.innerHTML = `
     <div class="field">
@@ -485,7 +466,7 @@ page.createAlbum = function () {
         closeModal: false
       }
     }
-  }).then(function (value) {
+  }).then(value => {
     if (!value) return
 
     const name = document.querySelector('#swalName').value.trim()
@@ -498,7 +479,7 @@ page.createAlbum = function () {
       headers: {
         token: page.token
       }
-    }).then(function (response) {
+    }).then(response => {
       if (response.data.success === false)
         return swal('An error occurred!', response.data.description, 'error')
 
@@ -509,14 +490,14 @@ page.createAlbum = function () {
       option.selected = true
 
       swal('Woohoo!', 'Album was created successfully.', 'success')
-    }).catch(function (error) {
+    }).catch(error => {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
 }
 
-page.prepareUploadConfig = function () {
+page.prepareUploadConfig = () => {
   const fallback = {
     chunkSize: page.chunkSize,
     parallelUploads: 2
@@ -529,13 +510,13 @@ page.prepareUploadConfig = function () {
 
   const numConfig = {
     chunkSize: { min: 1, max: 95 },
-    parallelUploads: { min: 1, max: Number.MAX_SAFE_INTEGER }
+    parallelUploads: { min: 1, max: 8 }
   }
 
   document.querySelector('#chunkSizeDiv .help').innerHTML =
-    `Default is ${fallback.chunkSize} MB. Max is ${numConfig.chunkSize.max}.`
+    `Default is ${fallback.chunkSize} MB. Max is ${numConfig.chunkSize.max} MB.`
   document.querySelector('#parallelUploadsDiv .help').innerHTML =
-    `Default is ${fallback.parallelUploads}.`
+    `Default is ${fallback.parallelUploads}. Max is ${numConfig.parallelUploads.max}.`
 
   const fileLengthDiv = document.querySelector('#fileLengthDiv')
   if (page.fileIdentifierLength && fileLengthDiv) {
@@ -577,7 +558,7 @@ page.prepareUploadConfig = function () {
     fileLengthDiv.querySelector('.help').innerHTML = helpText
   }
 
-  Object.keys(numConfig).forEach(function (key) {
+  Object.keys(numConfig).forEach(key => {
     document.querySelector(`#${key}`).setAttribute('min', numConfig[key].min)
     document.querySelector(`#${key}`).setAttribute('max', numConfig[key].max)
   })
@@ -603,14 +584,14 @@ page.prepareUploadConfig = function () {
 
   const tabContent = document.querySelector('#tab-config')
   const form = tabContent.querySelector('form')
-  form.addEventListener('submit', function (event) {
+  form.addEventListener('submit', event => {
     event.preventDefault()
   })
 
   const siBytes = localStorage[lsKeys.siBytes] !== '0'
   if (!siBytes) document.querySelector('#siBytes').value = '0'
 
-  document.querySelector('#saveConfig').addEventListener('click', function () {
+  document.querySelector('#saveConfig').addEventListener('click', () => {
     if (!form.checkValidity())
       return
 
@@ -637,13 +618,13 @@ page.prepareUploadConfig = function () {
       title: 'Woohoo!',
       text: 'Configuration saved into this browser.',
       icon: 'success'
-    }).then(function () {
+    }).then(() => {
       location.reload()
     })
   })
 }
 
-page.getPrettyUploadAge = function (hours) {
+page.getPrettyUploadAge = hours => {
   if (hours === 0) {
     return 'Permanent'
   } else if (hours < 1) {
@@ -658,7 +639,7 @@ page.getPrettyUploadAge = function (hours) {
 }
 
 // Handle image paste event
-window.addEventListener('paste', function (event) {
+window.addEventListener('paste', event => {
   const items = (event.clipboardData || event.originalEvent.clipboardData).items
   const index = Object.keys(items)
   for (let i = 0; i < index.length; i++) {
@@ -673,25 +654,75 @@ window.addEventListener('paste', function (event) {
   }
 })
 
-window.onload = function () {
-  page.checkIfPublic()
+window.onload = () => {
+  // Global error callback
+  function onFailure (error) {
+    if (error === undefined) return
+    console.error(error)
+
+    // Hide these elements
+    document.querySelector('#albumDiv').classList.add('is-hidden')
+    document.querySelector('#tabs').classList.add('is-hidden')
+    document.querySelectorAll('.tab-content').forEach(element => {
+      return element.classList.add('is-hidden')
+    })
+
+    // Update upload button
+    const uploadButton = document.querySelector('#loginToUpload')
+    uploadButton.innerText = 'An error occurred. Try to reload?'
+    uploadButton.classList.remove('is-loading')
+    uploadButton.classList.remove('is-hidden')
+
+    uploadButton.addEventListener('click', () => {
+      location.reload()
+    })
+
+    // Show alert modal
+    if (error.response) {
+      console.error(error.response)
+      // Better error messages for Cloudflare errors
+      const cloudflareErrors = {
+        520: 'Unknown Error',
+        521: 'Web Server Is Down',
+        522: 'Connection Timed Out',
+        523: 'Origin Is Unreachable',
+        524: 'A Timeout Occurred',
+        525: 'SSL Handshake Failed',
+        526: 'Invalid SSL Certificate',
+        527: 'Railgun Error',
+        530: 'Origin DNS Error'
+      }
+      const statusText = cloudflareErrors[error.response.status] || error.response.statusText
+      const description = error.response.data && error.response.data.description
+        ? error.response.data.description
+        : 'Please check the console for more information.'
+      return swal(`${error.response.status} ${statusText}`, description, 'error')
+    } else {
+      const content = document.createElement('div')
+      content.innerHTML = `<code>${error.toString()}</code>`
+      return swal({
+        title: 'An error occurred!',
+        icon: 'error',
+        content
+      })
+    }
+  }
+
+  page.checkIfPublic(onFailure)
 
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
-  page.clipboardJS.on('success', function () {
+  page.clipboardJS.on('success', () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  page.clipboardJS.on('error', function (event) {
-    console.error(event)
-    return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
-  })
+  page.clipboardJS.on('error', onFailure)
 
   page.lazyLoad = new LazyLoad({
     elements_selector: '.field.uploads img'
   })
 
-  document.querySelector('#createAlbum').addEventListener('click', function () {
+  document.querySelector('#createAlbum').addEventListener('click', () => {
     page.createAlbum()
   })
 }

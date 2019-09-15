@@ -25,6 +25,7 @@ const page = {
   permissions: null,
 
   // sidebar menus
+  menusContainer: null,
   menus: [],
 
   currentView: null,
@@ -79,12 +80,14 @@ const page = {
   lazyLoad: null,
 
   imageExts: ['.webp', '.jpg', '.jpeg', '.gif', '.png', '.tiff', '.tif', '.svg'],
+  // some of these extensions can not be played directly in browsers
   videoExts: ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv'],
 
+  isTriggerLoading: null,
   fadingIn: null
 }
 
-page.preparePage = function () {
+page.preparePage = () => {
   if (!page.token) {
     window.location = 'auth'
     return
@@ -92,17 +95,17 @@ page.preparePage = function () {
   page.verifyToken(page.token, true)
 }
 
-page.verifyToken = function (token, reloadOnError) {
-  axios.post('api/tokens/verify', { token }).then(function (response) {
+page.verifyToken = (token, reloadOnError) => {
+  axios.post('api/tokens/verify', { token }).then(response => {
     if (response.data.success === false)
       return swal({
         title: 'An error occurred!',
         text: response.data.description,
         icon: 'error'
-      }).then(function () {
+      }).then(() => {
         if (!reloadOnError) return
         localStorage.removeItem(lsKeys.token)
-        location.location = 'auth'
+        window.location = 'auth'
       })
 
     axios.defaults.headers.common.token = token
@@ -111,24 +114,26 @@ page.verifyToken = function (token, reloadOnError) {
     page.username = response.data.username
     page.permissions = response.data.permissions
     page.prepareDashboard()
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.prepareDashboard = function () {
+page.prepareDashboard = () => {
   page.dom = document.querySelector('#page')
 
   // Capture all click events
   page.dom.addEventListener('click', page.domClick, true)
 
   // Capture all submit events
-  page.dom.addEventListener('submit', function (event) {
+  page.dom.addEventListener('submit', event => {
     // Prevent default if necessary
     if (event.target && event.target.classList.contains('prevent-default'))
       return event.preventDefault()
   }, true)
+
+  page.menusContainer = document.querySelector('#menu')
 
   // All item menus in the sidebar
   const itemMenus = [
@@ -138,7 +143,7 @@ page.prepareDashboard = function () {
     { selector: '#itemManageToken', onclick: page.changeToken },
     { selector: '#itemChangePassword', onclick: page.changePassword },
     { selector: '#itemLogout', onclick: page.logout, inactive: true },
-    { selector: '#itemManageUploads', onclick: page.getUploads, params: [{ all: true }], group: 'moderator' },
+    { selector: '#itemManageUploads', onclick: page.getUploads, params: { all: true }, group: 'moderator' },
     { selector: '#itemStatistics', onclick: page.getStatistics, group: 'admin' },
     { selector: '#itemManageUsers', onclick: page.getUsers, group: 'admin' }
   ]
@@ -150,10 +155,14 @@ page.prepareDashboard = function () {
 
     // Add onclick event listener
     const item = document.querySelector(itemMenus[i].selector)
-    item.addEventListener('click', function () {
-      itemMenus[i].onclick.apply(null, itemMenus[i].params)
-      if (!itemMenus[i].inactive)
-        page.setActiveMenu(this)
+    item.addEventListener('click', event => {
+      // This class name isn't actually being applied fast enough
+      if (page.menusContainer.classList.contains('is-loading'))
+        return
+      // eslint-disable-next-line compat/compat
+      itemMenus[i].onclick.call(null, Object.assign({
+        trigger: event.currentTarget
+      }, itemMenus[i].params || {}))
     })
 
     item.classList.remove('is-hidden')
@@ -179,12 +188,36 @@ page.prepareDashboard = function () {
     page.prepareShareX()
 }
 
-page.logout = function () {
+page.logout = () => {
   localStorage.removeItem(lsKeys.token)
-  location.reload('.')
+  window.location = 'auth'
 }
 
-page.getItemID = function (element) {
+page.updateTrigger = (trigger, newState) => {
+  if (!trigger) return
+
+  // Disable menus container when loading
+  if (newState === 'loading')
+    page.menusContainer.classList.add('is-loading')
+  else
+    page.menusContainer.classList.remove('is-loading')
+
+  if (newState === 'loading') {
+    trigger.classList.add('is-loading')
+  } else if (newState === 'active') {
+    if (trigger.parentNode.tagName !== 'LI')
+      return
+    for (let i = 0; i < page.menus.length; i++)
+      page.menus[i].classList.remove('is-active')
+    trigger.classList.remove('is-loading')
+    trigger.classList.add('is-active')
+  } else {
+    trigger.classList.remove('is-loading')
+    trigger.classList.remove('is-active')
+  }
+}
+
+page.getItemID = element => {
   // This expects the item's parent to have the item's ID
   let parent = element.parentNode
   // If the element is part of a set of controls, use the container's parent instead
@@ -192,7 +225,7 @@ page.getItemID = function (element) {
   return parseInt(parent.dataset.id)
 }
 
-page.domClick = function (event) {
+page.domClick = event => {
   // We are processing clicks this way to avoid using "onclick" attribute
   // Apparently we will need to use "unsafe-inline" for "script-src" directive
   // of Content Security Policy (CSP), if we want to use "onclick" attribute
@@ -256,7 +289,7 @@ page.domClick = function (event) {
     case 'filter-uploads':
       return page.filterUploads(element)
     case 'view-user-uploads':
-      return page.viewUserUploads(id)
+      return page.viewUserUploads(id, element)
     case 'page-ellipsis':
       return page.focusJumpToPage()
     case 'page-prev':
@@ -267,132 +300,120 @@ page.domClick = function (event) {
   }
 }
 
-page.isLoading = function (element, state) {
-  if (!element) return
-  if (state) return element.classList.add('is-loading')
-  element.classList.remove('is-loading')
-}
-
-page.fadeAndScroll = function (content) {
+page.fadeAndScroll = content => {
   if (page.fadingIn) {
     clearTimeout(page.fadingIn)
     page.dom.classList.remove('fade-in')
   }
   page.dom.classList.add('fade-in')
-  page.fadingIn = setTimeout(function () {
+  page.fadingIn = setTimeout(() => {
     page.dom.classList.remove('fade-in')
   }, 500)
   page.dom.scrollIntoView(true)
 }
 
-page.switchPage = function (action, element) {
-  const views = {}
-  let func = null
-
-  if (page.currentView === 'users') {
-    func = page.getUsers
-  } else {
-    func = page.getUploads
-    views.album = page.views[page.currentView].album
-    views.all = page.views[page.currentView].all
-    views.filters = page.views[page.currentView].filters
-  }
-
+page.switchPage = (action, element) => {
+  // eslint-disable-next-line compat/compat
+  const params = Object.assign({
+    trigger: element
+  }, page.views[page.currentView])
+  const func = page.currentView === 'users' ? page.getUsers : page.getUploads
   switch (action) {
     case 'page-prev':
-      views.pageNum = page.views[page.currentView].pageNum - 1
-      if (views.pageNum < 0)
+      params.pageNum = page.views[page.currentView].pageNum - 1
+      if (params.pageNum < 0)
         return swal('An error occurred!', 'This is already the first page.', 'error')
-      return func(views, element)
+      return func(params)
     case 'page-next':
-      views.pageNum = page.views[page.currentView].pageNum + 1
-      return func(views, element)
+      params.pageNum = page.views[page.currentView].pageNum + 1
+      return func(params)
     case 'page-goto':
-      views.pageNum = parseInt(element.dataset.goto)
-      return func(views, element)
+      params.pageNum = parseInt(element.dataset.goto)
+      return func(params)
     case 'jump-to-page': {
       const jumpToPage = document.querySelector('#jumpToPage')
       if (!jumpToPage.checkValidity()) return
       const parsed = parseInt(jumpToPage.value)
-      views.pageNum = isNaN(parsed) ? 0 : (parsed - 1)
-      if (views.pageNum < 0) views.pageNum = 0
-      return func(views, element)
+      params.pageNum = isNaN(parsed) ? 0 : (parsed - 1)
+      if (params.pageNum < 0) params.pageNum = 0
+      return func(params)
     }
   }
 }
 
-page.focusJumpToPage = function () {
+page.focusJumpToPage = () => {
   const element = document.querySelector('#jumpToPage')
   if (!element) return
   element.focus()
   element.select()
 }
 
-page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, element) {
-  if (element) page.isLoading(element, true)
+page.getUploads = (params = {}) => {
+  if (params === undefined)
+    params = {}
 
-  if ((all || filters) && !page.permissions.moderator)
+  if ((params.all || params.filters) && !page.permissions.moderator)
     return swal('An error occurred!', 'You can not do this!', 'error')
 
-  if (typeof pageNum !== 'number' || pageNum < 0)
-    pageNum = 0
+  page.updateTrigger(params.trigger, 'loading')
 
-  let url = `api/uploads/${pageNum}`
-  if (typeof album === 'string')
-    url = `api/album/${album}/${pageNum}`
+  if (typeof params.pageNum !== 'number' || params.pageNum < 0)
+    params.pageNum = 0
 
-  const headers = {}
-  if (all) headers.all = '1'
-  if (filters) headers.filters = filters
-  axios.get(url, { headers }).then(function (response) {
+  const url = params.album !== undefined
+    ? `api/album/${params.album}/${params.pageNum}`
+    : `api/uploads/${params.pageNum}`
+
+  const headers = {
+    all: params.all ? '1' : '',
+    filters: params.filters || ''
+  }
+
+  axios.get(url, { headers }).then(response => {
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
-        if (element) page.isLoading(element, false)
+        page.updateTrigger(params.trigger)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
     const files = response.data.files
-    if (pageNum && (files.length === 0)) {
-      if (element) page.isLoading(element, false)
-      if (autoPage)
-        return page.getUploads({
-          pageNum: Math.ceil(response.data.count / 25) - 1,
-          album,
-          all,
-          filters
-        }, element)
-      else
-        return swal('An error occurred!', `There are no more uploads to populate page ${pageNum + 1}.`, 'error')
-    }
+    if (params.pageNum && (files.length === 0))
+      if (params.autoPage) {
+        params.pageNum = Math.ceil(response.data.count / 25) - 1
+        return page.getUploads(params)
+      } else {
+        page.updateTrigger(params.trigger)
+        return swal('An error occurred!', `There are no more uploads to populate page ${params.pageNum + 1}.`, 'error')
+      }
 
-    page.currentView = all ? 'uploadsAll' : 'uploads'
+    page.currentView = params.all ? 'uploadsAll' : 'uploads'
     page.cache.uploads = {}
 
     const albums = response.data.albums
     const users = response.data.users
     const basedomain = response.data.basedomain
-    const pagination = page.paginate(response.data.count, 25, pageNum)
+    const pagination = page.paginate(response.data.count, 25, params.pageNum)
 
     let filter = '<div class="column is-hidden-mobile"></div>'
-    if (all)
+    if (params.all)
       filter = `
         <div class="column">
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="filters" class="input is-small" type="text" placeholder="Filters" value="${filters || ''}">
+                <input id="filters" class="input is-small" type="text" placeholder="Filters" value="${params.filters || ''}">
               </div>
               <div class="control">
-                <button type="button" class="button is-small is-breeze" title="Help?" data-action="filters-help">
+                <button type="button" class="button is-small is-info" title="Help?" data-action="filters-help">
                   <span class="icon">
                     <i class="icon-help-circled"></i>
                   </span>
                 </button>
               </div>
               <div class="control">
-                <button type="submit" class="button is-small is-breeze" title="Filter uploads" data-action="filter-uploads">
+                <button type="submit" class="button is-small is-info" title="Filter uploads" data-action="filter-uploads">
                   <span class="icon">
                     <i class="icon-filter"></i>
                   </span>
@@ -403,18 +424,18 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
         </div>
       `
     const extraControls = `
-      <div class="columns" style="margin-top: 10px">
+      <div class="columns">
         ${filter}
         <div class="column is-one-quarter">
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="jumpToPage" class="input is-small" type="number" value="${pageNum + 1}">
+                <input id="jumpToPage" class="input is-small" type="number" value="${params.pageNum + 1}">
               </div>
               <div class="control">
-                <button type="submit" class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+                <button type="submit" class="button is-small is-info" title="Jump to page" data-action="jump-to-page">
                   <span class="icon">
-                    <i class="icon-paper-plane-empty"></i>
+                    <i class="icon-paper-plane"></i>
                   </span>
                 </button>
               </div>
@@ -427,7 +448,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
     const controls = `
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
-        <div class="column" style="text-align: center">
+        <div class="column has-text-centered">
           <a class="button is-small is-danger" title="List view" data-action="view-list">
             <span class="icon">
               <i class="icon-th-list"></i>
@@ -439,13 +460,13 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
             </span>
           </a>
         </div>
-        <div class="column" style="text-align: right">
+        <div class="column has-text-right">
           <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
             <span class="icon">
               <i class="icon-cancel"></i>
             </span>
           </a>
-          ${all ? '' : `
+          ${params.all ? '' : `
           <a class="button is-small is-warning" title="Bulk add to album" data-action="add-selected-uploads-to-album">
             <span class="icon">
               <i class="icon-plus"></i>
@@ -464,7 +485,9 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
     // Whether there are any unselected items
     let unselected = false
 
-    const hasExpiryDateColumn = files.some(file => file.expirydate !== undefined)
+    const hasExpiryDateColumn = files.some(file => {
+      return file.expirydate !== undefined
+    })
 
     for (let i = 0; i < files.length; i++) {
       // Build full URLs
@@ -493,11 +516,11 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
       if (!files[i].selected) unselected = true
 
       // Appendix (display album or user)
-      if (all)
+      if (params.all)
         files[i].appendix = files[i].userid
           ? users[files[i].userid] || ''
           : ''
-      else
+      else if (params.album === undefined)
         files[i].appendix = files[i].albumid
           ? albums[files[i].albumid] || ''
           : ''
@@ -519,7 +542,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
       for (let i = 0; i < files.length; i++) {
         const upload = files[i]
         const div = document.createElement('div')
-        div.className = 'image-container column is-narrow'
+        div.className = 'image-container column is-narrow is-relative'
         div.dataset.id = upload.id
 
         if (upload.thumb !== undefined)
@@ -528,16 +551,17 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
           div.innerHTML = `<a class="image" href="${upload.file}" target="_blank" rel="noopener"><h1 class="title">${upload.extname || 'N/A'}</h1></a>`
 
         div.innerHTML += `
-          <input type="checkbox" class="checkbox" title="Select" data-action="select"${upload.selected ? ' checked' : ''}>
+          <input type="checkbox" class="checkbox" title="Select" data-index="${i}" data-action="select"${upload.selected ? ' checked' : ''}>
           <div class="controls">
-            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+            ${upload.thumb ? `
+            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail">
               <span class="icon">
-                <i class="icon-picture-1"></i>
+                <i class="icon-picture"></i>
               </span>
-            </a>
+            </a>` : ''}
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
               <span class="icon">
-                <i class="icon-clipboard-1"></i>
+                <i class="icon-clipboard"></i>
               </span>
             </a>
             <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
@@ -558,7 +582,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
         `
 
         table.appendChild(div)
-        page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+        page.checkboxes[page.currentView] = table.querySelectorAll('.checkbox[data-action="select"]')
         page.lazyLoad.update()
       }
     } else {
@@ -571,10 +595,10 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
             <thead>
               <tr>
                 <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all" data-action="select-all"></th>
-                <th style="width: 20%">File</th>
-                <th>${all ? 'User' : 'Album'}</th>
+                <th>File</th>
+                ${params.album === undefined ? `<th>${params.all ? 'User' : 'Album'}</th>` : ''}
                 <th>Size</th>
-                ${all ? '<th>IP</th>' : ''}
+                ${params.all ? '<th>IP</th>' : ''}
                 <th>Date</th>
                 ${hasExpiryDateColumn ? '<th>Expiry date</th>' : ''}
                 <th></th>
@@ -595,25 +619,25 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
         const tr = document.createElement('tr')
         tr.dataset.id = upload.id
         tr.innerHTML = `
-          <td class="controls"><input type="checkbox" class="checkbox" title="Select" data-action="select"${upload.selected ? ' checked' : ''}></td>
+          <td class="controls"><input type="checkbox" class="checkbox" title="Select" data-index="${i}" data-action="select"${upload.selected ? ' checked' : ''}></td>
           <th><a href="${upload.file}" target="_blank" rel="noopener" title="${upload.file}">${upload.name}</a></th>
-          <th>${upload.appendix}</th>
+          ${upload.appendix ? `<th>${upload.appendix}</th>` : ''}
           <td>${upload.prettyBytes}</td>
-          ${all ? `<td>${upload.ip || ''}</td>` : ''}
+          ${params.all ? `<td>${upload.ip || ''}</td>` : ''}
           <td>${upload.prettyDate}</td>
           ${hasExpiryDateColumn ? `<td>${upload.prettyExpiryDate}</td>` : ''}
-          <td class="controls" style="text-align: right">
-            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+          <td class="controls has-text-right">
+            <a class="button is-small is-primary" title="${upload.thumb ? 'View thumbnail' : 'File doesn\'t have thumbnail'}" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
-                <i class="icon-picture-1"></i>
+                <i class="icon-picture"></i>
               </span>
             </a>
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
               <span class="icon">
-                <i class="icon-clipboard-1"></i>
+                <i class="icon-clipboard"></i>
               </span>
             </a>
-            ${all ? '' : `
+            ${params.all ? '' : `
             <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
               <span class="icon">
                 <i class="icon-plus"></i>
@@ -628,7 +652,7 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
         `
 
         table.appendChild(tr)
-        page.checkboxes[page.currentView] = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+        page.checkboxes[page.currentView] = table.querySelectorAll('.checkbox[data-action="select"]')
       }
     }
 
@@ -639,24 +663,30 @@ page.getUploads = function ({ pageNum, album, all, filters, autoPage } = {}, ele
     }
 
     page.fadeAndScroll()
+    page.updateTrigger(params.trigger, 'active')
 
-    if (page.currentView === 'uploads') page.views.uploads.album = album
-    if (page.currentView === 'uploadsAll') page.views.uploadsAll.filters = filters
-    page.views[page.currentView].pageNum = files.length ? pageNum : 0
-  }).catch(function (error) {
-    if (element) page.isLoading(element, false)
+    if (page.currentView === 'uploads')
+      page.views.uploads.album = params.album
+    if (page.currentView === 'uploadsAll')
+      page.views.uploadsAll.filters = params.filters
+    page.views[page.currentView].pageNum = files.length ? params.pageNum : 0
+  }).catch(error => {
     console.error(error)
+    page.updateTrigger(params.trigger)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.setUploadsView = function (view, element) {
+page.setUploadsView = (view, element) => {
   localStorage[lsKeys.viewType[page.currentView]] = view
   page.views[page.currentView].type = view
-  page.getUploads(page.views[page.currentView], element)
+  // eslint-disable-next-line compat/compat
+  page.getUploads(Object.assign({
+    trigger: element
+  }, page.views[page.currentView]))
 }
 
-page.displayThumbnail = function (id) {
+page.displayThumbnail = id => {
   const file = page.cache.uploads[id]
   if (!file.thumb) return
 
@@ -669,61 +699,81 @@ page.displayThumbnail = function (id) {
       </div>
     </div>
   `
+
   if (file.original) {
-    div.innerHTML += `
-      <div class="field has-text-centered">
-        <div class="controls">
-          <a id="swalOriginal" type="button" class="button is-breeze" data-original="${file.original}">Load original</a>
+    const exec = /.[\w]+(\?|$)/.exec(file.original)
+    const extname = exec && exec[0] ? exec[0].toLowerCase() : null
+    const isimage = page.imageExts.includes(extname)
+    const isvideo = !isimage && page.videoExts.includes(extname)
+
+    if (isimage || isvideo) {
+      div.innerHTML += `
+        <div class="field has-text-centered">
+          <div class="controls">
+            <a id="swalOriginal" type="button" class="button is-info is-fullwidth" data-original="${file.original}">
+              <span class="icon">
+                <i class="icon-arrows-cw"></i>
+              </span>
+              <span>Load original</span>
+            </a>
+          </div>
         </div>
-      </div>
-    `
-    div.querySelector('#swalOriginal').addEventListener('click', function () {
-      const button = this
-      const original = button.dataset.original
-      button.classList.add('is-loading')
+      `
 
-      const thumb = div.querySelector('#swalThumb')
-      const exec = /.[\w]+(\?|$)/.exec(original)
-      if (!exec || !exec[0]) return
+      div.querySelector('#swalOriginal').addEventListener('click', event => {
+        const trigger = event.currentTarget
+        if (trigger.classList.contains('is-danger'))
+          return
 
-      const extname = exec[0].toLowerCase()
-      if (page.imageExts.includes(extname)) {
-        thumb.src = file.original
-        thumb.onload = function () {
-          button.classList.add('is-hidden')
+        trigger.classList.add('is-loading')
+        const thumb = div.querySelector('#swalThumb')
+
+        if (isimage) {
+          thumb.src = file.original
+          thumb.onload = () => {
+            trigger.classList.add('is-hidden')
+            document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
+          }
+          thumb.onerror = event => {
+            event.currentTarget.classList.add('is-hidden')
+            trigger.className = 'button is-danger is-fullwidth'
+            trigger.innerHTML = `
+              <span class="icon">
+                <i class="icon-block"></i>
+              </span>
+              <span>Unable to load original</span>
+            `
+          }
+        } else if (isvideo) {
+          thumb.classList.add('is-hidden')
+          const video = document.createElement('video')
+          video.id = 'swalVideo'
+          video.controls = true
+          video.autoplay = true
+          video.src = file.original
+          thumb.insertAdjacentElement('afterend', video)
+
+          trigger.classList.add('is-hidden')
           document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
         }
-        thumb.onerror = function () {
-          button.className = 'button is-danger'
-          button.innerHTML = 'Unable to load original'
-        }
-      } else if (page.videoExts.includes(extname)) {
-        thumb.classList.add('is-hidden')
-        const video = document.createElement('video')
-        video.id = 'swalVideo'
-        video.controls = true
-        video.src = file.original
-        thumb.insertAdjacentElement('afterend', video)
-
-        button.classList.add('is-hidden')
-        document.body.querySelector('.swal-overlay .swal-modal:not(.is-expanded)').classList.add('is-expanded')
-      }
-    })
+      })
+    }
   }
 
   return swal({
     content: div,
     buttons: false
-  }).then(function () {
+  }).then(() => {
+    // Destroy video, if necessary
     const video = div.querySelector('#swalVideo')
     if (video) video.remove()
 
     // Restore modal size
-    document.body.querySelector('.swal-overlay .swal-modal.is-expanded').classList.remove('is-expanded')
+    document.body.querySelector('.swal-overlay .swal-modal').classList.remove('is-expanded')
   })
 }
 
-page.selectAll = function (element) {
+page.selectAll = element => {
   for (let i = 0; i < page.checkboxes[page.currentView].length; i++) {
     const id = page.getItemID(page.checkboxes[page.currentView][i])
     if (isNaN(id)) continue
@@ -744,34 +794,28 @@ page.selectAll = function (element) {
   element.title = element.checked ? 'Unselect all' : 'Select all'
 }
 
-page.selectInBetween = function (element, lastElement) {
-  if (!element || !lastElement || element === lastElement)
-    return
+page.selectInBetween = (element, lastElement) => {
+  const thisIndex = parseInt(element.dataset.index)
+  const lastIndex = parseInt(lastElement.dataset.index)
 
-  if (!Array.isArray(page.checkboxes[page.currentView]) || !page.checkboxes[page.currentView].length)
-    return
-
-  const thisIndex = page.checkboxes[page.currentView].indexOf(element)
-  const lastIndex = page.checkboxes[page.currentView].indexOf(lastElement)
-
-  const distance = thisIndex - lastIndex
-  if (distance >= -1 && distance <= 1)
+  const distance = Math.abs(thisIndex - lastIndex)
+  if (distance < 2)
     return
 
   for (let i = 0; i < page.checkboxes[page.currentView].length; i++)
     if ((thisIndex > lastIndex && i > lastIndex && i < thisIndex) ||
       (thisIndex < lastIndex && i > thisIndex && i < lastIndex)) {
       // Check or uncheck depending on the state of the initial checkbox
-      page.checkboxes[page.currentView][i].checked = lastElement.checked
+      const checked = page.checkboxes[page.currentView][i].checked = lastElement.checked
       const id = page.getItemID(page.checkboxes[page.currentView][i])
-      if (!page.selected[page.currentView].includes(id) && page.checkboxes[page.currentView][i].checked)
+      if (!page.selected[page.currentView].includes(id) && checked)
         page.selected[page.currentView].push(id)
-      else if (page.selected[page.currentView].includes(id) && !page.checkboxes[page.currentView][i].checked)
+      else if (page.selected[page.currentView].includes(id) && !checked)
         page.selected[page.currentView].splice(page.selected[page.currentView].indexOf(id), 1)
     }
 }
 
-page.select = function (element, event) {
+page.select = (element, event) => {
   const id = page.getItemID(element)
   if (isNaN(id)) return
 
@@ -796,7 +840,7 @@ page.select = function (element, event) {
     delete localStorage[lsKeys.selected[page.currentView]]
 }
 
-page.clearSelection = function () {
+page.clearSelection = () => {
   const selected = page.selected[page.currentView]
   const type = page.currentView === 'users' ? 'users' : 'uploads'
   const count = selected.length
@@ -808,7 +852,7 @@ page.clearSelection = function () {
     title: 'Are you sure?',
     text: `You are going to unselect ${count} ${suffix}.`,
     buttons: true
-  }).then(function (proceed) {
+  }).then(proceed => {
     if (!proceed) return
 
     const checkboxes = page.checkboxes[page.currentView]
@@ -826,7 +870,7 @@ page.clearSelection = function () {
   })
 }
 
-page.filtersHelp = function (element) {
+page.filtersHelp = element => {
   const content = document.createElement('div')
   content.style = 'text-align: left'
   content.innerHTML = `
@@ -856,20 +900,25 @@ page.filtersHelp = function (element) {
   swal({ content })
 }
 
-page.filterUploads = function (element) {
+page.filterUploads = element => {
   const filters = document.querySelector('#filters').value
   page.getUploads({ all: true, filters }, element)
 }
 
-page.viewUserUploads = function (id) {
+page.viewUserUploads = (id, element) => {
   const user = page.cache.users[id]
   if (!user) return
-  page.getUploads({ all: true, filters: `user:${user.username.replace(/ /g, '\\ ')}` })
-  page.setActiveMenu(document.querySelector('#itemManageUploads'))
+  element.classList.add('is-loading')
+  page.getUploads({
+    all: true,
+    filters: `user:${user.username.replace(/ /g, '\\ ')}`,
+    trigger: document.querySelector('#itemManageUploads')
+  })
 }
 
-page.deleteUpload = function (id) {
+page.deleteUpload = id => {
   page.postBulkDeleteUploads({
+    all: page.currentView === 'uploadsAll',
     field: 'id',
     values: [id],
     cb (failed) {
@@ -884,26 +933,28 @@ page.deleteUpload = function (id) {
         delete localStorage[lsKeys.selected[page.currentView]]
 
       // Reload upload list
-      const views = Object.assign({}, page.views[page.currentView])
-      views.autoPage = true
-      page.getUploads(views)
+      // eslint-disable-next-line compat/compat
+      page.getUploads(Object.assign({
+        autoPage: true
+      }, page.views[page.currentView]))
     }
   })
 }
 
-page.bulkDeleteUploads = function () {
+page.bulkDeleteUploads = () => {
   const count = page.selected[page.currentView].length
   if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
 
   page.postBulkDeleteUploads({
+    all: page.currentView === 'uploadsAll',
     field: 'id',
     values: page.selected[page.currentView],
     cb (failed) {
       // Update state of checkboxes
       if (failed.length)
         page.selected[page.currentView] = page.selected[page.currentView]
-          .filter(function (id) {
+          .filter(id => {
             return failed.includes(id)
           })
       else
@@ -916,17 +967,18 @@ page.bulkDeleteUploads = function () {
         delete localStorage[lsKeys.selected[page.currentView]]
 
       // Reload uploads list
-      const views = Object.assign({}, page.views[page.currentView])
-      views.autoPage = true
-      page.getUploads(views)
+      // eslint-disable-next-line compat/compat
+      page.getUploads(Object.assign({
+        autoPage: true
+      }, page.views[page.currentView]))
     }
   })
 }
 
-page.deleteUploadsByNames = function () {
+page.deleteUploadsByNames = (params = {}) => {
   let appendix = ''
   if (page.permissions.moderator)
-    appendix = '<br>As a staff, you can use this feature to delete uploads from other users.'
+    appendix = '<br><b>Hint:</b> You can use this feature to delete uploads by other users.'
 
   page.dom.innerHTML = `
     <form class="prevent-default">
@@ -950,21 +1002,22 @@ page.deleteUploadsByNames = function () {
     </form>
   `
   page.fadeAndScroll()
+  page.updateTrigger(params.trigger, 'active')
 
-  document.querySelector('#submitBulkDelete').addEventListener('click', function () {
+  document.querySelector('#submitBulkDelete').addEventListener('click', () => {
     const textArea = document.querySelector('#bulkDeleteNames')
 
     // Clean up
     const seen = {}
     const names = textArea.value
       .split(/\r?\n/)
-      .map(function (name) {
+      .map(name => {
         const trimmed = name.trim()
         return /^[^\s]+$/.test(trimmed)
           ? trimmed
           : ''
       })
-      .filter(function (name) {
+      .filter(name => {
         // Filter out invalid and duplicate names
         return (!name || Object.prototype.hasOwnProperty.call(seen, name))
           ? false
@@ -978,6 +1031,7 @@ page.deleteUploadsByNames = function () {
       return swal('An error occurred!', 'You have not entered any upload names.', 'error')
 
     page.postBulkDeleteUploads({
+      all: true,
       field: 'name',
       values: names,
       cb (failed) {
@@ -987,29 +1041,41 @@ page.deleteUploadsByNames = function () {
   })
 }
 
-page.postBulkDeleteUploads = function ({ field, values, cb } = {}) {
-  const count = values.length
-  const objective = `${values.length} upload${count === 1 ? '' : 's'}`
-  let text = `You won't be able to recover ${objective}!`
-  if (page.currentView === 'uploadsAll')
-    text += '\nBe aware, you may be nuking uploads by other users!'
+page.postBulkDeleteUploads = (params = {}) => {
+  const count = params.values.length
+
+  const objective = `${params.values.length} upload${count === 1 ? '' : 's'}`
+  const boldObjective = objective.replace(/^(\d*)(.*)/, '<b>$1</b>$2')
+  let text = `<p>You won't be able to recover ${boldObjective}!</p>`
+
+  if (params.all) {
+    const obj1 = count === 1 ? 'an upload' : 'some uploads'
+    const obj2 = count === 1 ? 'another user' : 'other users'
+    text += `\n<p><b>Warning:</b> You may be nuking ${obj1} by ${obj2}!</p>`
+  }
+
+  const content = document.createElement('div')
+  content.innerHTML = text
 
   swal({
     title: 'Are you sure?',
-    text,
+    content,
     icon: 'warning',
     dangerMode: true,
     buttons: {
       cancel: true,
       confirm: {
-        text: `Yes, nuke ${values.length === 1 ? 'it' : 'them'}!`,
+        text: `Yes, nuke ${params.values.length === 1 ? 'it' : 'them'}!`,
         closeModal: false
       }
     }
-  }).then(function (proceed) {
+  }).then(proceed => {
     if (!proceed) return
 
-    axios.post('api/upload/bulkdelete', { field, values }).then(function (response) {
+    axios.post('api/upload/bulkdelete', {
+      field: params.fields,
+      values: params.values
+    }).then(response => {
       if (!response) return
 
       if (response.data.success === false)
@@ -1020,22 +1086,23 @@ page.postBulkDeleteUploads = function ({ field, values, cb } = {}) {
         }
 
       const failed = Array.isArray(response.data.failed) ? response.data.failed : []
-      if (failed.length === values.length)
+      if (failed.length === params.values.length)
         swal('An error occurred!', `Unable to delete any of the ${objective}.`, 'error')
-      else if (failed.length && failed.length < values.length)
+      else if (failed.length && failed.length < params.values.length)
         swal('Warning!', `From ${objective}, unable to delete ${failed.length} of them.`, 'warning')
       else
         swal('Deleted!', `${objective} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
 
-      if (typeof cb === 'function') cb(failed)
-    }).catch(function (error) {
+      if (typeof params.cb === 'function')
+        params.cb(failed)
+    }).catch(error => {
       console.error(error)
       swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
 }
 
-page.addSelectedUploadsToAlbum = function () {
+page.addSelectedUploadsToAlbum = () => {
   if (page.currentView !== 'uploads')
     return
 
@@ -1043,10 +1110,10 @@ page.addSelectedUploadsToAlbum = function () {
   if (!count)
     return swal('An error occurred!', 'You have not selected any uploads.', 'error')
 
-  page.addUploadsToAlbum(page.selected[page.currentView], function (failed) {
+  page.addUploadsToAlbum(page.selected[page.currentView], failed => {
     if (!failed) return
     if (failed.length)
-      page.selected[page.currentView] = page.selected[page.currentView].filter(function (id) {
+      page.selected[page.currentView] = page.selected[page.currentView].filter(id => {
         return failed.includes(id)
       })
     else
@@ -1057,14 +1124,14 @@ page.addSelectedUploadsToAlbum = function () {
   })
 }
 
-page.addToAlbum = function (id) {
-  page.addUploadsToAlbum([id], function (failed) {
+page.addToAlbum = id => {
+  page.addUploadsToAlbum([id], failed => {
     if (!failed) return
     page.getUploads(page.views[page.currentView])
   })
 }
 
-page.addUploadsToAlbum = function (ids, callback) {
+page.addUploadsToAlbum = (ids, callback) => {
   const count = ids.length
 
   const content = document.createElement('div')
@@ -1095,7 +1162,7 @@ page.addUploadsToAlbum = function (ids, callback) {
         closeModal: false
       }
     }
-  }).then(function (choose) {
+  }).then(choose => {
     if (!choose) return
 
     const albumid = parseInt(document.querySelector('#swalAlbum').value)
@@ -1105,7 +1172,7 @@ page.addUploadsToAlbum = function (ids, callback) {
     axios.post('api/albums/addfiles', {
       ids,
       albumid
-    }).then(function (add) {
+    }).then(add => {
       if (!add) return
 
       if (add.data.success === false) {
@@ -1127,17 +1194,17 @@ page.addUploadsToAlbum = function (ids, callback) {
 
       swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
       callback(add.data.failed)
-    }).catch(function (error) {
+    }).catch(error => {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 
   // Get albums list then update content of swal
-  axios.get('api/albums').then(function (list) {
+  axios.get('api/albums').then(list => {
     if (list.data.success === false) {
       if (list.data.description === 'No token provided')
         page.verifyToken(page.token)
@@ -1147,30 +1214,34 @@ page.addUploadsToAlbum = function (ids, callback) {
       return
     }
 
-    const select = document.querySelector('#swalAlbum')
     // If the prompt was replaced, the container would be missing
+    const select = document.querySelector('#swalAlbum')
     if (!select) return
+
     select.innerHTML += list.data.albums
-      .map(function (album) {
+      .map(album => {
         return `<option value="${album.id}">${album.name}</option>`
       })
       .join('\n')
+
     select.getElementsByTagName('option')[1].innerHTML = 'Choose an album'
     select.removeAttribute('disabled')
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.getAlbums = function () {
-  axios.get('api/albums').then(function (response) {
+page.getAlbums = (params = {}) => {
+  page.updateTrigger(params.trigger, 'loading')
+  axios.get('api/albums').then(response => {
     if (!response) return
 
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
+        page.updateTrigger(params.trigger)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
@@ -1191,9 +1262,9 @@ page.getAlbums = function () {
         </div>
         <div class="field">
           <div class="control">
-            <button type="submit" id="submitAlbum" class="button is-breeze is-fullwidth" data-action="submit-album">
+            <button type="submit" id="submitAlbum" class="button is-info is-fullwidth" data-action="submit-album">
               <span class="icon">
-                <i class="icon-paper-plane-empty"></i>
+                <i class="icon-paper-plane"></i>
               </span>
               <span>Create</span>
             </button>
@@ -1244,15 +1315,15 @@ page.getAlbums = function () {
         <th>${album.files}</th>
         <td>${album.prettyDate}</td>
         <td><a ${album.public ? `href="${albumUrl}"` : 'class="is-linethrough"'} target="_blank" rel="noopener">${albumUrl}</a></td>
-        <td style="text-align: right" data-id="${album.id}">
+        <td class="has-text-right" data-id="${album.id}">
           <a class="button is-small is-primary" title="Edit album" data-action="edit-album">
             <span class="icon is-small">
-              <i class="icon-pencil-1"></i>
+              <i class="icon-pencil"></i>
             </span>
           </a>
           <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
             <span class="icon is-small">
-              <i class="icon-clipboard-1"></i>
+              <i class="icon-clipboard"></i>
             </span>
           </a>
           <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
@@ -1271,13 +1342,15 @@ page.getAlbums = function () {
       table.appendChild(tr)
     }
     page.fadeAndScroll()
-  }).catch(function (error) {
+    page.updateTrigger(params.trigger, 'active')
+  }).catch(error => {
     console.error(error)
+    page.updateTrigger(params.trigger)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.editAlbum = function (id) {
+page.editAlbum = id => {
   const album = page.cache.albums[id]
   if (!album) return
 
@@ -1329,7 +1402,7 @@ page.editAlbum = function (id) {
         closeModal: false
       }
     }
-  }).then(function (value) {
+  }).then(value => {
     if (!value) return
 
     axios.post('api/albums/edit', {
@@ -1339,7 +1412,7 @@ page.editAlbum = function (id) {
       download: document.querySelector('#swalDownload').checked,
       public: document.querySelector('#swalPublic').checked,
       requestLink: document.querySelector('#swalRequestLink').checked
-    }).then(function (response) {
+    }).then(response => {
       if (!response) return
 
       if (response.data.success === false)
@@ -1358,14 +1431,14 @@ page.editAlbum = function (id) {
 
       page.getAlbumsSidebar()
       page.getAlbums()
-    }).catch(function (error) {
+    }).catch(error => {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
 }
 
-page.deleteAlbum = function (id) {
+page.deleteAlbum = id => {
   swal({
     title: 'Are you sure?',
     text: 'This won\'t delete your uploads, only the album!',
@@ -1384,13 +1457,13 @@ page.deleteAlbum = function (id) {
         closeModal: false
       }
     }
-  }).then(function (proceed) {
+  }).then(proceed => {
     if (!proceed) return
 
     axios.post('api/albums/delete', {
       id,
       purge: proceed === 'purge'
-    }).then(function (response) {
+    }).then(response => {
       if (response.data.success === false)
         if (response.data.description === 'No token provided') {
           return page.verifyToken(page.token)
@@ -1403,24 +1476,22 @@ page.deleteAlbum = function (id) {
       swal('Deleted!', 'Your album has been deleted.', 'success')
       page.getAlbumsSidebar()
       page.getAlbums()
-    }).catch(function (error) {
+    }).catch(error => {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
 }
 
-page.submitAlbum = function (element) {
-  page.isLoading(element, true)
-
+page.submitAlbum = element => {
+  page.updateTrigger(element, 'loading')
   axios.post('api/albums', {
     name: document.querySelector('#albumName').value,
     description: document.querySelector('#albumDescription').value
-  }).then(function (response) {
+  }).then(response => {
     if (!response) return
 
-    page.isLoading(element, false)
-
+    page.updateTrigger(element)
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
@@ -1431,15 +1502,15 @@ page.submitAlbum = function (element) {
     swal('Woohoo!', 'Album was created successfully.', 'success')
     page.getAlbumsSidebar()
     page.getAlbums()
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
-    page.isLoading(element, false)
+    page.updateTrigger(element)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.getAlbumsSidebar = function () {
-  axios.get('api/albums/sidebar').then(function (response) {
+page.getAlbumsSidebar = () => {
+  axios.get('api/albums/sidebar').then(response => {
     if (!response) return
 
     if (response.data.success === false)
@@ -1468,28 +1539,33 @@ page.getAlbumsSidebar = function () {
       const a = document.createElement('a')
       a.id = album.id
       a.innerHTML = album.name
+      a.className = 'is-relative'
 
-      a.addEventListener('click', function () {
-        page.getUploads({ album: this.id })
-        page.setActiveMenu(this)
+      a.addEventListener('click', event => {
+        page.getUploads({
+          album: parseInt(event.currentTarget.id),
+          trigger: event.currentTarget
+        })
       })
       page.menus.push(a)
 
       li.appendChild(a)
       albumsContainer.appendChild(li)
     }
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.changeToken = function () {
-  axios.get('api/tokens').then(function (response) {
+page.changeToken = (params = {}) => {
+  page.updateTrigger(params.trigger, 'loading')
+  axios.get('api/tokens').then(response => {
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
+        page.updateTrigger(params.trigger)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
@@ -1504,7 +1580,7 @@ page.changeToken = function () {
       </div>
       <div class="field">
         <div class="control">
-          <a id="getNewToken" class="button is-breeze is-fullwidth" data-action="get-new-token">
+          <a id="getNewToken" class="button is-info is-fullwidth">
             <span class="icon">
               <i class="icon-arrows-cw"></i>
             </span>
@@ -1514,43 +1590,45 @@ page.changeToken = function () {
       </div>
     `
     page.fadeAndScroll()
-  }).catch(function (error) {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
-}
+    page.updateTrigger(params.trigger, 'active')
 
-page.getNewToken = function (element) {
-  page.isLoading(element, true)
+    document.querySelector('#getNewToken').addEventListener('click', event => {
+      const trigger = event.currentTarget
+      page.updateTrigger(trigger, 'loading')
+      axios.post('api/tokens/change').then(response => {
+        if (response.data.success === false)
+          if (response.data.description === 'No token provided') {
+            return page.verifyToken(page.token)
+          } else {
+            page.updateTrigger(trigger)
+            return swal('An error occurred!', response.data.description, 'error')
+          }
 
-  axios.post('api/tokens/change').then(function (response) {
-    page.isLoading(element, false)
-
-    if (response.data.success === false)
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        return swal('An error occurred!', response.data.description, 'error')
-      }
-
-    swal({
-      title: 'Woohoo!',
-      text: 'Your token was successfully changed.',
-      icon: 'success'
-    }).then(function () {
-      axios.defaults.headers.common.token = response.data.token
-      localStorage[lsKeys.token] = response.data.token
-      page.token = response.data.token
-      page.changeToken()
+        page.updateTrigger(trigger)
+        swal({
+          title: 'Woohoo!',
+          text: 'Your token was successfully changed.',
+          icon: 'success'
+        }).then(() => {
+          axios.defaults.headers.common.token = response.data.token
+          localStorage[lsKeys.token] = response.data.token
+          page.token = response.data.token
+          page.changeToken()
+        })
+      }).catch(error => {
+        console.error(error)
+        page.updateTrigger(trigger)
+        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      })
     })
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
-    page.isLoading(element, false)
+    page.updateTrigger(params.trigger)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.changePassword = function () {
+page.changePassword = (params = {}) => {
   page.dom.innerHTML = `
     <form class="prevent-default">
       <div class="field">
@@ -1567,9 +1645,9 @@ page.changePassword = function () {
       </div>
       <div class="field">
         <div class="control">
-          <button type="submit" id="sendChangePassword" class="button is-breeze is-fullwidth">
+          <button type="submit" id="sendChangePassword" class="button is-info is-fullwidth">
             <span class="icon">
-              <i class="icon-paper-plane-empty"></i>
+              <i class="icon-paper-plane"></i>
             </span>
             <span>Set new password</span>
           </button>
@@ -1578,10 +1656,11 @@ page.changePassword = function () {
     </form>
   `
   page.fadeAndScroll()
+  page.updateTrigger(params.trigger, 'active')
 
-  document.querySelector('#sendChangePassword').addEventListener('click', function () {
+  document.querySelector('#sendChangePassword').addEventListener('click', event => {
     if (document.querySelector('#password').value === document.querySelector('#passwordConfirm').value)
-      page.sendNewPassword(document.querySelector('#password').value, this)
+      page.sendNewPassword(document.querySelector('#password').value, event.currentTarget)
     else
       swal({
         title: 'Password mismatch!',
@@ -1591,11 +1670,11 @@ page.changePassword = function () {
   })
 }
 
-page.sendNewPassword = function (pass, element) {
-  page.isLoading(element, true)
+page.sendNewPassword = (pass, element) => {
+  page.updateTrigger(element, 'loading')
 
-  axios.post('api/password/change', { password: pass }).then(function (response) {
-    page.isLoading(element, false)
+  axios.post('api/password/change', { password: pass }).then(response => {
+    page.updateTrigger(element)
 
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
@@ -1608,63 +1687,59 @@ page.sendNewPassword = function (pass, element) {
       title: 'Woohoo!',
       text: 'Your password was successfully changed.',
       icon: 'success'
-    }).then(function () {
+    }).then(() => {
       page.changePassword()
     })
-  }).catch(function (error) {
+  }).catch(error => {
     console.error(error)
-    page.isLoading(element, false)
+    page.updateTrigger(element)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.setActiveMenu = function (element) {
-  for (let i = 0; i < page.menus.length; i++)
-    page.menus[i].classList.remove('is-active')
+page.getUsers = (params = {}) => {
+  page.updateTrigger(params.trigger, 'loading')
 
-  element.classList.add('is-active')
-}
-
-page.getUsers = function ({ pageNum } = {}, element) {
-  if (element) page.isLoading(element, true)
-  if (pageNum === undefined) pageNum = 0
+  if (params.pageNum === undefined)
+    params.pageNum = 0
 
   if (!page.permissions.admin)
     return swal('An error occurred!', 'You can not do this!', 'error')
 
-  const url = `api/users/${pageNum}`
-  axios.get(url).then(function (response) {
+  const url = `api/users/${params.pageNum}`
+  axios.get(url).then(response => {
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
+        page.updateTrigger(params.trigger)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    if (pageNum && (response.data.users.length === 0)) {
+    if (params.pageNum && (response.data.users.length === 0)) {
       // Only remove loading class here, since beyond this the entire page will be replaced anyways
-      if (element) page.isLoading(element, false)
-      return swal('An error occurred!', `There are no more users to populate page ${pageNum + 1}.`, 'error')
+      page.updateTrigger(params.trigger)
+      return swal('An error occurred!', `There are no more users to populate page ${params.pageNum + 1}.`, 'error')
     }
 
     page.currentView = 'users'
     page.cache.users = {}
 
-    const pagination = page.paginate(response.data.count, 25, pageNum)
+    const pagination = page.paginate(response.data.count, 25, params.pageNum)
 
     const extraControls = `
-      <div class="columns" style="margin-top: 10px">
+      <div class="columns">
         <div class="column is-hidden-mobile"></div>
         <div class="column is-one-quarter">
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="jumpToPage" class="input is-small" type="number" value="${pageNum + 1}">
+                <input id="jumpToPage" class="input is-small" type="number" value="${params.pageNum + 1}">
               </div>
               <div class="control">
-                <button type="submit" class="button is-small is-breeze" title="Jump to page" data-action="jump-to-page">
+                <button type="submit" class="button is-small is-info" title="Jump to page" data-action="jump-to-page">
                   <span class="icon">
-                    <i class="icon-paper-plane-empty"></i>
+                    <i class="icon-paper-plane"></i>
                   </span>
                 </button>
               </div>
@@ -1675,9 +1750,9 @@ page.getUsers = function ({ pageNum } = {}, element) {
     `
 
     const controls = `
-      <div class="columns">
+      <div class="columns is-hidden">
         <div class="column is-hidden-mobile"></div>
-        <div class="column" style="text-align: right">
+        <div class="column has-text-right">
           <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
             <span class="icon">
               <i class="icon-cancel"></i>
@@ -1710,9 +1785,9 @@ page.getUsers = function ({ pageNum } = {}, element) {
         <table class="table is-narrow is-fullwidth is-hoverable">
           <thead>
             <tr>
-              <th><input id="selectAll" class="checkbox" type="checkbox" title="Select all" data-action="select-all"></th>
+              <th class="is-hidden"><input id="selectAll" class="checkbox" type="checkbox" title="Select all" data-action="select-all"></th>
               <th>ID</th>
-              <th style="width: 20%">Username</th>
+              <th>Username</th>
               <th>Uploads</th>
               <th>Usage</th>
               <th>Group</th>
@@ -1753,29 +1828,29 @@ page.getUsers = function ({ pageNum } = {}, element) {
       const tr = document.createElement('tr')
       tr.dataset.id = user.id
       tr.innerHTML = `
-        <td class="controls"><input type="checkbox" class="checkbox" title="Select" data-action="select"${selected ? ' checked' : ''}></td>
+        <td class="controls is-hidden"><input type="checkbox" class="checkbox" title="Select" data-action="select"${selected ? ' checked' : ''}></td>
         <th>${user.id}</th>
         <th${enabled ? '' : ' class="is-linethrough"'}>${user.username}</td>
         <th>${user.uploads}</th>
         <td>${page.getPrettyBytes(user.usage)}</td>
         <td>${displayGroup}</td>
-        <td class="controls" style="text-align: right">
+        <td class="controls has-text-right">
           <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
             <span class="icon">
-              <i class="icon-pencil-1"></i>
+              <i class="icon-pencil"></i>
             </span>
           </a>
-          <a class="button is-small is-info" title="View uploads" data-action="view-user-uploads" ${user.uploads ? '' : 'disabled'}>
+          <a class="button is-small is-info" title="${user.uploads ? 'View uploads' : 'User doesn\'t have uploads'}" data-action="view-user-uploads" ${user.uploads ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-docs"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Disable user" data-action="disable-user" ${enabled ? '' : 'disabled'}>
+          <a class="button is-small is-warning" title="${enabled ? 'Disable user' : 'User is disabled'}" data-action="disable-user" ${enabled ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-hammer"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Delete user (WIP)" data-action="delete-user" disabled>
+          <a class="button is-small is-danger is-hidden" title="Delete user (WIP)" data-action="delete-user" disabled>
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -1784,7 +1859,7 @@ page.getUsers = function ({ pageNum } = {}, element) {
       `
 
       table.appendChild(tr)
-      page.checkboxes.users = Array.from(table.querySelectorAll('.checkbox[data-action="select"]'))
+      page.checkboxes.users = table.querySelectorAll('.checkbox[data-action="select"]')
     }
 
     const selectAll = document.querySelector('#selectAll')
@@ -1794,20 +1869,21 @@ page.getUsers = function ({ pageNum } = {}, element) {
     }
 
     page.fadeAndScroll()
+    page.updateTrigger(params.trigger, 'active')
 
-    page.views.users.pageNum = response.data.users.length ? pageNum : 0
-  }).catch(function (error) {
-    if (element) page.isLoading(element, false)
+    page.views.users.pageNum = response.data.users.length ? params.pageNum : 0
+  }).catch(error => {
+    page.updateTrigger(params.trigger)
     console.error(error)
     return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
-page.editUser = function (id) {
+page.editUser = id => {
   const user = page.cache.users[id]
   if (!user) return
 
-  const groupOptions = Object.keys(page.permissions).map(function (g, i, a) {
+  const groupOptions = Object.keys(page.permissions).map((g, i, a) => {
     const selected = g === user.displayGroup
     const disabled = !(a[i + 1] && page.permissions[a[i + 1]])
     return `<option value="${g}"${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}>${g}</option>`
@@ -1859,7 +1935,7 @@ page.editUser = function (id) {
         closeModal: false
       }
     }
-  }).then(function (proceed) {
+  }).then(proceed => {
     if (!proceed) return
 
     axios.post('api/users/edit', {
@@ -1868,7 +1944,7 @@ page.editUser = function (id) {
       group: document.querySelector('#swalGroup').value,
       enabled: document.querySelector('#swalEnabled').checked,
       resetPassword: document.querySelector('#swalResetPassword').checked
-    }).then(function (response) {
+    }).then(response => {
       if (!response) return
 
       if (response.data.success === false)
@@ -1881,7 +1957,7 @@ page.editUser = function (id) {
       if (response.data.password) {
         const div = document.createElement('div')
         div.innerHTML = `
-          <p>${user.username}'s new password is:</p>
+          <p><b>${user.username}</b>'s new password is:</p>
           <p><code>${response.data.password}</code></p>
         `
         swal({
@@ -1896,19 +1972,19 @@ page.editUser = function (id) {
       }
 
       page.getUsers(page.views.users)
-    }).catch(function (error) {
+    }).catch(error => {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
 }
 
-page.disableUser = function (id) {
+page.disableUser = id => {
   const user = page.cache.users[id]
   if (!user || !user.enabled) return
 
   const content = document.createElement('div')
-  content.innerHTML = `You will be disabling a user with the username <b>${page.cache.users[id].username}</b>!`
+  content.innerHTML = `You will be disabling a user with the username <b>${page.cache.users[id].username}</b>.`
 
   swal({
     title: 'Are you sure?',
@@ -1922,10 +1998,10 @@ page.disableUser = function (id) {
         closeModal: false
       }
     }
-  }).then(function (proceed) {
+  }).then(proceed => {
     if (!proceed) return
 
-    axios.post('api/users/disable', { id }).then(function (response) {
+    axios.post('api/users/disable', { id }).then(response => {
       if (!response) return
 
       if (response.data.success === false)
@@ -1936,15 +2012,15 @@ page.disableUser = function (id) {
 
       swal('Success!', 'The user has been disabled.', 'success')
       page.getUsers(page.views.users)
-    }).catch(function (error) {
+    }).catch(error => {
       console.error(error)
       return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
     })
   })
 }
 
-page.paginate = function (totalItems, itemsPerPage, currentPage) {
-  // Roughly based on https://github.com/mayuska/pagination/blob/master/index.js
+// Roughly based on https://github.com/mayuska/pagination/blob/master/index.js
+page.paginate = (totalItems, itemsPerPage, currentPage) => {
   currentPage = currentPage + 1
   const step = 3
   const numPages = Math.ceil(totalItems / itemsPerPage)
@@ -1993,21 +2069,18 @@ page.paginate = function (totalItems, itemsPerPage, currentPage) {
   `
 }
 
-page.getStatistics = function (element) {
+page.getStatistics = (params = {}) => {
   if (!page.permissions.admin)
     return swal('An error occurred!', 'You can not do this!', 'error')
 
-  page.dom.innerHTML = `
-    Please wait, this may take a while\u2026
-    <progress class="progress is-breeze" max="100" style="margin-top: 10px"></progress>
-  `
-
+  page.updateTrigger(params.trigger, 'loading')
   const url = 'api/stats'
-  axios.get(url).then(function (response) {
+  axios.get(url).then(response => {
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
+        page.updateTrigger(params.trigger)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
@@ -2064,11 +2137,11 @@ page.getStatistics = function (element) {
 
       content += `
         <div class="table-container">
-          <table class="table is-fullwidth is-hoverable">
+          <table id="statistics" class="table is-fullwidth is-hoverable">
             <thead>
               <tr>
                 <th>${keys[i].toUpperCase()}</th>
-                <td style="width: 50%"></td>
+                <td></td>
               </tr>
             </thead>
             <tbody>
@@ -2081,18 +2154,41 @@ page.getStatistics = function (element) {
 
     page.dom.innerHTML = content
     page.fadeAndScroll()
-  }).catch(function (error) {
+    page.updateTrigger(params.trigger, 'active')
+  }).catch(error => {
     console.error(error)
+    page.updateTrigger(params.trigger)
     const description = error.response.data && error.response.data.description
       ? error.response.data && error.response.data.description
       : 'There was an error with the request, please check the console for more information.'
-    page.dom.innerHTML = `<p>${description}</p>`
-    page.fadeAndScroll()
     return swal('An error occurred!', description, 'error')
   })
 }
 
-window.onload = function () {
+window.onload = () => {
+  // eslint-disable-next-line compat/compat
+  if (typeof Object.assign !== 'function')
+    // Must be writable: true, enumerable: false, configurable: true
+    Object.defineProperty(Object, 'assign', {
+      value: function assign (target, varArgs) { // .length of function is 2
+        'use strict'
+        if (target === null || target === undefined)
+          throw new TypeError('Cannot convert undefined or null to object')
+        const to = Object(target)
+        for (let i = 1; i < arguments.length; i++) {
+          const nextSource = arguments[i]
+          if (nextSource !== null && nextSource !== undefined)
+            for (const nextKey in nextSource)
+              // Avoid bugs when hasOwnProperty is shadowed
+              if (Object.prototype.hasOwnProperty.call(nextSource, nextKey))
+                to[nextKey] = nextSource[nextKey]
+        }
+        return to
+      },
+      writable: true,
+      configurable: true
+    })
+
   // Add 'no-touch' class to non-touch devices
   if (!('ontouchstart' in document.documentElement))
     document.documentElement.classList.add('no-touch')
@@ -2107,11 +2203,11 @@ window.onload = function () {
 
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
-  page.clipboardJS.on('success', function () {
+  page.clipboardJS.on('success', () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  page.clipboardJS.on('error', function (event) {
+  page.clipboardJS.on('error', event => {
     console.error(event)
     return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
   })

@@ -1,8 +1,8 @@
 const { promisify } = require('util')
-const config = require('./../config')
 const fs = require('fs')
-const logger = require('./../logger')
 const path = require('path')
+const config = require('./../config')
+const logger = require('./../logger')
 
 const self = {}
 
@@ -33,6 +33,7 @@ self.thumbPlaceholder = path.resolve(config.uploads.generateThumbs.placeholder |
 self.logs = path.resolve(config.logsFolder)
 
 self.customPages = path.resolve('pages/custom')
+self.dist = path.resolve('dist')
 self.public = path.resolve('public')
 
 self.errorRoot = path.resolve(config.errorPages.rootDir)
@@ -47,33 +48,28 @@ const verify = [
 ]
 
 self.init = async () => {
-  try {
-    for (const p of verify)
-      try {
-        await self.access(p)
-      } catch (err) {
-        if (err.code !== 'ENOENT') {
-          logger.error(err)
-        } else {
-          const mkdir = await self.mkdir(p)
-          if (mkdir)
-            logger.log(`Created directory: ${p}`)
-        }
+  // Check & create directories
+  for (const p of verify)
+    try {
+      await self.access(p)
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw err
+      } else {
+        const mkdir = await self.mkdir(p)
+        if (mkdir)
+          logger.log(`Created directory: ${p}`)
       }
-
-    // Purge chunks directory
-    const uuidDirs = await self.readdir(self.chunks)
-    for (const uuid of uuidDirs) {
-      const root = path.join(self.chunks, uuid)
-      const chunks = await self.readdir(root)
-      for (const chunk of chunks)
-        await self.unlink(path.join(root, chunk))
-      await self.rmdir(root)
     }
 
-    self.verified = true
-  } catch (error) {
-    logger.error(error)
+  // Purge any leftover in chunks directory
+  const uuidDirs = await self.readdir(self.chunks)
+  for (const uuid of uuidDirs) {
+    const root = path.join(self.chunks, uuid)
+    const chunks = await self.readdir(root)
+    for (const chunk of chunks)
+      await self.unlink(path.join(root, chunk))
+    await self.rmdir(root)
   }
 }
 

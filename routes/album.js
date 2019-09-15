@@ -1,9 +1,9 @@
-const config = require('./../config')
-const db = require('knex')(config.database)
+const routes = require('express').Router()
 const path = require('path')
 const paths = require('./../controllers/pathsController')
-const routes = require('express').Router()
 const utils = require('./../controllers/utilsController')
+const config = require('./../config')
+const db = require('knex')(config.database)
 
 const homeDomain = config.homeDomain || config.domain
 

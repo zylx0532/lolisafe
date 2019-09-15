@@ -13,7 +13,7 @@
 <!-- Scripts -->
 <script src="../libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script src="../js/album.js?v={{ globals.v1 }}"></script>
-<script src="../js/s/utils.js?v={{ globals.v1 }}"></script>
+<script src="../js/misc/utils.js?v={{ globals.v1 }}"></script>
 {% endif %}
 {% endblock %}
 
@@ -83,7 +83,7 @@
     {% if files.length -%}
     <div id="table" class="columns is-multiline is-mobile is-centered has-text-centered">
       {% for file in files %}
-        <div class="image-container column is-narrow">
+        <div class="image-container column is-narrow is-relative">
           <a class="image" href="{{ file.file }}" target="_blank" rel="noopener">
             {% if file.thumb -%}
               {% if nojs -%}

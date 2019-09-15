@@ -63,7 +63,7 @@ for (let i = 1; i <= 50; i++)
 page.config = null
 page.render = null
 
-page.doRenderSwal = function () {
+page.doRenderSwal = () => {
   const div = document.createElement('div')
   div.innerHTML = `
     <div class="field">
@@ -82,7 +82,7 @@ page.doRenderSwal = function () {
     buttons: {
       confirm: true
     }
-  }).then(function (value) {
+  }).then(value => {
     if (!value) return
     const newValue = div.querySelector('#swalRender').checked ? undefined : '0'
     if (newValue !== localStorage[lsKeys.render]) {
@@ -98,23 +98,23 @@ page.doRenderSwal = function () {
   })
 }
 
-page.getRenderVersion = function () {
+page.getRenderVersion = () => {
   const renderScript = document.querySelector('#renderScript')
   if (renderScript && renderScript.dataset.version)
     return `?v=${renderScript.dataset.version}`
   return ''
 }
 
-page.doRender = function () {
+page.doRender = () => {
   page.config = page.renderConfig[page.renderType]
   if (!page.config || !page.config.array.length) return
 
   let element
   if (localStorage[lsKeys.render] === '0') {
     element = document.createElement('a')
-    element.className = 'button is-breeze is-hidden-mobile'
+    element.className = 'button is-info is-hidden-mobile'
     element.title = page.config.name
-    element.innerHTML = '<i class="icon-picture-1"></i>'
+    element.innerHTML = '<i class="icon-picture"></i>'
   } else {
     // Let us just allow people to get new render when toggling the option
     page.render = page.config.array[Math.floor(Math.random() * page.config.array.length)]

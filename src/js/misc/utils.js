@@ -3,7 +3,7 @@
 // keys for localStorage
 lsKeys.siBytes = 'siBytes'
 
-page.prepareShareX = function () {
+page.prepareShareX = () => {
   const values = page.token ? {
     token: page.token || '',
     albumid: page.album || ''
@@ -40,7 +40,7 @@ ${headers.join(',\n')}
   sharexElement.setAttribute('download', `${originClean}.sxcu`)
 }
 
-page.getPrettyDate = function (date) {
+page.getPrettyDate = date => {
   return date.getFullYear() + '-' +
     (date.getMonth() < 9 ? '0' : '') + // month's index starts from zero
     (date.getMonth() + 1) + '-' +
@@ -54,10 +54,10 @@ page.getPrettyDate = function (date) {
     date.getSeconds()
 }
 
-page.getPrettyBytes = function (num) {
+page.getPrettyBytes = num => {
   // MIT License
   // Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
-  if (!Number.isFinite(num)) return num
+  if (typeof num !== 'number' && !isFinite(num)) return num
 
   const si = localStorage[lsKeys.siBytes] !== '0'
   const neg = num < 0 ? '-' : ''
@@ -65,7 +65,7 @@ page.getPrettyBytes = function (num) {
   if (neg) num = -num
   if (num < scale) return `${neg}${num} B`
 
-  const exponent = Math.min(Math.floor(Math.log10(num) / 3), 8) // 8 is count of KMGTPEZY
+  const exponent = Math.min(Math.floor((Math.log(num) * Math.LOG10E) / 3), 8) // 8 is count of KMGTPEZY
   const numStr = Number((num / Math.pow(scale, exponent)).toPrecision(3))
   const pre = (si ? 'kMGTPEZY' : 'KMGTPEZY').charAt(exponent - 1) + (si ? '' : 'i')
   return `${neg}${numStr} ${pre}B`

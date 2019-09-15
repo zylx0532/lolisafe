@@ -22,9 +22,9 @@
 <script src="libs/clipboard.js/clipboard.min.js?v={{ globals.v3 }}"></script>
 <script src="libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
 <script src="js/home.js?v={{ globals.v1 }}"></script>
-<script src="js/s/utils.js?v={{ globals.v1 }}"></script>
+<script src="js/misc/utils.js?v={{ globals.v1 }}"></script>
 {# We assign an ID for this so that the script can find out version string for render images #}
-<script id="renderScript" data-version="{{ globals.v4 }}" src="js/s/render.js?v={{ globals.v1 }}"></script>
+<script id="renderScript" data-version="{{ globals.v4 }}" src="js/misc/render.js?v={{ globals.v1 }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -32,13 +32,15 @@
 <section id="home" class="hero is-fullheight">
   <div class="hero-body">
     <div class="container has-text-centered">
-      <p id="b">
+      <p id="b" class="is-relative">
         <img class="logo" alt="logo" src="images/logo_smol.png?v={{ globals.v2 }}">
       </p>
       <h1 class="title">{{ globals.name }}</h1>
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
-      <h3 id="maxSize" class="subtitle"></h3>
+      <h3 id="maxSize" class="subtitle">
+        Maximum upload size per file is <span>{{ maxSize }} MB</span>
+      </h3>
 
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
@@ -47,11 +49,13 @@
           <div id="albumDiv" class="field has-addons is-hidden">
             <div class="control is-expanded">
               <div class="select is-fullwidth">
-                <select id="albumSelect"></select>
+                <select id="albumSelect">
+                  <option value="" selected>Upload to album</option>
+                </select>
               </div>
             </div>
             <div class="control">
-              <a id="createAlbum" class="button is-breeze" title="Create new album">
+              <a id="createAlbum" class="button is-info" title="Create new album">
                 <i class="icon-plus"></i>
               </a>
             </div>
@@ -92,7 +96,7 @@
               </div>
               <p class="help">
                 {% if urlMaxSize !== maxSize -%}
-                Maximum file size per URL is <span id="urlMaxSize">{{ urlMaxSize }}</span>.
+                Maximum file size per URL is <span id="urlMaxSize">{{ urlMaxSize }} MB</span>.
                 {%- endif %}
 
                 {% if urlExtensionsFilter.length and (urlExtensionsFilterMode === 'blacklist') -%}
@@ -197,9 +201,9 @@
           </p>
           <p class="help expiry-date is-hidden"></p>
           <p class="clipboard-mobile is-hidden">
-            <a class="button is-small is-info is-outlined clipboard-js" style="display: flex">
+            <a class="button is-small is-info is-outlined is-flex clipboard-js">
               <span class="icon">
-                <i class="icon-clipboard-1"></i>
+                <i class="icon-clipboard"></i>
               </span>
               <span>Copy link to clipboard</span>
             </a>

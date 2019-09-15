@@ -1,6 +1,6 @@
+const perms = require('./../controllers/permissionController')
 const config = require('./../config')
 const db = require('knex')(config.database)
-const perms = require('./../controllers/permissionController')
 
 const map = {
   files: {

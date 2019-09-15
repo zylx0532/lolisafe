@@ -1,8 +1,8 @@
-const { stripIndents } = require('./_utils')
+const path = require('path')
+const paths = require('../controllers/pathsController')
+const utils = require('../controllers/utilsController')
 const config = require('./../config')
 const db = require('knex')(config.database)
-const path = require('path')
-const paths = require('./../controllers/pathsController')
 
 const self = {
   mode: null
@@ -26,7 +26,7 @@ self.getFiles = async directory => {
   self.mode = parseInt(args[0]) || 0
 
   if (args.includes('--help') || args.includes('-h'))
-    return console.log(stripIndents(`
+    return console.log(utils.stripIndents(`
       Clean up files that are not in the database.
 
       Usage:

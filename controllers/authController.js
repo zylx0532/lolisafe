@@ -1,12 +1,12 @@
 const { promisify } = require('util')
 const bcrypt = require('bcrypt')
-const config = require('./../config')
-const db = require('knex')(config.database)
-const logger = require('./../logger')
-const perms = require('./permissionController')
 const randomstring = require('randomstring')
+const perms = require('./permissionController')
 const tokens = require('./tokenController')
 const utils = require('./utilsController')
+const config = require('./../config')
+const logger = require('./../logger')
+const db = require('knex')(config.database)
 
 const self = {
   compare: promisify(bcrypt.compare),
@@ -152,7 +152,7 @@ self.editUser = async (req, res, next) => {
       update.enabled = Boolean(req.body.enabled)
 
     if (req.body.group !== undefined) {
-      update.permission = perms.permissions[req.body.group] || target.permission
+      update.permission = perms.permissions[req.body.group]
       if (typeof update.permission !== 'number' || update.permission < 0)
         update.permission = target.permission
     }

@@ -4,19 +4,12 @@
   border-radius: 100%;
   display: inline-block;
   margin-bottom: 40px;
-  position: relative;
   vertical-align: top;
-  -webkit-animation-delay: 0.5s;
   animation-delay: 0.5s;
-  -webkit-animation-duration: 1.5s;
   animation-duration: 1.5s;
-  -webkit-animation-fill-mode: both;
   animation-fill-mode: both;
-  -webkit-animation-name: floatUp;
   animation-name: floatUp;
-  -webkit-animation-timing-function: cubic-bezier(0, 0.71, 0.29, 1);
   animation-timing-function: cubic-bezier(0, 0.71, 0.29, 1);
-  -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
   box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
 }
 
@@ -38,15 +31,11 @@
 }
 
 .dz-preview .dz-details {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex
 }
 
 .dz-preview .dz-details .dz-size,
 .dz-preview .dz-details .dz-filename {
-  -webkit-box-flex: 1;
-  -ms-flex: 1;
   flex: 1
 }
 
@@ -59,9 +48,7 @@
 @-webkit-keyframes floatUp {
   0% {
     opacity: 0;
-    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
-    -webkit-transform: scale(0.86);
     transform: scale(0.86)
   }
 
@@ -70,16 +57,12 @@
   }
 
   67% {
-    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-    -webkit-transform: scale(1);
     transform: scale(1)
   }
 
   100% {
-    -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-    -webkit-transform: scale(1);
     transform: scale(1)
   }
 }
@@ -87,9 +70,7 @@
 @keyframes floatUp {
   0% {
     opacity: 0;
-    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0), 0 0 0 rgba(10, 10, 10, 0);
-    -webkit-transform: scale(0.86);
     transform: scale(0.86)
   }
 
@@ -98,22 +79,17 @@
   }
 
   67% {
-    -webkit-box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 0 0 rgba(10, 10, 10, 0), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-    -webkit-transform: scale(1);
     transform: scale(1)
   }
 
   100% {
-    -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
     box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
-    -webkit-transform: scale(1);
     transform: scale(1)
   }
 }
 
 .uploads > div {
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s;
   margin: 1rem
 }
@@ -126,11 +102,11 @@
   margin-bottom: 0
 }
 
-.uploads .icon:not(.icon-block) {
+.uploads .field > .icon:not(.icon-block) {
   color: #3794d2
 }
 
-.uploads .icon.icon-block {
+.uploads .field > .icon.icon-block {
   color: #da4453
 }
 
@@ -158,7 +134,6 @@
 }
 
 #albumDiv {
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
@@ -170,7 +145,6 @@
   margin-top: -0.25rem;
   margin-left: -0.25rem;
   margin-right: -0.25rem;
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
@@ -190,7 +164,6 @@
 
 #tabs {
   margin-bottom: 1rem;
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
@@ -216,7 +189,6 @@
 
 .tab-content {
   margin-bottom: -0.75rem;
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
@@ -247,7 +219,6 @@
   border-bottom-right-radius: 0;
   right: 1%;
   opacity: 0.25;
-  -webkit-transition: opacity 0.25s;
   transition: opacity 0.25s
 }
 

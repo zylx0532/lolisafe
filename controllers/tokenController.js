@@ -1,9 +1,9 @@
-const config = require('./../config')
-const db = require('knex')(config.database)
-const logger = require('./../logger')
-const perms = require('./permissionController')
 const randomstring = require('randomstring')
+const perms = require('./permissionController')
 const utils = require('./utilsController')
+const config = require('./../config')
+const logger = require('./../logger')
+const db = require('knex')(config.database)
 
 const self = {
   tokenLength: 64,
@@ -41,7 +41,7 @@ self.verify = async (req, res, next) => {
     : ''
 
   if (!token)
-    return res.status(401).json({ success: false, description: 'No token provided.' })
+    return res.json({ success: false, description: 'No token provided.' })
 
   try {
     const user = await db.table('users')
@@ -50,7 +50,7 @@ self.verify = async (req, res, next) => {
       .first()
 
     if (!user)
-      return res.status(401).json({ success: false, description: 'Invalid token.' })
+      return res.json({ success: false, description: 'Invalid token.' })
 
     return res.json({
       success: true,

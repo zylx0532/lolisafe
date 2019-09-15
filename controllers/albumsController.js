@@ -1,13 +1,13 @@
-const config = require('./../config')
-const db = require('knex')(config.database)
 const EventEmitter = require('events')
 const fs = require('fs')
-const logger = require('./../logger')
 const path = require('path')
-const paths = require('./pathsController')
 const randomstring = require('randomstring')
-const utils = require('./utilsController')
 const Zip = require('jszip')
+const paths = require('./pathsController')
+const utils = require('./utilsController')
+const config = require('./../config')
+const logger = require('./../logger')
+const db = require('knex')(config.database)
 
 const self = {
   onHold: new Set()

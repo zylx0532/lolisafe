@@ -5,7 +5,6 @@ html {
 
 body {
   color: #eff0f1;
-  -webkit-animation: fadeInOpacity 0.5s;
   animation: fadeInOpacity 0.5s
 }
 
@@ -103,40 +102,16 @@ code,
   color: #7f8c8d
 }
 
-.button.is-breeze {
-  background-color: #3794d2;
-  border-color: transparent;
-  color: #fff
-}
-
-.button.is-breeze.is-hovered,
-.button.is-breeze:hover {
-  background-color: #60a8dc;
-  border-color: transparent;
-  color: #fff
-}
-
-.button.is-breeze.is-active,
-.button.is-breeze:active {
-  background-color: #60a8dc;
-  border-color: transparent;
-  color: #fff
-}
-
-.button.is-breeze.is-focus,
-.button.is-breeze:focus {
-  border-color: transparent;
-  color: #fff
+.button.is-info.is-hovered [class^="icon-"]::before,
+.button.is-info.is-hovered [class*=" icon-"]::before,
+.button.is-info:hover [class^="icon-"]::before,
+.button.is-info:hover [class*=" icon-"]::before {
+  fill: #fff
 }
 
 .checkbox:hover,
 .radio:hover {
   color: #7f8c8d
-}
-
-.progress.is-breeze:indeterminate {
-  background-image: -webkit-gradient(linear, left top, right top, color-stop(30%, #60a8dc), color-stop(30%, #eff0f1));
-  background-image: linear-gradient(to right, #60a8dc 30%, #eff0f1 30%)
 }
 
 .message {
@@ -146,6 +121,20 @@ code,
 .message-body {
   color: #eff0f1;
   border: 0;
-  -webkit-box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2);
   box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
+}
+
+.menu-list a.is-loading::after {
+  animation: spinAround 0.5s infinite linear;
+  border: 2px solid #dbdbdb;
+  border-radius: 290486px;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  content: "";
+  display: block;
+  height: 1em;
+  width: 1em;
+  right: calc(0% + (1em / 2));
+  top: calc(50% - (1em / 2));
+  position: absolute !important
 }

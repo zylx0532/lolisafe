@@ -1,10 +1,10 @@
-const config = require('./../config')
 const routes = require('express').Router()
-const uploadController = require('./../controllers/uploadController')
 const albumsController = require('./../controllers/albumsController')
-const tokenController = require('./../controllers/tokenController')
 const authController = require('./../controllers/authController')
+const tokenController = require('./../controllers/tokenController')
+const uploadController = require('./../controllers/uploadController')
 const utilsController = require('./../controllers/utilsController')
+const config = require('./../config')
 
 routes.get('/check', (req, res, next) => {
   return res.json({

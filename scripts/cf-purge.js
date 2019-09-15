@@ -1,4 +1,3 @@
-const { stripIndents } = require('./_utils')
 const utils = require('./../controllers/utilsController')
 
 ;(async () => {
@@ -6,7 +5,7 @@ const utils = require('./../controllers/utilsController')
   const args = process.argv.slice(2)
 
   if (!args.length || args.includes('--help') || args.includes('-h'))
-    return console.log(stripIndents(`
+    return console.log(utils.stripIndents(`
       Purge Cloudflare's cache.
 
       Usage:

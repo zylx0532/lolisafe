@@ -1,13 +1,13 @@
 const bodyParser = require('body-parser')
 const clamd = require('clamdjs')
-const config = require('./config')
 const express = require('express')
 const helmet = require('helmet')
-const logger = require('./logger')
 const nunjucks = require('nunjucks')
 const path = require('path')
 const RateLimit = require('express-rate-limit')
 const readline = require('readline')
+const config = require('./config')
+const logger = require('./logger')
 const safe = express()
 
 process.on('uncaughtException', error => {
@@ -50,6 +50,8 @@ if (Array.isArray(config.rateLimits) && config.rateLimits.length)
 safe.use(bodyParser.urlencoded({ extended: true }))
 safe.use(bodyParser.json())
 
+let setHeaders
+
 // Cache control (safe.fiery.me)
 if (config.cacheControl) {
   const cacheControls = {
@@ -65,16 +67,6 @@ if (config.cacheControl) {
     res.set('Cache-Control', cacheControls.proxyOnly)
     next()
   })
-
-  const setHeaders = res => {
-    res.set('Access-Control-Allow-Origin', '*')
-    res.set('Cache-Control', cacheControls.default)
-  }
-
-  if (config.serveFilesWithNode)
-    safe.use('/', express.static(paths.uploads, { setHeaders }))
-
-  safe.use('/', express.static(paths.public, { setHeaders }))
 
   // Do NOT cache these dynamic routes
   safe.use(['/a', '/api', '/nojs'], (req, res, next) => {
@@ -93,12 +85,18 @@ if (config.cacheControl) {
     setHeaders(res)
     next()
   })
-} else {
-  if (config.serveFilesWithNode)
-    safe.use('/', express.static(paths.uploads))
 
-  safe.use('/', express.static(paths.public))
+  setHeaders = res => {
+    res.set('Access-Control-Allow-Origin', '*')
+    res.set('Cache-Control', cacheControls.default)
+  }
 }
+
+if (config.serveFilesWithNode)
+  safe.use('/', express.static(paths.uploads, { setHeaders }))
+
+safe.use('/', express.static(paths.public, { setHeaders }))
+safe.use('/', express.static(paths.dist, { setHeaders }))
 
 safe.use('/', album)
 safe.use('/', nojs)
@@ -247,7 +245,10 @@ safe.use('/api', api)
         prompt: ''
       }).on('line', line => {
         try {
-          if (line === '.exit') process.exit(0)
+          if (line === 'rs')
+            return
+          if (line === '.exit')
+            return process.exit(0)
           // eslint-disable-next-line no-eval
           logger.log(eval(line))
         } catch (error) {
