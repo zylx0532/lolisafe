@@ -59,7 +59,7 @@ if (config.cacheControl) {
     default: 'public, max-age=2592000, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800',
     // s-max-age: 30 days (only cache in proxy server)
     // Obviously we have to purge proxy cache on every update
-    proxyOnly: 'public, s-max-age=2592000, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800',
+    proxyOnly: 's-max-age=2592000, proxy-revalidate, stale-while-revalidate=86400, stale-if-error=604800',
     disable: 'no-store'
   }
 
