@@ -7,13 +7,13 @@ Normal priority:
 * [ ] Use incremental version numbering instead of randomized strings.
 * [ ] Use versioning in APIs, somehow.
 * [ ] Better `df` handling (system disk stats).
-* [*] Use loading spinners on dashboard's sidebar menus.
-* [*] Disable all other sidebar menus when a menu is still loading.
+* [x] Use loading spinners on dashboard's sidebar menus.
+* [x] Disable all other sidebar menus when a menu is still loading.
 * [ ] Collapsible dashboard's sidebar albums menus.
-* [*] Change `title` attribute of disabled control buttons in uploads & users lists.
-* [*] Use Gatsby logo for link to [blog.fiery.me](https://blog.fiery.me/) on the homepage.
+* [x] Change `title` attribute of disabled control buttons in uploads & users lists.
+* [x] Use Gatsby logo for link to [blog.fiery.me](https://blog.fiery.me/) on the homepage.
 * [ ] Auto-detect missing columns in `database/db.js`.
-* [*] Better error message when server is down.
+* [x] Better error message when server is down.
 * [ ] Show expiry date in thumbs view.
 * [ ] Add Select all checkbox somewhere in thumbs view.
 
