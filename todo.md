@@ -14,6 +14,8 @@ Normal priority:
 * [*] Use Gatsby logo for link to [blog.fiery.me](https://blog.fiery.me/) on the homepage.
 * [ ] Auto-detect missing columns in `database/db.js`.
 * [*] Better error message when server is down.
+* [ ] Show expiry date in thumbs view.
+* [ ] Add Select all checkbox somewhere in thumbs view.
 
 Low priority:
 

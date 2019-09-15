@@ -4,6 +4,7 @@ const lsKeys = {
   token: 'token',
   chunkSize: 'chunkSize',
   parallelUploads: 'parallelUploads',
+  uploadsHistoryOrder: 'uploadsHistoryOrder',
   fileLength: 'fileLength',
   uploadAge: 'uploadAge'
 }
@@ -24,6 +25,7 @@ const page = {
   album: null,
 
   parallelUploads: null,
+  uploadsHistoryOrder: null,
   fileLength: null,
   uploadAge: null,
 
@@ -591,11 +593,19 @@ page.prepareUploadConfig = () => {
   const siBytes = localStorage[lsKeys.siBytes] !== '0'
   if (!siBytes) document.querySelector('#siBytes').value = '0'
 
+  const olderOnTop = localStorage[lsKeys.uploadsHistoryOrder] !== '0'
+  if (!olderOnTop) {
+    document.querySelector('#uploadsHistoryOrder').value = '0'
+    const uploadFields = document.querySelectorAll('.tab-content > .uploads')
+    for (let i = 0; i < uploadFields.length; i++)
+      uploadFields[i].classList.add('is-reversed')
+  }
+
   document.querySelector('#saveConfig').addEventListener('click', () => {
     if (!form.checkValidity())
       return
 
-    const prefKeys = ['siBytes', 'uploadAge']
+    const prefKeys = ['siBytes', 'uploadsHistoryOrder', 'uploadAge']
     for (let i = 0; i < prefKeys.length; i++) {
       const value = form.elements[prefKeys[i]].value
       if (value !== 'default' && value !== fallback[prefKeys[i]])

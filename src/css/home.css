@@ -89,9 +89,18 @@
   }
 }
 
+.uploads.is-reversed {
+  display: flex;
+  flex-direction: column-reverse
+}
+
 .uploads > div {
   animation: fadeInOpacity 0.5s;
   margin: 1rem
+}
+
+.uploads.is-reversed > div {
+  flex: 0 0 auto
 }
 
 .uploads > div:first-child {
@@ -102,11 +111,11 @@
   margin-bottom: 0
 }
 
-.uploads .field > .icon:not(.icon-block) {
+.uploads > div > .icon:not(.icon-block) {
   color: #3794d2
 }
 
-.uploads .field > .icon.icon-block {
+.uploads > div > .icon.icon-block {
   color: #da4453
 }
 
