@@ -621,7 +621,7 @@ page.getUploads = (params = {}) => {
         tr.innerHTML = `
           <td class="controls"><input type="checkbox" class="checkbox" title="Select" data-index="${i}" data-action="select"${upload.selected ? ' checked' : ''}></td>
           <th><a href="${upload.file}" target="_blank" rel="noopener" title="${upload.file}">${upload.name}</a></th>
-          ${upload.appendix ? `<th>${upload.appendix}</th>` : ''}
+          ${params.album === undefined ? `<th>${upload.appendix}</th>` : ''}
           <td>${upload.prettyBytes}</td>
           ${params.all ? `<td>${upload.ip || ''}</td>` : ''}
           <td>${upload.prettyDate}</td>
