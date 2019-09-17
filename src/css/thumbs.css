@@ -1,8 +1,9 @@
 .image-container {
-  display: flex;
+  flex: none;
+  position: relative;
   width: 224px;
   height: 224px;
-  margin: 9px;
+  margin: 0.75rem;
   padding: 12px;
   background-color: #31363b;
   overflow: hidden;

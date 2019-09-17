@@ -11,6 +11,13 @@ const sourcemaps = require('gulp-sourcemaps')
 const stylelint = require('gulp-stylelint')
 const terser = require('gulp-terser')
 
+// Put built files for development on a Git-ignored directory.
+// This will prevent IDE's Git from unnecessarily
+// building diff's during development.
+const dist = process.env.NODE_ENV === 'development'
+  ? './dist-dev'
+  : './dist'
+
 /** TASKS: LINT */
 
 gulp.task('lint:js', () => {
@@ -34,21 +41,21 @@ gulp.task('lint', gulp.parallel('lint:js', 'lint:css'))
 
 gulp.task('clean:css', () => {
   return del([
-    './dist/**/*.css',
-    './dist/**/*.css.map'
+    `${dist}/**/*.css`,
+    `${dist}/**/*.css.map`
   ])
 })
 
 gulp.task('clean:js', () => {
   return del([
-    './dist/**/*.js',
-    './dist/**/*.js.map'
+    `${dist}/**/*.js`,
+    `${dist}/**/*.js.map`
   ])
 })
 
 gulp.task('clean:rest', () => {
   return del([
-    './dist/*'
+    `${dist}/*`
   ])
 })
 
@@ -69,7 +76,7 @@ gulp.task('build:css', () => {
     .pipe(sourcemaps.init())
     .pipe(postcss(plugins))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('./dist'))
+    .pipe(gulp.dest(dist))
 })
 
 gulp.task('build:js', () => {
@@ -79,7 +86,7 @@ gulp.task('build:js', () => {
     // Minify on production
     .pipe(gulpif(process.env.NODE_ENV !== 'development', terser()))
     .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest('./dist'))
+    .pipe(gulp.dest(dist))
 })
 
 gulp.task('build', gulp.parallel('build:css', 'build:js'))

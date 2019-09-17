@@ -117,25 +117,9 @@ safe.use('/api', api)
       if (!await paths.access(customPage).catch(() => true))
         safe.get(`/${page === 'home' ? '' : page}`, (req, res, next) => res.sendFile(customPage))
       else if (page === 'home')
-        safe.get('/', (req, res, next) => res.render('home', {
-          maxSize: parseInt(config.uploads.maxSize),
-          urlMaxSize: parseInt(config.uploads.urlMaxSize),
-          urlDisclaimerMessage: config.uploads.urlDisclaimerMessage,
-          urlExtensionsFilterMode: config.uploads.urlExtensionsFilterMode,
-          urlExtensionsFilter: config.uploads.urlExtensionsFilter,
-          temporaryUploadAges: Array.isArray(config.uploads.temporaryUploadAges) &&
-            config.uploads.temporaryUploadAges.length,
-          gitHash: utils.gitHash
-        }))
-      else if (page === 'faq')
-        safe.get('/faq', (req, res, next) => res.render('faq', {
-          whitelist: config.extensionsFilterMode === 'whitelist',
-          extensionsFilter: config.extensionsFilter,
-          noJsMaxSize: parseInt(config.cloudflare.noJsMaxSize) < parseInt(config.uploads.maxSize),
-          chunkSize: parseInt(config.uploads.chunkSize)
-        }))
+        safe.get('/', (req, res, next) => res.render(page, { config, gitHash: utils.gitHash }))
       else
-        safe.get(`/${page}`, (req, res, next) => res.render(page))
+        safe.get(`/${page}`, (req, res, next) => res.render(page, { config }))
     }
 
     // Error pages

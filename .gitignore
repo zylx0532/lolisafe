@@ -51,6 +51,9 @@ package-lock.json
 # Custom pages directory
 /pages/custom
 
+# Dist dev
+/dist-dev
+
 # User files
 .DS_Store
 .nvmrc

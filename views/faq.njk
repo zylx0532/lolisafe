@@ -1,4 +1,10 @@
+{% set title = "FAQ" %}
 {% extends "_layout.njk" %}
+
+{% set noJsMaxSize = config.cloudflare.noJsMaxSize | int %}
+{% set chunkSize = config.uploads.chunkSize | int %}
+{% set extensionsFilterMode = config.extensionsFilterMode %}
+{% set extensionsFilter = config.extensionsFilter %}
 
 {% macro extensions(obj) %}
 {% set space = joiner(' ') %}
@@ -114,7 +120,7 @@
     <article class="message">
       <div class="message-body">
         {% if extensionsFilter.length -%}
-          {%- if whitelist -%}
+          {%- if extensionsFilterMode === 'whitelist' -%}
           We only support the following extensions:
           {%- else -%}
           We support any file extensions, except the following:

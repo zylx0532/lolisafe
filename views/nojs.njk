@@ -1,4 +1,16 @@
+{% set title = "No-JS uploader" %}
 {% extends "_layout.njk" %}
+
+{% set private = config.private %}
+{% set disabledMessage -%}
+  {%- if config.enableUserAccounts -%}
+  Anonymous upload is disabled.
+  {%- else -%}
+  Running in private mode.
+  {%- endif %}
+{%- endset %}
+{% set maxSizeInt = config.maxSize | int %}
+{% set noJsMaxSizeInt = config.cloudflare.noJsMaxSize | int %}
 
 {% block stylesheets %}
 {{ super() }}
@@ -17,15 +29,15 @@
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
       <h3 class="subtitle" id="maxSize">
-        Maximum total size per upload attempt is {{ renderOptions.maxFileSize }} MB
+        Maximum total size per upload attempt is {{ noJsMaxSizeInt or maxSizeInt }} MB
       </h3>
 
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
         <div class="column">
-          {% if renderOptions.uploadDisabled -%}
+          {% if config.private -%}
           <a class="button is-danger is-flex" href="auth">
-            {{ renderOptions.uploadDisabled }}
+            {{ disabledMessage }}
           </a>
           {%- else -%}
           <form id="form" class="field" action="" method="post" enctype="multipart/form-data">

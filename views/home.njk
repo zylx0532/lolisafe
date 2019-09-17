@@ -1,5 +1,12 @@
 {% extends "_layout.njk" %}
 
+{% set maxSizeInt = config.maxSize | int %}
+{% set urlMaxSizeInt = config.urlMaxSize | int %}
+{% set urlDisclaimerMessage = config.uploads.urlDisclaimerMessage %}
+{% set urlExtensionsFilterMode = config.uploads.urlExtensionsFilterMode %}
+{% set urlExtensionsFilter = config.uploads.urlExtensionsFilter %}
+{% set temporaryUploadAges = config.uploads.temporaryUploadAges %}
+
 {% block endmeta %}
 {{ super() }}
 {% if globals.google_site_verification %}
@@ -39,7 +46,7 @@
       <h2 class="subtitle">{{ globals.home_subtitle | safe }}</h2>
 
       <h3 id="maxSize" class="subtitle">
-        Maximum upload size per file is <span>{{ maxSize }} MB</span>
+        Maximum upload size per file is <span>{{ maxSizeInt }} MB</span>
       </h3>
 
       <div class="columns is-gapless">
@@ -95,8 +102,8 @@
                 <textarea id="urls" class="textarea" rows="2"></textarea>
               </div>
               <p class="help">
-                {% if urlMaxSize !== maxSize -%}
-                Maximum file size per URL is <span id="urlMaxSize">{{ urlMaxSize }} MB</span>.
+                {% if urlMaxSizeInt !== maxSizeInt -%}
+                Maximum file size per URL is <span id="urlMaxSize">{{ urlMaxSizeInt }} MB</span>.
                 {%- endif %}
 
                 {% if urlExtensionsFilter.length and (urlExtensionsFilterMode === 'blacklist') -%}
@@ -144,7 +151,7 @@
                 </div>
                 <p class="help"></p>
               </div>
-              {%- if temporaryUploadAges %}
+              {%- if temporaryUploadAges and temporaryUploadAges.length %}
               <div id="uploadAgeDiv" class="field is-hidden">
                 <label class="label">Upload age</label>
                 <div class="control">
@@ -179,7 +186,19 @@
                     </select>
                   </div>
                 </div>
-                <p class="help">Newer files on top only works in <a href="https://caniuse.com/#feat=mdn-css_properties_flex-direction" target="_blank" rel="noopener">these browsers</a>.</p>
+                <p class="help">Newer files on top will use <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/flex-direction#Accessibility_Concerns" target="_blank" rel="noopener">a CSS technique</a>. Trying to select their texts manually from top to bottom will end up selecting the texts from bottom to top instead.</p>
+              </div>
+              <div class="field">
+                <label class="label">Load images for preview</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select id="previewImages">
+                      <option value="default">Yes (default)</option>
+                      <option value="0">No</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="help">By default, uploaded images will be loaded as their previews.</p>
               </div>
               <div class="field">
                 <p class="control">
@@ -205,7 +224,7 @@
         <div class="field">
           <i class="icon is-hidden"></i>
           <img class="is-unselectable is-hidden">
-          <p class="name is-unselectable"></p>
+          <p class="name"></p>
           <progress class="progress is-small is-danger" max="100" value="0"></progress>
           <p class="error"></p>
           <p class="link">

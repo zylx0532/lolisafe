@@ -1,3 +1,4 @@
+{% set title = "Auth" %}
 {% extends "_layout.njk" %}
 
 {% block stylesheets %}
@@ -30,12 +31,12 @@
           <form id="authForm">
             <div class="field">
               <div class="control">
-                <input id="user" name="user" class="input" type="text" placeholder="Your username">
+                <input id="user" name="user" class="input" type="text" placeholder="Your username" minlength="4" maxlength="32">
               </div>
             </div>
             <div class="field">
               <div class="control">
-                <input id="pass" name="pass" class="input" type="password" placeholder="Your password">
+                <input id="pass" name="pass" class="input" type="password" placeholder="Your password" minlength="6" maxlength="64">
               </div>
             </div>
             <div class="field is-grouped is-grouped-right">

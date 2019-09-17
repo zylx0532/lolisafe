@@ -51,8 +51,18 @@ const initChunks = async uuid => {
 }
 
 const executeMulter = multer({
+  // Guide: https://github.com/expressjs/multer#limits
   limits: {
-    fileSize: maxSizeBytes
+    fileSize: maxSizeBytes,
+    // Maximum number of non-file fields.
+    // Dropzone.js will add 6 extra fields for chunked uploads.
+    // We don't use them for anything else.
+    fields: 6,
+    // Maximum number of file fields.
+    // Chunked uploads still need to provide only 1 file field.
+    // Otherwise, only one of the files will end up being properly stored,
+    // and that will also be as a chunk.
+    files: 20
   },
   fileFilter (req, file, cb) {
     file.extname = utils.extname(file.originalname)
@@ -101,7 +111,8 @@ const executeMulter = multer({
       return cb(null, name)
     }
   })
-}).array('files[]')
+}).array('files[]', {
+})
 
 self.isExtensionFiltered = extname => {
   // If empty extension needs to be filtered
@@ -621,10 +632,12 @@ self.storeFilesToDb = async (req, res, user, infoMap) => {
     utils.invalidateStatsCache('uploads')
 
     // Update albums' timestamp
-    if (authorizedIds.length)
+    if (authorizedIds.length) {
       await db.table('albums')
         .whereIn('id', authorizedIds)
         .update('editedAt', Math.floor(Date.now() / 1000))
+      utils.invalidateAlbumsCache(authorizedIds)
+    }
   }
 
   return files.concat(exists)

@@ -25,7 +25,9 @@ const self = {
   imageExts: ['.webp', '.jpg', '.jpeg', '.gif', '.png', '.tiff', '.tif', '.svg'],
   videoExts: ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv'],
 
-  ffprobe: promisify(ffmpeg.ffprobe)
+  ffprobe: promisify(ffmpeg.ffprobe),
+
+  albumsCache: {}
 }
 
 const statsCache = {
@@ -57,7 +59,7 @@ const statsCache = {
   }
 }
 
-const cloudflareAuth = config.cloudflare.apiKey && config.cloudflare.email && config.cloudflare.zoneId
+const cloudflareAuth = config.cloudflare && config.cloudflare.apiKey && config.cloudflare.email && config.cloudflare.zoneId
 
 self.mayGenerateThumb = extname => {
   return (config.uploads.generateThumbs.image && self.imageExts.includes(extname)) ||
@@ -504,6 +506,14 @@ self.bulkDeleteExpired = async (dryrun) => {
   return result
 }
 
+self.invalidateAlbumsCache = albumids => {
+  for (const albumid of albumids) {
+    delete self.albumsCache[albumid]
+    delete self.albumsCache[`${albumid}-nojs`]
+  }
+  self.invalidateStatsCache('albums')
+}
+
 self.invalidateStatsCache = type => {
   if (!['albums', 'users', 'uploads'].includes(type)) return
   statsCache[type].invalidatedAt = Date.now()
@@ -660,6 +670,8 @@ self.stats = async (req, res, next) => {
       stats.uploads = statsCache.uploads.cache
     } else {
       statsCache.uploads.generating = true
+      statsCache.uploads.generatedAt = Date.now()
+
       stats.uploads = {
         _types: {
           number: ['total', 'images', 'videos', 'others']
@@ -700,7 +712,6 @@ self.stats = async (req, res, next) => {
 
       // Update cache
       statsCache.uploads.cache = stats.uploads
-      statsCache.uploads.generatedAt = Date.now()
       statsCache.uploads.generating = false
     }
 
@@ -711,6 +722,8 @@ self.stats = async (req, res, next) => {
       stats.users = statsCache.users.cache
     } else {
       statsCache.users.generating = true
+      statsCache.users.generatedAt = Date.now()
+
       stats.users = {
         _types: {
           number: ['total', 'disabled']
@@ -742,7 +755,6 @@ self.stats = async (req, res, next) => {
 
       // Update cache
       statsCache.users.cache = stats.users
-      statsCache.users.generatedAt = Date.now()
       statsCache.users.generating = false
     }
 
@@ -753,6 +765,8 @@ self.stats = async (req, res, next) => {
       stats.albums = statsCache.albums.cache
     } else {
       statsCache.albums.generating = true
+      statsCache.albums.generatedAt = Date.now()
+
       stats.albums = {
         _types: {
           number: ['total', 'active', 'downloadable', 'public', 'generatedZip']
@@ -789,7 +803,6 @@ self.stats = async (req, res, next) => {
 
       // Update cache
       statsCache.albums.cache = stats.albums
-      statsCache.albums.generatedAt = Date.now()
       statsCache.albums.generating = false
     }
 

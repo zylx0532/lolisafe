@@ -10,6 +10,11 @@ const logger = require('./../logger')
 const db = require('knex')(config.database)
 
 const self = {
+  // Don't forget to update max length of text inputs in
+  // home.js & dashboard.js when changing these values
+  titleMaxLength: 280,
+  descMaxLength: 4000,
+
   onHold: new Set()
 }
 
@@ -109,7 +114,7 @@ self.create = async (req, res, next) => {
   if (!user) return
 
   const name = typeof req.body.name === 'string'
-    ? utils.escape(req.body.name.trim())
+    ? utils.escape(req.body.name.trim().substring(0, self.titleMaxLength))
     : ''
 
   if (!name)
@@ -140,7 +145,7 @@ self.create = async (req, res, next) => {
       download: (req.body.download === false || req.body.download === 0) ? 0 : 1,
       public: (req.body.public === false || req.body.public === 0) ? 0 : 1,
       description: typeof req.body.description === 'string'
-        ? utils.escape(req.body.description.trim())
+        ? utils.escape(req.body.description.trim().substring(0, self.descMaxLength))
         : ''
     })
     utils.invalidateStatsCache('albums')
@@ -159,7 +164,7 @@ self.delete = async (req, res, next) => {
 
   const id = req.body.id
   const purge = req.body.purge
-  if (id === undefined || id === '')
+  if (!Number.isFinite(id))
     return res.json({ success: false, description: 'No album specified.' })
 
   try {
@@ -184,7 +189,7 @@ self.delete = async (req, res, next) => {
         userid: user.id
       })
       .update('enabled', 0)
-    utils.invalidateStatsCache('albums')
+    utils.invalidateAlbumsCache([id])
 
     const identifier = await db.table('albums')
       .select('identifier')
@@ -215,7 +220,7 @@ self.edit = async (req, res, next) => {
     return res.json({ success: false, description: 'No album specified.' })
 
   const name = typeof req.body.name === 'string'
-    ? utils.escape(req.body.name.trim())
+    ? utils.escape(req.body.name.trim().substring(0, self.titleMaxLength))
     : ''
 
   if (!name)
@@ -245,13 +250,14 @@ self.edit = async (req, res, next) => {
       })
       .update({
         name,
+        editedAt: Math.floor(Date.now() / 1000),
         download: Boolean(req.body.download),
         public: Boolean(req.body.public),
         description: typeof req.body.description === 'string'
-          ? utils.escape(req.body.description.trim())
+          ? utils.escape(req.body.description.trim().substring(0, self.descMaxLength))
           : ''
       })
-    utils.invalidateStatsCache('albums')
+    utils.invalidateAlbumsCache([id])
 
     if (!req.body.requestLink)
       return res.json({ success: true, name })

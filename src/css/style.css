@@ -124,21 +124,6 @@ code,
   box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
 }
 
-.menu-list a.is-loading::after {
-  animation: spinAround 0.5s infinite linear;
-  border: 2px solid #dbdbdb;
-  border-radius: 290486px;
-  border-right-color: transparent;
-  border-top-color: transparent;
-  content: "";
-  display: block;
-  height: 1em;
-  width: 1em;
-  right: calc(0% + (1em / 2));
-  top: calc(50% - (1em / 2));
-  position: absolute !important
-}
-
 /* https://github.com/philipwalton/flexbugs#flexbug-3 */
 .hero.is-fullheight > .hero-body {
   min-height: 100vh;

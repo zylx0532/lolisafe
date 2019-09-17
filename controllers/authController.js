@@ -1,4 +1,3 @@
-const { promisify } = require('util')
 const bcrypt = require('bcrypt')
 const randomstring = require('randomstring')
 const perms = require('./permissionController')
@@ -8,10 +7,26 @@ const config = require('./../config')
 const logger = require('./../logger')
 const db = require('knex')(config.database)
 
+// Don't forget to update min/max length of text inputs in auth.njk
+// when changing these values.
 const self = {
-  compare: promisify(bcrypt.compare),
-  hash: promisify(bcrypt.hash)
+  user: {
+    min: 4,
+    max: 32
+  },
+  pass: {
+    min: 6,
+    // Should not be more than 72 characters
+    // https://github.com/kelektiv/node.bcrypt.js#security-issues-and-concerns
+    max: 64,
+    // Length of randomized password
+    // when resetting passwordthrough Dashboard's Manage Users.
+    rand: 16
+  }
 }
+
+// https://github.com/kelektiv/node.bcrypt.js#a-note-on-rounds
+const saltRounds = 10
 
 self.verify = async (req, res, next) => {
   const username = typeof req.body.username === 'string'
@@ -37,7 +52,7 @@ self.verify = async (req, res, next) => {
     if (user.enabled === false || user.enabled === 0)
       return res.json({ success: false, description: 'This account has been disabled.' })
 
-    const result = await self.compare(password, user.password)
+    const result = await bcrypt.compare(password, user.password)
     if (result === false)
       return res.json({ success: false, description: 'Wrong password.' })
     else
@@ -55,14 +70,14 @@ self.register = async (req, res, next) => {
   const username = typeof req.body.username === 'string'
     ? req.body.username.trim()
     : ''
-  if (username.length < 4 || username.length > 32)
-    return res.json({ success: false, description: 'Username must have 4-32 characters.' })
+  if (username.length < self.user.min || username.length > self.user.max)
+    return res.json({ success: false, description: `Username must have ${self.user.min}-${self.user.max} characters.` })
 
   const password = typeof req.body.password === 'string'
     ? req.body.password.trim()
     : ''
-  if (password.length < 6 || password.length > 64)
-    return res.json({ success: false, description: 'Password must have 6-64 characters.' })
+  if (password.length < self.pass.min || password.length > self.pass.max)
+    return res.json({ success: false, description: `Password must have ${self.pass.min}-${self.pass.max} characters.` })
 
   try {
     const user = await db.table('users')
@@ -72,7 +87,7 @@ self.register = async (req, res, next) => {
     if (user)
       return res.json({ success: false, description: 'Username already exists.' })
 
-    const hash = await self.hash(password, 10)
+    const hash = await bcrypt.hash(password, saltRounds)
 
     const token = await tokens.generateUniqueToken()
     if (!token)
@@ -103,11 +118,11 @@ self.changePassword = async (req, res, next) => {
   const password = typeof req.body.password === 'string'
     ? req.body.password.trim()
     : ''
-  if (password.length < 6 || password.length > 64)
-    return res.json({ success: false, description: 'Password must have 6-64 characters.' })
+  if (password.length < self.pass.min || password.length > self.pass.max)
+    return res.json({ success: false, description: `Password must have ${self.pass.min}-${self.pass.max} characters.` })
 
   try {
-    const hash = await self.hash(password, 10)
+    const hash = await bcrypt.hash(password, saltRounds)
 
     await db.table('users')
       .where('id', user.id)
@@ -144,8 +159,11 @@ self.editUser = async (req, res, next) => {
 
     if (req.body.username !== undefined) {
       update.username = String(req.body.username).trim()
-      if (update.username.length < 4 || update.username.length > 32)
-        return res.json({ success: false, description: 'Username must have 4-32 characters.' })
+      if (update.username.length < self.user.min || update.username.length > self.user.max)
+        return res.json({
+          success: false,
+          description: `Username must have ${self.user.min}-${self.user.max} characters.`
+        })
     }
 
     if (req.body.enabled !== undefined)
@@ -159,8 +177,8 @@ self.editUser = async (req, res, next) => {
 
     let password
     if (req.body.resetPassword) {
-      password = randomstring.generate(16)
-      update.password = await self.hash(password, 10)
+      password = randomstring.generate(self.pass.rand)
+      update.password = await bcrypt.hash(password, saltRounds)
     }
 
     await db.table('users')

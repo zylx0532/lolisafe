@@ -67,15 +67,18 @@ window.onload = () => {
   page.pass = document.querySelector('#pass')
 
   // Prevent default form's submit action
-  document.querySelector('#authForm').addEventListener('submit', event => {
+  const form = document.querySelector('#authForm')
+  form.addEventListener('submit', event => {
     event.preventDefault()
   })
 
   document.querySelector('#loginBtn').addEventListener('click', event => {
+    if (!form.checkValidity()) return
     page.do('login', event.currentTarget)
   })
 
   document.querySelector('#registerBtn').addEventListener('click', event => {
+    if (!form.checkValidity()) return
     page.do('register', event.currentTarget)
   })
 }

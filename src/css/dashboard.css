@@ -33,6 +33,21 @@ body {
   background: none
 }
 
+.menu-list a.is-loading::after {
+  animation: spinAround 0.5s infinite linear;
+  border: 2px solid #dbdbdb;
+  border-radius: 290486px;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  content: "";
+  display: block;
+  height: 1em;
+  width: 1em;
+  right: calc(0% + (1em / 2));
+  top: calc(50% - (1em / 2));
+  position: absolute !important
+}
+
 ul#albumsContainer {
   border-left: 0;
   padding-left: 0
@@ -155,7 +170,7 @@ li[data-action="page-ellipsis"] {
   text-decoration: line-through
 }
 
-#menu.is-loading li a {
+#menu.is-loading .menu-list a {
   cursor: progress
 }
 

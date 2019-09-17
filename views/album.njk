@@ -1,4 +1,9 @@
+{% set title = album.name %}
 {% extends "_layout.njk" %}
+
+{% set fileRoot = config.domain %}
+{% set generateZips = config.uploads.generateZips %}
+{% set usingCdn = config.cloudflare and config.cloudflare.purgeCache %}
 
 {% block stylesheets %}
 <!-- Stylesheets -->
@@ -20,17 +25,17 @@
 {% block opengraph %}
 <!-- Open Graph tags -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="{{ title | safe }} &#8211; {{ count }} files" />
-<meta property="og:url" content="{{ url }}" />
-<meta property="og:description" content="{{ description | safe }}" />
-<meta property="og:image" content="{{ thumb }}" />
+<meta property="og:title" content="{{ album.name | safe }} &#8211; {{ files.length }} files" />
+<meta property="og:url" content="{{ root }}/{{ album.url }}" />
+<meta property="og:description" content="{{ album.description }}" />
+<meta property="og:image" content="{{ fileRoot }}/{{ album.thumb }}" />
 <meta property="og:locale" content="en_US" />
 
 <!-- Twitter Card tags -->
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{{ title | safe }} &#8211; {{ count }} files">
-<meta name="twitter:description" content="{{ description | safe }}">
-<meta name="twitter:image" content="{{ thumb }}">
+<meta name="twitter:title" content="{{ album.name | safe }} &#8211; {{ files.length }} files">
+<meta name="twitter:description" content="{{ album.description }}">
+<meta name="twitter:image" content="{{ fileRoot }}/{{ album.thumb }}">
 {% endblock %}
 
 {% block content %}
@@ -41,21 +46,27 @@
       <div class="level-left">
         <div class="level-item">
           <h1 id="title" class="title">
-            {{ title | safe }}
+            {{ album.name | safe }}
           </h1>
         </div>
         <div class="level-item">
           <h1 id="count" class="subtitle">
-            {{ count }} files (<span class="file-size">{{ totalSize }} B</span>)
+            {{ files.length }} files (<span class="file-size">{{ album.totalSize }} B</span>)
           </h1>
         </div>
       </div>
 
-      {% if generateZips and files.length -%}
+      {% if generateZips -%}
       <div class="level-right">
         <p class="level-item">
-          {% if downloadLink -%}
-          <a class="button is-primary is-outlined" title="Be aware that album archive may be cached by CDN" href="{{ downloadLink }}">Download album</a>
+          {% if not files.length -%}
+          <a class="button is-primary is-outlined" title="There are no files in the album" disabled>Download album</a>
+          {%- elif album.downloadLink -%}
+            {%- if usingCDN -%}
+            <a class="button is-primary is-outlined" title="Be aware that album archive may be cached by CDN" href="../{{ album.downloadLink }}">Download album</a>
+            {%- else -%}
+            <a class="button is-primary is-outlined" href="../{{ album.downloadLink }}">Download album</a>
+            {%- endif -%}
           {%- else -%}
           <a class="button is-primary is-outlined" title="The album's owner has chosen to disable download" disabled>Download disabled</a>
           {%- endif %}
@@ -64,9 +75,9 @@
       {%- endif %}
     </nav>
 
-    {% if description -%}
+    {% if album.description -%}
     <h2 class="subtitle description">
-      {{ description | safe }}
+      {{ album.description | safe }}
     </h2>
     {%- endif %}
     <hr>
@@ -75,7 +86,7 @@
     <article class="message">
       <div class="message-body">
         <p>You are viewing No-JS version of this album, so file size will be displayed in bytes.</p>
-        <p>Please <a href="{{ url }}">click here</a> if you want to view its regular version.</p>
+        <p>Please <a href="../{{ album.url }}">click here</a> if you want to view its regular version.</p>
       </div>
     </article>
     {%- endif %}
@@ -83,20 +94,20 @@
     {% if files.length -%}
     <div id="table" class="columns is-multiline is-mobile is-centered has-text-centered">
       {% for file in files %}
-        <div class="image-container column is-narrow is-relative">
-          <a class="image" href="{{ file.file }}" target="_blank" rel="noopener">
+        <div class="image-container column">
+          <a class="image" href="{{ fileRoot }}/{{ file.name }}" target="_blank" rel="noopener">
             {% if file.thumb -%}
               {% if nojs -%}
-              <img alt="{{ file.name }}" src="{{ file.thumb }}" width="200" height="200" loading="lazy">
+              <img alt="{{ file.name }}" src="{{ fileRoot }}/{{ file.thumb }}" width="200" height="200" loading="lazy">
               {%- else -%}
-              <img alt="{{ file.name }}" data-src="{{ file.thumb }}">
+              <img alt="{{ file.name }}" data-src="{{ fileRoot }}/{{ file.thumb }}">
               {%- endif %}
             {%- else -%}
             <h1 class="title">{{ file.extname | default('N/A') }}</h1>
             {%- endif %}
           </a>
           <div class="details">
-            <p><span class="name" title="{{ file.file }}">{{ file.name }}</span></p>
+            <p><span class="name">{{ file.name }}</span></p>
             <p class="file-size">{{ file.size }} B</p>
           </div>
         </div>
@@ -119,7 +130,7 @@
     <div class="hero-body">
       <div class="container has-text-centered">
         <p>You have JavaScript disabled, but this page requires JavaScript to function.</p>
-        <p>Please <a href="{{ url }}?nojs">click here</a> if you want to view its No-JS version.</p>
+        <p>Please <a href="../{{ album.url }}?nojs">click here</a> if you want to view its No-JS version.</p>
       </div>
     </div>
   </section>

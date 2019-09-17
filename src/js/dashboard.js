@@ -84,7 +84,10 @@ const page = {
   videoExts: ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv'],
 
   isTriggerLoading: null,
-  fadingIn: null
+  fadingIn: null,
+
+  albumTitleMaxLength: 280,
+  albumDescMaxLength: 4000
 }
 
 page.preparePage = () => {
@@ -270,8 +273,8 @@ page.domClick = event => {
       return page.deleteUpload(id)
     case 'bulk-delete-uploads':
       return page.bulkDeleteUploads()
-    case 'display-thumbnail':
-      return page.displayThumbnail(id)
+    case 'display-preview':
+      return page.displayPreview(id)
     case 'submit-album':
       return page.submitAlbum(element)
     case 'edit-album':
@@ -495,11 +498,21 @@ page.getUploads = (params = {}) => {
       if (files[i].thumb)
         files[i].thumb = `${basedomain}/${files[i].thumb}`
 
+      // Determine types
+      files[i].type = 'other'
+      const exec = /.[\w]+(\?|$)/.exec(files[i].file)
+      const extname = exec && exec[0] ? exec[0].toLowerCase() : null
+      if (page.imageExts.includes(extname))
+        files[i].type = 'picture'
+      else if (page.videoExts.includes(extname))
+        files[i].type = 'video'
+
       // Cache bare minimum data for thumbnails viewer
       page.cache.uploads[files[i].id] = {
         name: files[i].name,
         thumb: files[i].thumb,
-        original: files[i].file
+        original: files[i].file,
+        type: files[i].type
       }
 
       // Prettify
@@ -542,7 +555,7 @@ page.getUploads = (params = {}) => {
       for (let i = 0; i < files.length; i++) {
         const upload = files[i]
         const div = document.createElement('div')
-        div.className = 'image-container column is-narrow is-relative'
+        div.className = 'image-container column'
         div.dataset.id = upload.id
 
         if (upload.thumb !== undefined)
@@ -554,9 +567,9 @@ page.getUploads = (params = {}) => {
           <input type="checkbox" class="checkbox" title="Select" data-index="${i}" data-action="select"${upload.selected ? ' checked' : ''}>
           <div class="controls">
             ${upload.thumb ? `
-            <a class="button is-small is-primary" title="View thumbnail" data-action="display-thumbnail">
+            <a class="button is-small is-primary" title="Display preview" data-action="display-preview">
               <span class="icon">
-                <i class="icon-picture"></i>
+                <i class="${upload.type !== 'other' ? `icon-${upload.type}` : 'icon-doc-inv'}"></i>
               </span>
             </a>` : ''}
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
@@ -576,7 +589,7 @@ page.getUploads = (params = {}) => {
             </a>
           </div>
           <div class="details">
-            <p><span class="name" title="${upload.file}">${upload.name}</span></p>
+            <p><span class="name">${upload.name}</span></p>
             <p>${upload.appendix ? `<span>${upload.appendix}</span> – ` : ''}${upload.prettyBytes}</p>
             ${hasExpiryDateColumn && upload.prettyExpiryDate ? `
             <p class="expirydate">EXP: ${upload.prettyExpiryDate}</p>` : ''}
@@ -629,9 +642,9 @@ page.getUploads = (params = {}) => {
           <td>${upload.prettyDate}</td>
           ${hasExpiryDateColumn ? `<td>${upload.prettyExpiryDate || '-'}</td>` : ''}
           <td class="controls has-text-right">
-            <a class="button is-small is-primary" title="${upload.thumb ? 'View thumbnail' : 'File doesn\'t have thumbnail'}" data-action="display-thumbnail"${upload.thumb ? '' : ' disabled'}>
+            <a class="button is-small is-primary" title="${upload.thumb ? 'Display preview' : 'File can\'t be previewed'}" data-action="display-preview"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
-                <i class="icon-picture"></i>
+                <i class="${upload.type !== 'other' ? `icon-${upload.type}` : 'icon-doc-inv'}"></i>
               </span>
             </a>
             <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
@@ -688,7 +701,7 @@ page.setUploadsView = (view, element) => {
   }, page.views[page.currentView]))
 }
 
-page.displayThumbnail = id => {
+page.displayPreview = id => {
   const file = page.cache.uploads[id]
   if (!file.thumb) return
 
@@ -1254,13 +1267,15 @@ page.getAlbums = (params = {}) => {
       <form class="prevent-default">
         <div class="field">
           <div class="control">
-            <input id="albumName" class="input" type="text" placeholder="Name">
+            <input id="albumName" class="input" type="text" placeholder="Name" maxlength="${page.albumTitleMaxLength}">
           </div>
+          <p class="help">Max length is ${page.albumTitleMaxLength} characters.</p>
         </div>
         <div class="field">
           <div class="control">
-            <textarea id="albumDescription" class="textarea" placeholder="Description" rows="1"></textarea>
+            <textarea id="albumDescription" class="textarea" placeholder="Description" rows="1" maxlength="${page.albumDescMaxLength}"></textarea>
           </div>
+          <p class="help">Max length is ${page.albumDescMaxLength} characters.</p>
         </div>
         <div class="field">
           <div class="control">
@@ -1360,13 +1375,15 @@ page.editAlbum = id => {
   div.innerHTML = `
     <div class="field">
       <div class="controls">
-        <input id="swalName" class="input" type="text" placeholder="Name" value="${album.name || ''}">
+        <input id="swalName" class="input" type="text" placeholder="Name" maxlength="${page.albumTitleMaxLength}" value="${(album.name || '').substring(0, page.albumTitleMaxLength)}">
       </div>
+      <p class="help">Max length is ${page.albumTitleMaxLength} characters.</p>
     </div>
     <div class="field">
       <div class="control">
-        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2">${album.description || ''}</textarea>
+        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2" maxlength="${page.albumDescMaxLength}">${(album.description || '').substring(0, page.albumDescMaxLength)}</textarea>
       </div>
+      <p class="help">Max length is ${page.albumDescMaxLength} characters.</p>
     </div>
     <div class="field">
       <div class="control">
@@ -1488,8 +1505,8 @@ page.deleteAlbum = id => {
 page.submitAlbum = element => {
   page.updateTrigger(element, 'loading')
   axios.post('api/albums', {
-    name: document.querySelector('#albumName').value,
-    description: document.querySelector('#albumDescription').value
+    name: document.querySelector('#albumName').value.trim(),
+    description: document.querySelector('#albumDescription').value.trim()
   }).then(response => {
     if (!response) return
 

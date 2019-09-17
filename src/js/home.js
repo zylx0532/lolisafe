@@ -5,6 +5,7 @@ const lsKeys = {
   chunkSize: 'chunkSize',
   parallelUploads: 'parallelUploads',
   uploadsHistoryOrder: 'uploadsHistoryOrder',
+  previewImages: 'previewImages',
   fileLength: 'fileLength',
   uploadAge: 'uploadAge'
 }
@@ -25,7 +26,7 @@ const page = {
   album: null,
 
   parallelUploads: null,
-  uploadsHistoryOrder: null,
+  previewImages: null,
   fileLength: null,
   uploadAge: null,
 
@@ -42,7 +43,13 @@ const page = {
   clipboardJS: null,
   lazyLoad: null,
 
-  imageExtensions: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.svg']
+  // Include BMP for uploads preview only, cause the real images will be used
+  // Sharp isn't capable of making their thumbnails for dashboard and album public pages
+  imageExts: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.tiff', '.tif', '.svg'],
+  videoExts: ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv'],
+
+  albumTitleMaxLength: 280,
+  albumDescMaxLength: 4000
 }
 
 // Error handler for all API requests on init
@@ -471,25 +478,34 @@ page.updateTemplate = (file, response) => {
   clipboard.parentElement.classList.remove('is-hidden')
 
   const exec = /.[\w]+(\?|$)/.exec(response.url)
-  if (exec && exec[0] && page.imageExtensions.includes(exec[0].toLowerCase())) {
-    const img = file.previewElement.querySelector('img')
-    img.setAttribute('alt', response.name || '')
-    img.dataset.src = response.url
-    img.classList.remove('is-hidden')
-    img.onerror = event => {
-      // Hide image elements that fail to load
-      // Consequently include WEBP in browsers that do not have WEBP support (e.i. IE)
-      event.currentTarget.classList.add('is-hidden')
+  const extname = exec && exec[0]
+    ? exec[0].toLowerCase()
+    : null
+
+  if (page.imageExts.includes(extname))
+    if (page.previewImages) {
+      const img = file.previewElement.querySelector('img')
+      img.setAttribute('alt', response.name || '')
+      img.dataset.src = response.url
+      img.classList.remove('is-hidden')
+      img.onerror = event => {
+        // Hide image elements that fail to load
+        // Consequently include WEBP in browsers that do not have WEBP support (e.i. IE)
+        event.currentTarget.classList.add('is-hidden')
+        page.updateTemplateIcon(file.previewElement, 'icon-picture')
+      }
+      page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
+    } else {
       page.updateTemplateIcon(file.previewElement, 'icon-picture')
     }
-    page.lazyLoad.update(file.previewElement.querySelectorAll('img'))
-  } else {
+  else if (page.videoExts.includes(extname))
+    page.updateTemplateIcon(file.previewElement, 'icon-video')
+  else
     page.updateTemplateIcon(file.previewElement, 'icon-doc-inv')
-  }
 
   if (response.expirydate) {
     const expiryDate = file.previewElement.querySelector('.expiry-date')
-    expiryDate.innerHTML = `Expiry date: ${page.getPrettyDate(new Date(response.expirydate * 1000))}`
+    expiryDate.innerHTML = `EXP: ${page.getPrettyDate(new Date(response.expirydate * 1000))}`
     expiryDate.classList.remove('is-hidden')
   }
 }
@@ -499,13 +515,15 @@ page.createAlbum = () => {
   div.innerHTML = `
     <div class="field">
       <div class="controls">
-        <input id="swalName" class="input" type="text" placeholder="Name">
+        <input id="swalName" class="input" type="text" placeholder="Name" maxlength="${page.albumTitleMaxLength}">
       </div>
+      <p class="help">Max length is ${page.albumTitleMaxLength} characters.</p>
     </div>
     <div class="field">
       <div class="control">
-        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2"></textarea>
+        <textarea id="swalDescription" class="textarea" placeholder="Description" rows="2" maxlength="${page.albumDescMaxLength}"></textarea>
       </div>
+      <p class="help">Max length is ${page.albumDescMaxLength} characters.</p>
     </div>
     <div class="field">
       <div class="control">
@@ -665,11 +683,13 @@ page.prepareUploadConfig = () => {
       uploadFields[i].classList.add('is-reversed')
   }
 
+  page.previewImages = localStorage[lsKeys.previewImages] !== '0'
+
   document.querySelector('#saveConfig').addEventListener('click', () => {
     if (!form.checkValidity())
       return
 
-    const prefKeys = ['siBytes', 'uploadsHistoryOrder', 'uploadAge']
+    const prefKeys = ['siBytes', 'uploadsHistoryOrder', 'previewImages', 'uploadAge']
     for (let i = 0; i < prefKeys.length; i++) {
       const value = form.elements[prefKeys[i]].value
       if (value !== 'default' && value !== fallback[prefKeys[i]])

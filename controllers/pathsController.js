@@ -33,7 +33,9 @@ self.thumbPlaceholder = path.resolve(config.uploads.generateThumbs.placeholder |
 self.logs = path.resolve(config.logsFolder)
 
 self.customPages = path.resolve('pages/custom')
-self.dist = path.resolve('dist')
+self.dist = process.env.NODE_ENV === 'development'
+  ? path.resolve('dist-dev')
+  : path.resolve('dist')
 self.public = path.resolve('public')
 
 self.errorRoot = path.resolve(config.errorPages.rootDir)
