@@ -9,7 +9,7 @@
   Running in private mode.
   {%- endif %}
 {%- endset %}
-{% set maxSizeInt = config.maxSize | int %}
+{% set maxSizeInt = config.uploads.maxSize | int %}
 {% set noJsMaxSizeInt = config.cloudflare.noJsMaxSize | int %}
 
 {% block stylesheets %}
@@ -35,7 +35,7 @@
       <div class="columns is-gapless">
         <div class="column is-hidden-mobile"></div>
         <div class="column">
-          {% if config.private -%}
+          {% if private -%}
           <a class="button is-danger is-flex" href="auth">
             {{ disabledMessage }}
           </a>

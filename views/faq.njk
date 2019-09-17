@@ -1,8 +1,8 @@
 {% set title = "FAQ" %}
 {% extends "_layout.njk" %}
 
-{% set noJsMaxSize = config.cloudflare.noJsMaxSize | int %}
-{% set chunkSize = config.uploads.chunkSize | int %}
+{% set noJsMaxSizeInt = config.cloudflare.noJsMaxSize | int %}
+{% set chunkSizeInt = config.uploads.chunkSize | int %}
 {% set extensionsFilterMode = config.extensionsFilterMode %}
 {% set extensionsFilter = config.extensionsFilter %}
 
@@ -96,7 +96,7 @@
       </div>
     </article>
 
-    {% if noJsMaxSize and chunkSize -%}
+    {% if noJsMaxSizeInt and chunkSizeInt -%}
     <h2 class='subtitle'>Why is the maximum file size in the No-JS uploader form smaller?</h2>
     <article class="message">
       <div class="message-body">
@@ -106,7 +106,7 @@
     </article>
     {%- endif %}
 
-    {% if chunkSize -%}
+    {% if chunkSizeInt -%}
     <h2 class='subtitle'>So your API supports chunked uploads?</h2>
     <article class="message">
       <div class="message-body">
