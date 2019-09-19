@@ -23,8 +23,6 @@ self.getFiles = async directory => {
   const location = process.argv[1].replace(process.cwd() + '/', '')
   const args = process.argv.slice(2)
 
-  self.mode = parseInt(args[0]) || 0
-
   if (args.includes('--help') || args.includes('-h'))
     return console.log(utils.stripIndents(`
       Clean up files that are not in the database.
@@ -37,6 +35,7 @@ self.getFiles = async directory => {
       1 = Clean up the files.
     `))
 
+  self.mode = parseInt(args[0]) || 0
   const dryrun = self.mode === 0
 
   const uploads = await self.getFiles(paths.uploads)

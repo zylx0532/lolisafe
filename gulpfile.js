@@ -1,3 +1,4 @@
+const { exec } = require('child_process')
 const gulp = require('gulp')
 const cssnano = require('cssnano')
 const del = require('del')
@@ -91,7 +92,15 @@ gulp.task('build:js', () => {
 
 gulp.task('build', gulp.parallel('build:css', 'build:js'))
 
-gulp.task('default', gulp.series('lint', 'clean', 'build'))
+gulp.task('exec:bump-versions', cb => {
+  exec('node ./scripts/bump-versions.js 1', (error, stdout, stderr) => {
+    if (stdout) process.stdout.write(stdout)
+    if (stderr) process.stderr.write(stderr)
+    cb(error)
+  })
+})
+
+gulp.task('default', gulp.series('lint', 'clean', 'build', 'exec:bump-versions'))
 
 /** TASKS: WATCH (SKIP LINTER) */
 
@@ -109,7 +118,7 @@ gulp.task('watch:js', () => {
 
 gulp.task('watch:src', gulp.parallel('watch:css', 'watch:js'))
 
-gulp.task('nodemon', done => {
+gulp.task('nodemon', cb => {
   return nodemon({
     script: './lolisafe.js',
     env: process.env,
@@ -125,7 +134,7 @@ gulp.task('nodemon', done => {
       'views/album.njk'
     ],
     ext: 'js',
-    done
+    done: cb
   })
 })
 

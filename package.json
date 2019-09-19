@@ -20,6 +20,7 @@
     "build": "gulp default",
     "watch": "gulp watch",
     "develop": "env NODE_ENV=development yarn watch",
+    "bump-versions": "node ./scripts/bump-versions.js",
     "cf-purge": "node ./scripts/cf-purge.js",
     "clean-up": "node ./scripts/clean-up.js",
     "delete-expired": "node ./scripts/delete-expired.js",

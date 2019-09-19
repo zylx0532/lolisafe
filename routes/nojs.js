@@ -13,6 +13,7 @@ routes.post('/nojs', (req, res, next) => {
     const result = args[0]
     return res.render('nojs', {
       config,
+      versions: utils.versionStrings,
       gitHash: utils.gitHash,
       errorMessage: result.success ? '' : (result.description || 'An unexpected error occurred.'),
       files: result.files || [{}]

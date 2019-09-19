@@ -8,19 +8,6 @@
 {% set google_site_verification = null %}
 
 {#
-  This will be appended to the URLs of static files (CSS, JS, images, etc),
-  and should be changed on every updates to make sure clients load the very latest version of them.
-  v1: CSS and JS files (lolisafe).
-  v2: Images and config files (manifest.json, browserconfig.xml, etc).
-  v3: CSS and JS files (libs such as bulma, lazyload, etc).
-  v4: Renders in /public/render/* directories (to be used by render.js).
-#}
-{% set v1 = "sWcNtiNy3c" %}
-{% set v2 = "sWcNtiNy3c" %}
-{% set v3 = "YFsTqC68Bc" %}
-{% set v4 = "S3TAWpPeFS" %}
-
-{#
   These will be the links in the homepage and the No-JS uploader.
   You may remove icons by changing "home_icons" to false.
   It will then automatically use "attrs.title" as the display text.

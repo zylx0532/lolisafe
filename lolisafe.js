@@ -8,6 +8,7 @@ const RateLimit = require('express-rate-limit')
 const readline = require('readline')
 const config = require('./config')
 const logger = require('./logger')
+const versions = require('./src/versions')
 const safe = express()
 
 process.on('uncaughtException', error => {
@@ -112,14 +113,28 @@ safe.use('/api', api)
       process.exit(1)
     }
 
+    // Re-map version strings if cache control is enabled (safe.fiery.me)
+    utils.versionStrings = {}
+    if (config.cacheControl)
+      for (const type in versions)
+        utils.versionStrings[type] = `?_=${versions[type]}`
+
+    // Check for custom pages, otherwise fallback to Nunjucks templates
     for (const page of config.pages) {
       const customPage = path.join(paths.customPages, `${page}.html`)
       if (!await paths.access(customPage).catch(() => true))
         safe.get(`/${page === 'home' ? '' : page}`, (req, res, next) => res.sendFile(customPage))
       else if (page === 'home')
-        safe.get('/', (req, res, next) => res.render(page, { config, gitHash: utils.gitHash }))
+        safe.get('/', (req, res, next) => res.render(page, {
+          config,
+          versions: utils.versionStrings,
+          gitHash: utils.gitHash
+        }))
       else
-        safe.get(`/${page}`, (req, res, next) => res.render(page, { config }))
+        safe.get(`/${page}`, (req, res, next) => res.render(page, {
+          config,
+          versions: utils.versionStrings
+        }))
     }
 
     // Error pages
@@ -176,23 +191,27 @@ safe.use('/api', api)
     logger.log(`lolisafe started on port ${config.port}`)
 
     // Cache control (safe.fiery.me)
-    if (config.cacheControl) {
-      logger.log('Cache control enabled, purging...')
-      const routes = config.pages.concat(['api/check'])
-      const results = await utils.purgeCloudflareCache(routes)
-      let errored = false
-      let succeeded = 0
-      for (const result of results) {
-        if (result.errors.length) {
-          if (!errored) errored = true
-          result.errors.forEach(error => logger.log(`[CF]: ${error}`))
-          continue
+    // Also only if explicitly using Cloudflare
+    if (config.cacheControl)
+      if (config.cloudflare.purgeCache) {
+        logger.log('Cache control enabled, purging Cloudflare\'s cache...')
+        const routes = config.pages.concat(['api/check'])
+        const results = await utils.purgeCloudflareCache(routes)
+        let errored = false
+        let succeeded = 0
+        for (const result of results) {
+          if (result.errors.length) {
+            if (!errored) errored = true
+            result.errors.forEach(error => logger.log(`[CF]: ${error}`))
+            continue
+          }
+          succeeded += result.files.length
         }
-        succeeded += result.files.length
+        if (!errored)
+          logger.log(`Successfully purged ${succeeded} cache`)
+      } else {
+        logger.log('Cache control enabled without Cloudflare\'s cache purging')
       }
-      if (!errored)
-        logger.log(`Purged ${succeeded} Cloudflare's cache`)
-    }
 
     // Temporary uploads
     if (Array.isArray(config.uploads.temporaryUploadAges) && config.uploads.temporaryUploadAges.length) {

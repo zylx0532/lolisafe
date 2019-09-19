@@ -8,8 +8,6 @@ const self = {
   const location = process.argv[1].replace(process.cwd() + '/', '')
   const args = process.argv.slice(2)
 
-  self.mode = parseInt(args[0]) || 0
-
   if (args.includes('--help') || args.includes('-h'))
     return console.log(utils.stripIndents(`
       Bulk delete expired files.
@@ -23,6 +21,7 @@ const self = {
       2 = Delete expired files (no output).
     `))
 
+  self.mode = parseInt(args[0]) || 0
   const dryrun = self.mode === 0
   const quiet = self.mode === 2
 

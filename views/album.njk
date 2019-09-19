@@ -14,18 +14,18 @@
 
 {% block stylesheets %}
 <!-- Stylesheets -->
-<link rel="stylesheet" href="../libs/bulma/bulma.min.css?v={{ globals.v3 }}">
-<link rel="stylesheet" href="../css/style.css?v={{ globals.v1 }}">
-<link rel="stylesheet" href="../css/thumbs.css?v={{ globals.v1 }}">
-<link rel="stylesheet" href="../css/album.css?v={{ globals.v1 }}">
+<link rel="stylesheet" href="../libs/bulma/bulma.min.css{{ versions[3] }}">
+<link rel="stylesheet" href="../css/style.css{{ versions[1] }}">
+<link rel="stylesheet" href="../css/thumbs.css{{ versions[1] }}">
+<link rel="stylesheet" href="../css/album.css{{ versions[1] }}">
 {% endblock %}
 
 {% block scripts %}
 {% if not nojs -%}
 <!-- Scripts -->
-<script src="../libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
-<script src="../js/album.js?v={{ globals.v1 }}"></script>
-<script src="../js/misc/utils.js?v={{ globals.v1 }}"></script>
+<script src="../libs/lazyload/lazyload.min.js{{ versions[3] }}"></script>
+<script src="../js/album.js{{ versions[1] }}"></script>
+<script src="../js/misc/utils.js{{ versions[1] }}"></script>
 {% endif %}
 {% endblock %}
 

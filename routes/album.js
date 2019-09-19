@@ -82,7 +82,13 @@ routes.get('/a/:identifier', async (req, res, next) => {
 
   album.url = `a/${album.identifier}`
 
-  return res.render('album', { config, album, files, nojs }, (error, html) => {
+  return res.render('album', {
+    config,
+    versions: utils.versionStrings,
+    album,
+    files,
+    nojs
+  }, (error, html) => {
     utils.albumsCache[cacheid].cache = error ? null : html
     utils.albumsCache[cacheid].generating = false
 

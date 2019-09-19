@@ -5,22 +5,22 @@
 
 {% block stylesheets %}
 {{ super() }}
-<link rel="stylesheet" href="libs/fontello/fontello.css?v={{ globals.v3 }}">
-<link rel="stylesheet" href="css/sweetalert.css?v={{ globals.v1 }}">
-<link rel="stylesheet" href="css/thumbs.css?v={{ globals.v1 }}">
-<link rel="stylesheet" href="css/dashboard.css?v={{ globals.v1 }}">
+<link rel="stylesheet" href="libs/fontello/fontello.css{{ versions[1] }}">
+<link rel="stylesheet" href="css/sweetalert.css{{ versions[1] }}">
+<link rel="stylesheet" href="css/thumbs.css{{ versions[1] }}">
+<link rel="stylesheet" href="css/dashboard.css{{ versions[1] }}">
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-<script src="libs/sweetalert/sweetalert.min.js?v={{ globals.v3 }}"></script>
-<script src="libs/axios/axios.min.js?v={{ globals.v3 }}"></script>
-<script src="libs/clipboard.js/clipboard.min.js?v={{ globals.v3 }}"></script>
-<script src="libs/lazyload/lazyload.min.js?v={{ globals.v3 }}"></script>
+<script src="libs/sweetalert/sweetalert.min.js{{ versions[3] }}"></script>
+<script src="libs/axios/axios.min.js{{ versions[3] }}"></script>
+<script src="libs/clipboard.js/clipboard.min.js{{ versions[3] }}"></script>
+<script src="libs/lazyload/lazyload.min.js{{ versions[3] }}"></script>
 {# Polyfill smooth scroll for older browsers #}
-<script src="libs/smoothscroll/smoothscroll.min.js?v={{ globals.v3 }}"></script>
-<script src="js/dashboard.js?v={{ globals.v1 }}"></script>
-<script src="js/misc/utils.js?v={{ globals.v1 }}"></script>
+<script src="libs/smoothscroll/smoothscroll.min.js{{ versions[3] }}"></script>
+<script src="js/dashboard.js{{ versions[1] }}"></script>
+<script src="js/misc/utils.js{{ versions[1] }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -89,7 +89,7 @@
         </aside>
       </div>
       <div id="page" class="column has-text-centered is-third-quarters">
-        <img alt="logo" src="images/logo.png?v={{ globals.v2 }}">
+        <img alt="logo" src="images/logo.png{{ versions[2] }}">
       </div>
     </div>
   </div>
