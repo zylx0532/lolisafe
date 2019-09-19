@@ -62,7 +62,7 @@
           <div class="field uploads nojs">
             {% for file in files -%}
             <div class="field">
-              <p class="name is-unselectable">{{ file.original }}</p>
+              <p class="name">{{ file.original }}</p>
               {% if errorMessage -%}
               <p class="error">{{ errorMessage | safe }}</p>
               {%- endif %}
