@@ -21,6 +21,7 @@ Normal priority:
 * [ ] Add a copy all links to clipboard when there are more than 2 uploads in history.
 * [x] Update fb_share.png.
 * [ ] Support [fragments](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Identifying_resources_on_the_Web#Fragment) for dashboard sidebar menus.
+* [ ] I forsaked all `Promise.all()` in favor of `await-in-for-loop` a while back. I personally think it was fine, considering a lot of them were tasks that required serial processing (continuation be dependant on previous iterations), but maybe I should review the current codes to find any sections that would do just fine, or maybe even great, with `Promise.all()`.
 
 Low priority:
 
