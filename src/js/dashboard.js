@@ -90,12 +90,49 @@ const page = {
   albumDescMaxLength: 4000
 }
 
-page.preparePage = () => {
-  if (!page.token) {
-    window.location = 'auth'
-    return
+// Handler for regular JS errors
+page.onError = error => {
+  console.error(error)
+
+  const content = document.createElement('div')
+  content.innerHTML = `<code>${error.toString()}</code>`
+  return swal({
+    title: 'An error occurred!',
+    icon: 'error',
+    content
+  })
+}
+
+// Handler for Axios errors
+page.onAxiosError = error => {
+  console.error(error)
+
+  // Better Cloudflare errors
+  const cloudflareErrors = {
+    520: 'Unknown Error',
+    521: 'Web Server Is Down',
+    522: 'Connection Timed Out',
+    523: 'Origin Is Unreachable',
+    524: 'A Timeout Occurred',
+    525: 'SSL Handshake Failed',
+    526: 'Invalid SSL Certificate',
+    527: 'Railgun Error',
+    530: 'Origin DNS Error'
   }
-  page.verifyToken(page.token, true)
+
+  const statusText = cloudflareErrors[error.response.status] || error.response.statusText
+  const description = error.response.data && error.response.data.description
+    ? error.response.data.description
+    : 'There was an error with the request, please check the console for more information.'
+
+  return swal(`${error.response.status} ${statusText}`, description, 'error')
+}
+
+page.preparePage = () => {
+  if (page.token)
+    page.verifyToken(page.token, true)
+  else
+    window.location = 'auth'
 }
 
 page.verifyToken = (token, reloadOnError) => {
@@ -113,14 +150,12 @@ page.verifyToken = (token, reloadOnError) => {
 
     axios.defaults.headers.common.token = token
     localStorage[lsKeys.token] = token
+
     page.token = token
     page.username = response.data.username
     page.permissions = response.data.permissions
     page.prepareDashboard()
-  }).catch(error => {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
+  }).catch(page.onAxiosError)
 }
 
 page.prepareDashboard = () => {
@@ -145,7 +180,7 @@ page.prepareDashboard = () => {
     { selector: '#itemManageAlbums', onclick: page.getAlbums },
     { selector: '#itemManageToken', onclick: page.changeToken },
     { selector: '#itemChangePassword', onclick: page.changePassword },
-    { selector: '#itemLogout', onclick: page.logout, inactive: true },
+    { selector: '#itemLogout', onclick: page.logout },
     { selector: '#itemManageUploads', onclick: page.getUploads, params: { all: true }, group: 'moderator' },
     { selector: '#itemStatistics', onclick: page.getStatistics, group: 'admin' },
     { selector: '#itemManageUsers', onclick: page.getUsers, group: 'admin' }
@@ -162,6 +197,7 @@ page.prepareDashboard = () => {
       // This class name isn't actually being applied fast enough
       if (page.menusContainer.classList.contains('is-loading'))
         return
+
       // eslint-disable-next-line compat/compat
       itemMenus[i].onclick.call(null, Object.assign({
         trigger: event.currentTarget
@@ -191,7 +227,8 @@ page.prepareDashboard = () => {
     page.prepareShareX()
 }
 
-page.logout = () => {
+page.logout = params => {
+  page.updateTrigger(params.trigger, 'active')
   localStorage.removeItem(lsKeys.token)
   window.location = 'auth'
 }
@@ -308,11 +345,17 @@ page.fadeAndScroll = content => {
     clearTimeout(page.fadingIn)
     page.dom.classList.remove('fade-in')
   }
+
   page.dom.classList.add('fade-in')
   page.fadingIn = setTimeout(() => {
     page.dom.classList.remove('fade-in')
   }, 500)
-  page.dom.scrollIntoView(true)
+
+  page.dom.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+    inline: 'nearest'
+  })
 }
 
 page.switchPage = (action, element) => {
@@ -409,14 +452,14 @@ page.getUploads = (params = {}) => {
                 <input id="filters" class="input is-small" type="text" placeholder="Filters" value="${params.filters || ''}">
               </div>
               <div class="control">
-                <button type="button" class="button is-small is-info" title="Help?" data-action="filters-help">
+                <button type="button" class="button is-small is-primary is-outlined" title="Help?" data-action="filters-help">
                   <span class="icon">
                     <i class="icon-help-circled"></i>
                   </span>
                 </button>
               </div>
               <div class="control">
-                <button type="submit" class="button is-small is-info" title="Filter uploads" data-action="filter-uploads">
+                <button type="submit" class="button is-small is-info is-outlined" title="Filter uploads" data-action="filter-uploads">
                   <span class="icon">
                     <i class="icon-filter"></i>
                   </span>
@@ -436,7 +479,7 @@ page.getUploads = (params = {}) => {
                 <input id="jumpToPage" class="input is-small" type="number" value="${params.pageNum + 1}">
               </div>
               <div class="control">
-                <button type="submit" class="button is-small is-info" title="Jump to page" data-action="jump-to-page">
+                <button type="submit" class="button is-small is-info is-outlined" title="Jump to page" data-action="jump-to-page">
                   <span class="icon">
                     <i class="icon-paper-plane"></i>
                   </span>
@@ -452,30 +495,30 @@ page.getUploads = (params = {}) => {
       <div class="columns">
         <div class="column is-hidden-mobile"></div>
         <div class="column has-text-centered">
-          <a class="button is-small is-danger" title="List view" data-action="view-list">
+          <a class="button is-small is-danger is-outlined" title="List view" data-action="view-list">
             <span class="icon">
               <i class="icon-th-list"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Thumbs view" data-action="view-thumbs">
+          <a class="button is-small is-danger is-outlined" title="Thumbs view" data-action="view-thumbs">
             <span class="icon">
               <i class="icon-th-large"></i>
             </span>
           </a>
         </div>
         <div class="column has-text-right">
-          <a class="button is-small is-info" title="Clear selection" data-action="clear-selection">
+          <a class="button is-small is-info is-outlined" title="Clear selection" data-action="clear-selection">
             <span class="icon">
               <i class="icon-cancel"></i>
             </span>
           </a>
           ${params.all ? '' : `
-          <a class="button is-small is-warning" title="Bulk add to album" data-action="add-selected-uploads-to-album">
+          <a class="button is-small is-warning is-outlined" title="Bulk add to album" data-action="add-selected-uploads-to-album">
             <span class="icon">
               <i class="icon-plus"></i>
             </span>
           </a>`}
-          <a class="button is-small is-danger" title="Bulk delete" data-action="bulk-delete-uploads">
+          <a class="button is-small is-danger is-outlined" title="Bulk delete" data-action="bulk-delete-uploads">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -546,7 +589,6 @@ page.getUploads = (params = {}) => {
         ${controls}
         <div id="table" class="columns is-multiline is-mobile is-centered">
         </div>
-        <hr>
         ${pagination}
       `
 
@@ -623,7 +665,6 @@ page.getUploads = (params = {}) => {
             </tbody>
           </table>
         </div>
-        <hr>
         ${pagination}
       `
 
@@ -642,23 +683,23 @@ page.getUploads = (params = {}) => {
           <td>${upload.prettyDate}</td>
           ${hasExpiryDateColumn ? `<td>${upload.prettyExpiryDate || '-'}</td>` : ''}
           <td class="controls has-text-right">
-            <a class="button is-small is-primary" title="${upload.thumb ? 'Display preview' : 'File can\'t be previewed'}" data-action="display-preview"${upload.thumb ? '' : ' disabled'}>
+            <a class="button is-small is-primary is-outlined" title="${upload.thumb ? 'Display preview' : 'File can\'t be previewed'}" data-action="display-preview"${upload.thumb ? '' : ' disabled'}>
               <span class="icon">
                 <i class="${upload.type !== 'other' ? `icon-${upload.type}` : 'icon-doc-inv'}"></i>
               </span>
             </a>
-            <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
+            <a class="button is-small is-info is-outlined clipboard-js" title="Copy link to clipboard" data-clipboard-text="${upload.file}">
               <span class="icon">
                 <i class="icon-clipboard"></i>
               </span>
             </a>
             ${params.all ? '' : `
-            <a class="button is-small is-warning" title="Add to album" data-action="add-to-album">
+            <a class="button is-small is-warning is-outlined" title="Add to album" data-action="add-to-album">
               <span class="icon">
                 <i class="icon-plus"></i>
               </span>
             </a>`}
-            <a class="button is-small is-danger" title="Delete" data-action="delete-upload">
+            <a class="button is-small is-danger is-outlined" title="Delete" data-action="delete-upload">
               <span class="icon">
                 <i class="icon-trash"></i>
               </span>
@@ -686,9 +727,8 @@ page.getUploads = (params = {}) => {
       page.views.uploadsAll.filters = params.filters
     page.views[page.currentView].pageNum = files.length ? params.pageNum : 0
   }).catch(error => {
-    console.error(error)
     page.updateTrigger(params.trigger)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    page.onAxiosError(error)
   })
 }
 
@@ -725,7 +765,7 @@ page.displayPreview = id => {
       div.innerHTML += `
         <div class="field has-text-centered">
           <div class="controls">
-            <a id="swalOriginal" type="button" class="button is-info is-fullwidth" data-original="${file.original}">
+            <a id="swalOriginal" type="button" class="button is-info is-outlined is-fullwidth" data-original="${file.original}">
               <span class="icon">
                 <i class="icon-arrows-cw"></i>
               </span>
@@ -1006,7 +1046,7 @@ page.deleteUploadsByNames = (params = {}) => {
       </div>
       <div class="field">
         <div class="control">
-          <button type="submit" id="submitBulkDelete" class="button is-danger is-fullwidth">
+          <button type="submit" id="submitBulkDelete" class="button is-danger is-outlined is-fullwidth">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -1110,10 +1150,7 @@ page.postBulkDeleteUploads = (params = {}) => {
 
       if (typeof params.cb === 'function')
         params.cb(failed)
-    }).catch(error => {
-      console.error(error)
-      swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }).catch(page.onAxiosError)
   })
 }
 
@@ -1209,13 +1246,7 @@ page.addUploadsToAlbum = (ids, callback) => {
 
       swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
       callback(add.data.failed)
-    }).catch(error => {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
-  }).catch(error => {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    }).catch(page.onAxiosError)
   })
 
   // Get albums list then update content of swal
@@ -1241,14 +1272,12 @@ page.addUploadsToAlbum = (ids, callback) => {
 
     select.getElementsByTagName('option')[1].innerHTML = 'Choose an album'
     select.removeAttribute('disabled')
-  }).catch(error => {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
+  }).catch(page.onAxiosError)
 }
 
 page.getAlbums = (params = {}) => {
   page.updateTrigger(params.trigger, 'loading')
+
   axios.get('api/albums').then(response => {
     if (!response) return
 
@@ -1279,7 +1308,7 @@ page.getAlbums = (params = {}) => {
         </div>
         <div class="field">
           <div class="control">
-            <button type="submit" id="submitAlbum" class="button is-info is-fullwidth" data-action="submit-album">
+            <button type="submit" id="submitAlbum" class="button is-info is-outlined is-fullwidth" data-action="submit-album">
               <span class="icon">
                 <i class="icon-paper-plane"></i>
               </span>
@@ -1333,22 +1362,22 @@ page.getAlbums = (params = {}) => {
         <td>${album.prettyDate}</td>
         <td><a ${album.public ? `href="${albumUrl}"` : 'class="is-linethrough"'} target="_blank" rel="noopener">${albumUrl}</a></td>
         <td class="has-text-right" data-id="${album.id}">
-          <a class="button is-small is-primary" title="Edit album" data-action="edit-album">
+          <a class="button is-small is-primary is-outlined" title="Edit album" data-action="edit-album">
             <span class="icon is-small">
               <i class="icon-pencil"></i>
             </span>
           </a>
-          <a class="button is-small is-info clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
+          <a class="button is-small is-info is-outlined clipboard-js" title="Copy link to clipboard" ${album.public ? `data-clipboard-text="${albumUrl}"` : 'disabled'}>
             <span class="icon is-small">
               <i class="icon-clipboard"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
+          <a class="button is-small is-warning is-outlined" title="Download album" ${album.download ? `href="api/album/zip/${album.identifier}?v=${album.editedAt}"` : 'disabled'}>
             <span class="icon is-small">
               <i class="icon-download"></i>
             </span>
           </a>
-          <a class="button is-small is-danger" title="Delete album" data-action="delete-album">
+          <a class="button is-small is-danger is-outlined" title="Delete album" data-action="delete-album">
             <span class="icon is-small">
               <i class="icon-trash"></i>
             </span>
@@ -1361,9 +1390,8 @@ page.getAlbums = (params = {}) => {
     page.fadeAndScroll()
     page.updateTrigger(params.trigger, 'active')
   }).catch(error => {
-    console.error(error)
     page.updateTrigger(params.trigger)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    page.onAxiosError(error)
   })
 }
 
@@ -1450,10 +1478,7 @@ page.editAlbum = id => {
 
       page.getAlbumsSidebar()
       page.getAlbums()
-    }).catch(error => {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }).catch(page.onAxiosError)
   })
 }
 
@@ -1495,15 +1520,13 @@ page.deleteAlbum = id => {
       swal('Deleted!', 'Your album has been deleted.', 'success')
       page.getAlbumsSidebar()
       page.getAlbums()
-    }).catch(error => {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }).catch(page.onAxiosError)
   })
 }
 
 page.submitAlbum = element => {
   page.updateTrigger(element, 'loading')
+
   axios.post('api/albums', {
     name: document.querySelector('#albumName').value.trim(),
     description: document.querySelector('#albumDescription').value.trim()
@@ -1522,9 +1545,8 @@ page.submitAlbum = element => {
     page.getAlbumsSidebar()
     page.getAlbums()
   }).catch(error => {
-    console.error(error)
     page.updateTrigger(element)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    page.onAxiosError(error)
   })
 }
 
@@ -1571,79 +1593,60 @@ page.getAlbumsSidebar = () => {
       li.appendChild(a)
       albumsContainer.appendChild(li)
     }
-  }).catch(error => {
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-  })
+  }).catch(page.onAxiosError)
 }
 
 page.changeToken = (params = {}) => {
-  page.updateTrigger(params.trigger, 'loading')
-  axios.get('api/tokens').then(response => {
-    if (response.data.success === false)
-      if (response.data.description === 'No token provided') {
-        return page.verifyToken(page.token)
-      } else {
-        page.updateTrigger(params.trigger)
-        return swal('An error occurred!', response.data.description, 'error')
-      }
-
-    page.dom.innerHTML = `
-      <div class="field">
-        <label class="label">Your current token:</label>
-        <div class="field">
-          <div class="control">
-            <input id="token" readonly class="input" type="text" placeholder="Your token" value="${response.data.token}">
-          </div>
-        </div>
-      </div>
+  page.dom.innerHTML = `
+    <div class="field">
+      <label class="label">Your current token:</label>
       <div class="field">
         <div class="control">
-          <a id="getNewToken" class="button is-info is-fullwidth">
-            <span class="icon">
-              <i class="icon-arrows-cw"></i>
-            </span>
-            <span>Request new token</span>
-          </a>
+          <input id="token" readonly class="input" type="text" placeholder="Your token" value="${page.token}">
         </div>
       </div>
-    `
-    page.fadeAndScroll()
-    page.updateTrigger(params.trigger, 'active')
+    </div>
+    <div class="field">
+      <div class="control">
+        <a id="getNewToken" class="button is-info is-outlined is-fullwidth">
+          <span class="icon">
+            <i class="icon-arrows-cw"></i>
+          </span>
+          <span>Request new token</span>
+        </a>
+      </div>
+    </div>
+  `
+  page.fadeAndScroll()
+  page.updateTrigger(params.trigger, 'active')
 
-    document.querySelector('#getNewToken').addEventListener('click', event => {
-      const trigger = event.currentTarget
-      page.updateTrigger(trigger, 'loading')
-      axios.post('api/tokens/change').then(response => {
-        if (response.data.success === false)
-          if (response.data.description === 'No token provided') {
-            return page.verifyToken(page.token)
-          } else {
-            page.updateTrigger(trigger)
-            return swal('An error occurred!', response.data.description, 'error')
-          }
+  document.querySelector('#getNewToken').addEventListener('click', event => {
+    const trigger = event.currentTarget
+    page.updateTrigger(trigger, 'loading')
+    axios.post('api/tokens/change').then(response => {
+      if (response.data.success === false)
+        if (response.data.description === 'No token provided') {
+          return page.verifyToken(page.token)
+        } else {
+          page.updateTrigger(trigger)
+          return swal('An error occurred!', response.data.description, 'error')
+        }
 
-        page.updateTrigger(trigger)
-        swal({
-          title: 'Woohoo!',
-          text: 'Your token was successfully changed.',
-          icon: 'success'
-        }).then(() => {
-          axios.defaults.headers.common.token = response.data.token
-          localStorage[lsKeys.token] = response.data.token
-          page.token = response.data.token
-          page.changeToken()
-        })
-      }).catch(error => {
-        console.error(error)
-        page.updateTrigger(trigger)
-        return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+      page.updateTrigger(trigger)
+      swal({
+        title: 'Woohoo!',
+        text: 'Your token was successfully changed.',
+        icon: 'success'
+      }).then(() => {
+        axios.defaults.headers.common.token = response.data.token
+        localStorage[lsKeys.token] = response.data.token
+        page.token = response.data.token
+        page.changeToken()
       })
+    }).catch(error => {
+      page.updateTrigger(trigger)
+      page.onAxiosError(error)
     })
-  }).catch(error => {
-    console.error(error)
-    page.updateTrigger(params.trigger)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
   })
 }
 
@@ -1664,7 +1667,7 @@ page.changePassword = (params = {}) => {
       </div>
       <div class="field">
         <div class="control">
-          <button type="submit" id="sendChangePassword" class="button is-info is-fullwidth">
+          <button type="submit" id="sendChangePassword" class="button is-info is-outlined is-fullwidth">
             <span class="icon">
               <i class="icon-paper-plane"></i>
             </span>
@@ -1693,15 +1696,15 @@ page.sendNewPassword = (pass, element) => {
   page.updateTrigger(element, 'loading')
 
   axios.post('api/password/change', { password: pass }).then(response => {
-    page.updateTrigger(element)
-
     if (response.data.success === false)
       if (response.data.description === 'No token provided') {
         return page.verifyToken(page.token)
       } else {
+        page.updateTrigger(element)
         return swal('An error occurred!', response.data.description, 'error')
       }
 
+    page.updateTrigger(element)
     swal({
       title: 'Woohoo!',
       text: 'Your password was successfully changed.',
@@ -1710,9 +1713,8 @@ page.sendNewPassword = (pass, element) => {
       page.changePassword()
     })
   }).catch(error => {
-    console.error(error)
     page.updateTrigger(element)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    page.onAxiosError(error)
   })
 }
 
@@ -1756,7 +1758,7 @@ page.getUsers = (params = {}) => {
                 <input id="jumpToPage" class="input is-small" type="number" value="${params.pageNum + 1}">
               </div>
               <div class="control">
-                <button type="submit" class="button is-small is-info" title="Jump to page" data-action="jump-to-page">
+                <button type="submit" class="button is-small is-info is-outlined" title="Jump to page" data-action="jump-to-page">
                   <span class="icon">
                     <i class="icon-paper-plane"></i>
                   </span>
@@ -1854,22 +1856,22 @@ page.getUsers = (params = {}) => {
         <td>${page.getPrettyBytes(user.usage)}</td>
         <td>${displayGroup}</td>
         <td class="controls has-text-right">
-          <a class="button is-small is-primary" title="Edit user" data-action="edit-user">
+          <a class="button is-small is-primary is-outlined" title="Edit user" data-action="edit-user">
             <span class="icon">
               <i class="icon-pencil"></i>
             </span>
           </a>
-          <a class="button is-small is-info" title="${user.uploads ? 'View uploads' : 'User doesn\'t have uploads'}" data-action="view-user-uploads" ${user.uploads ? '' : 'disabled'}>
+          <a class="button is-small is-info is-outlined" title="${user.uploads ? 'View uploads' : 'User doesn\'t have uploads'}" data-action="view-user-uploads" ${user.uploads ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-docs"></i>
             </span>
           </a>
-          <a class="button is-small is-warning" title="${enabled ? 'Disable user' : 'User is disabled'}" data-action="disable-user" ${enabled ? '' : 'disabled'}>
+          <a class="button is-small is-warning is-outlined" title="${enabled ? 'Disable user' : 'User is disabled'}" data-action="disable-user" ${enabled ? '' : 'disabled'}>
             <span class="icon">
               <i class="icon-hammer"></i>
             </span>
           </a>
-          <a class="button is-small is-danger is-hidden" title="Delete user (WIP)" data-action="delete-user" disabled>
+          <a class="button is-small is-danger is-outlined is-hidden" title="Delete user (WIP)" data-action="delete-user" disabled>
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -1893,8 +1895,7 @@ page.getUsers = (params = {}) => {
     page.views.users.pageNum = response.data.users.length ? params.pageNum : 0
   }).catch(error => {
     page.updateTrigger(params.trigger)
-    console.error(error)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    page.onAxiosError(error)
   })
 }
 
@@ -1991,10 +1992,7 @@ page.editUser = id => {
       }
 
       page.getUsers(page.views.users)
-    }).catch(error => {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }).catch(page.onAxiosError)
   })
 }
 
@@ -2031,10 +2029,7 @@ page.disableUser = id => {
 
       swal('Success!', 'The user has been disabled.', 'success')
       page.getUsers(page.views.users)
-    }).catch(error => {
-      console.error(error)
-      return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-    })
+    }).catch(page.onAxiosError)
   })
 }
 
@@ -2093,6 +2088,7 @@ page.getStatistics = (params = {}) => {
     return swal('An error occurred!', 'You can not do this!', 'error')
 
   page.updateTrigger(params.trigger, 'loading')
+
   const url = 'api/stats'
   axios.get(url).then(response => {
     if (response.data.success === false)
@@ -2145,13 +2141,13 @@ page.getStatistics = (params = {}) => {
             `
           }
         } catch (error) {
-          console.error(error)
           rows = `
               <tr>
                 <td>Error parsing response. Try again?</td>
                 <td></td>
               </tr>
             `
+          page.onError(error)
         }
 
       content += `
@@ -2175,16 +2171,13 @@ page.getStatistics = (params = {}) => {
     page.fadeAndScroll()
     page.updateTrigger(params.trigger, 'active')
   }).catch(error => {
-    console.error(error)
     page.updateTrigger(params.trigger)
-    const description = error.response.data && error.response.data.description
-      ? error.response.data && error.response.data.description
-      : 'There was an error with the request, please check the console for more information.'
-    return swal('An error occurred!', description, 'error')
+    page.onAxiosError(error)
   })
 }
 
 window.onload = () => {
+  // Polyfill Object.assign()
   // eslint-disable-next-line compat/compat
   if (typeof Object.assign !== 'function')
     // Must be writable: true, enumerable: false, configurable: true
@@ -2226,10 +2219,7 @@ window.onload = () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  page.clipboardJS.on('error', event => {
-    console.error(event)
-    return swal('An error occurred!', 'There was an error when trying to copy the link to clipboard, please check the console for more information.', 'error')
-  })
+  page.clipboardJS.on('error', page.onError)
 
   page.lazyLoad = new LazyLoad()
 }

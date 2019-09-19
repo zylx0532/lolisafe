@@ -18,7 +18,14 @@
 
 {% block content %}
 {{ super() }}
-<section id="login" class="hero is-fullheight">
+<section id="loader" class="hero is-fullheight">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <span class="loader is-inline-block"></span>
+    </div>
+  </div>
+</section>
+<section id="login" class="hero is-fullheight is-hidden">
   <div class="hero-body">
     <div class="container">
       <div class="columns is-centered">
@@ -43,7 +50,7 @@
             </div>
             <div class="field is-grouped is-grouped-right">
               <div class="control">
-                <button id="registerBtn" type="button" class="button">
+                <button id="registerBtn" type="button" class="button is-primary is-outlined">
                   <span class="icon">
                     <i class="icon-user-plus"></i>
                   </span>
@@ -51,7 +58,7 @@
                 </button>
               </div>
               <div class="control">
-                <button id="loginBtn" type="submit" class="button is-info">
+                <button id="loginBtn" type="submit" class="button is-info is-outlined">
                   <span class="icon">
                     <i class="icon-login"></i>
                   </span>

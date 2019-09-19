@@ -6,9 +6,9 @@
 {% set private = config.private %}
 {% set disabledMessage -%}
   {%- if config.enableUserAccounts -%}
-  Anonymous upload is disabled.
+  Anonymous upload is disabled. Log in to upload.
   {%- else -%}
-  Running in private mode.
+  Running in private mode. Log in to upload.
   {%- endif %}
 {%- endset %}
 {% set maxSizeInt = config.uploads.maxSize | int %}
@@ -38,7 +38,7 @@
         <div class="column is-hidden-mobile"></div>
         <div class="column">
           {% if private -%}
-          <a class="button is-danger is-flex" href="auth">
+          <a class="button is-danger is-outlined is-fullwidth" href="auth">
             {{ disabledMessage }}
           </a>
           {%- else -%}
@@ -50,7 +50,7 @@
             </div>
             <div class="field">
               <p class="control">
-                <input type="submit" class="button is-danger is-fullwidth" value="Upload">
+                <input type="submit" class="button is-danger is-outlined is-fullwidth" value="Upload">
               </p>
               <p class="help">
                 Files uploaded through this form will not be associated with your account, if you have any.

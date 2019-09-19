@@ -13,6 +13,36 @@ const page = {
   pass: null
 }
 
+page.unhide = () => {
+  document.querySelector('#loader').classList.add('is-hidden')
+  document.querySelector('#login').classList.remove('is-hidden')
+}
+
+// Handler for Axios errors
+page.onAxiosError = error => {
+  console.error(error)
+
+  // Better Cloudflare errors
+  const cloudflareErrors = {
+    520: 'Unknown Error',
+    521: 'Web Server Is Down',
+    522: 'Connection Timed Out',
+    523: 'Origin Is Unreachable',
+    524: 'A Timeout Occurred',
+    525: 'SSL Handshake Failed',
+    526: 'Invalid SSL Certificate',
+    527: 'Railgun Error',
+    530: 'Origin DNS Error'
+  }
+
+  const statusText = cloudflareErrors[error.response.status] || error.response.statusText
+  const description = error.response.data && error.response.data.description
+    ? error.response.data.description
+    : 'There was an error with the request, please check the console for more information.'
+
+  return swal(`${error.response.status} ${statusText}`, description, 'error')
+}
+
 page.do = (dest, trigger) => {
   const user = page.user.value.trim()
   if (!user)
@@ -35,34 +65,29 @@ page.do = (dest, trigger) => {
     localStorage.token = response.data.token
     window.location = 'dashboard'
   }).catch(error => {
-    console.error(error)
     trigger.classList.remove('is-loading')
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
+    page.onAxiosError(error)
   })
 }
 
 page.verify = () => {
-  if (!page.token) return
-
   axios.post('api/tokens/verify', {
     token: page.token
   }).then(response => {
-    if (response.data.success === false)
+    if (response.data.success === false) {
+      page.unhide()
       return swal('An error occurred!', response.data.description, 'error')
+    }
 
+    // Redirect to dashboard if token is valid
     window.location = 'dashboard'
   }).catch(error => {
-    console.error(error)
-    const description = error.response.data && error.response.data.description
-      ? error.response.data.description
-      : 'There was an error with the request, please check the console for more information.'
-    return swal(`${error.response.status} ${error.response.statusText}`, description, 'error')
+    page.unhide()
+    page.onAxiosError(error)
   })
 }
 
 window.onload = () => {
-  page.verify()
-
   page.user = document.querySelector('#user')
   page.pass = document.querySelector('#pass')
 
@@ -81,4 +106,9 @@ window.onload = () => {
     if (!form.checkValidity()) return
     page.do('register', event.currentTarget)
   })
+
+  if (page.token)
+    page.verify()
+  else
+    page.unhide()
 }

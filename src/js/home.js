@@ -52,10 +52,8 @@ const page = {
   albumDescMaxLength: 4000
 }
 
-// Error handler for all API requests on init
+// Handler for errors during initialization
 page.onInitError = error => {
-  console.error(error)
-
   // Hide these elements
   document.querySelector('#albumDiv').classList.add('is-hidden')
   document.querySelector('#tabs').classList.add('is-hidden')
@@ -73,11 +71,30 @@ page.onInitError = error => {
     location.reload()
   })
 
-  // Defer to the other handler if not API errors
-  if (!error.response)
-    return page.onUnexpectedError(error, true)
+  if (error.response)
+    page.onAxiosError(error)
+  else
+    page.onError(error)
+}
 
-  // Better error messages for Cloudflare errors
+// Handler for regular JS errors
+page.onError = error => {
+  console.error(error)
+
+  const content = document.createElement('div')
+  content.innerHTML = `<code>${error.toString()}</code>`
+  return swal({
+    title: 'An error occurred!',
+    icon: 'error',
+    content
+  })
+}
+
+// Handler for Axios errors
+page.onAxiosError = error => {
+  console.error(error)
+
+  // Better Cloudflare errors
   const cloudflareErrors = {
     520: 'Unknown Error',
     521: 'Web Server Is Down',
@@ -89,27 +106,13 @@ page.onInitError = error => {
     527: 'Railgun Error',
     530: 'Origin DNS Error'
   }
+
   const statusText = cloudflareErrors[error.response.status] || error.response.statusText
   const description = error.response.data && error.response.data.description
     ? error.response.data.description
-    : 'Please check the console for more information.'
+    : 'There was an error with the request, please check the console for more information.'
+
   return swal(`${error.response.status} ${statusText}`, description, 'error')
-}
-
-// Error handler for all other unexpected errors
-page.onUnexpectedError = (error, skipLog) => {
-  if (!skipLog) console.error(error)
-
-  if (error.response)
-    return swal('An error occurred!', 'There was an error with the request, please check the console for more information.', 'error')
-
-  const content = document.createElement('div')
-  content.innerHTML = `<code>${error.toString()}</code>`
-  return swal({
-    title: 'An error occurred!',
-    icon: 'error',
-    content
-  })
 }
 
 page.checkIfPublic = onFailure => {
@@ -164,7 +167,7 @@ page.verifyToken = (token, reloadOnError) => {
         location.reload()
       })
 
-    localStorage.token = token
+    localStorage[lsKeys.token] = token
     page.token = token
     return page.prepareUpload()
   }).catch(page.onInitError)
@@ -277,7 +280,7 @@ page.prepareDropzone = () => {
   const div = document.createElement('div')
   div.className = 'control is-expanded'
   div.innerHTML = `
-    <div id="dropzone" class="button is-danger is-fullwidth is-unselectable">
+    <div id="dropzone" class="button is-danger is-outlined is-fullwidth is-unselectable">
       <span class="icon">
         <i class="icon-upload-cloud"></i>
       </span>
@@ -577,7 +580,7 @@ page.createAlbum = () => {
       option.selected = true
 
       swal('Woohoo!', 'Album was created successfully.', 'success')
-    }).catch(page.onUnexpectedError)
+    }).catch(page.onError)
   })
 }
 
@@ -758,7 +761,7 @@ window.onload = () => {
     return swal('Copied!', 'The link has been copied to clipboard.', 'success')
   })
 
-  page.clipboardJS.on('error', page.onUnexpectedError)
+  page.clipboardJS.on('error', page.onError)
 
   page.lazyLoad = new LazyLoad({
     elements_selector: '.field.uploads img'
