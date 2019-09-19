@@ -87,6 +87,7 @@ if (config.cacheControl) {
     next()
   })
 
+  // For static assets (and uploads if serving with node)
   setHeaders = res => {
     res.set('Access-Control-Allow-Origin', '*')
     res.set('Cache-Control', cacheControls.default)
@@ -139,11 +140,13 @@ safe.use('/api', api)
 
     // Error pages
     safe.use((req, res, next) => {
+      if (config.cacheControl) res.removeHeader('Cache-Control')
       res.status(404).sendFile(path.join(paths.errorRoot, config.errorPages[404]))
     })
 
     safe.use((error, req, res, next) => {
       logger.error(error)
+      if (config.cacheControl) res.removeHeader('Cache-Control')
       res.status(500).sendFile(path.join(paths.errorRoot, config.errorPages[500]))
     })
 
