@@ -1,7 +1,7 @@
 {% set metaTitle %}
 {{- album.name | truncate(60, true, '…') + ' – ' + files.length + ' file' + ('s' if files.length !== 1) -}}
 {% endset %}
-{% set metaDesc = album.description | truncate(200, true, '…') %}
+{% set metaDesc = album.description | striptags | truncate(200, true, '…') %}
 {% set metaUrl = '/' + album.url %}
 
 {% set fileRoot = config.domain %}
@@ -67,9 +67,9 @@
     </nav>
 
     {% if album.description -%}
-    <h2 class="subtitle description">
-      {{ album.description | safe }}
-    </h2>
+    <div class="subtitle description">
+      {{ album.description | nl2br | safe }}
+    </div>
     {%- endif %}
     <hr>
 

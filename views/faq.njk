@@ -8,13 +8,6 @@
 {% set extensionsFilterMode = config.extensionsFilterMode %}
 {% set extensionsFilter = config.extensionsFilter %}
 
-{% macro extensions(obj) %}
-{% set space = joiner(' ') %}
-{% for id, val in obj -%}
-{{ space() }}{{ id }}="{{ val }}"
-{%- endfor %}
-{% endmacro %}
-
 {% block content %}
 {{ super() }}
 <section class="section">

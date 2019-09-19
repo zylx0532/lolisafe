@@ -76,10 +76,6 @@ routes.get('/a/:identifier', async (req, res, next) => {
     }
   }
 
-  album.description = album.description
-    ? album.description.replace(/\n/g, '<br>')
-    : null
-
   album.downloadLink = album.download === 0
     ? null
     : `api/album/zip/${album.identifier}?v=${album.editedAt}`

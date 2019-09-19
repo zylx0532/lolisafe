@@ -181,7 +181,7 @@ module.exports = {
      Disclaimer message that will be printed underneath the URL uploads form.
      Supports HTML. Be safe though.
     */
-    urlDisclaimerMessage: 'URL uploads are being proxied by <a href="https://duckduckgo.com/" target="_blank" rel="noopener">DuckDuckGo</a>. The proxy can only process direct links, and generally it can only proxy images.',
+    urlDisclaimerMessage: 'URL uploads are being proxied by <a href="https://duckduckgo.com/" target="_blank" rel="noopener">DuckDuckGo</a>.',
 
     /*
      Filter mode for URL uploads.
@@ -190,7 +190,7 @@ module.exports = {
      The rest are paired with urlExtensionsFilter option below and should be self-explanatory.
      When this is not set to any of the 3 values, this will fallback to 'inherit'.
     */
-    urlExtensionsFilterMode: 'inherit',
+    urlExtensionsFilterMode: 'whitelist',
 
     /*
      Mainly intended for URL proxies that only support certain extensions.
@@ -199,7 +199,17 @@ module.exports = {
      Queries and segments in the URLs will be bypassed.
      NOTE: Can not be empty when using either 'blacklist' or 'whitelist' mode.
     */
-    urlExtensionsFilter: [],
+    urlExtensionsFilter: [
+      '.webp',
+      '.jpg',
+      '.jpeg',
+      '.bmp',
+      '.gif',
+      '.png',
+      '.tiff',
+      '.tif',
+      '.svg'
+    ],
 
     /*
       An array of allowed ages for uploads (in hours).

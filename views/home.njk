@@ -5,6 +5,7 @@
 {% set urlDisclaimerMessage = config.uploads.urlDisclaimerMessage %}
 {% set urlExtensionsFilterMode = config.uploads.urlExtensionsFilterMode %}
 {% set urlExtensionsFilter = config.uploads.urlExtensionsFilter %}
+{% set urlExtensionsFilterEnabled = urlExtensionsFilterMode and urlExtensionsFilterMode !== 'inherit' and urlExtensionsFilter.length %}
 {% set temporaryUploadAges = config.uploads.temporaryUploadAges %}
 
 {% block endmeta %}
@@ -104,17 +105,23 @@
               <p class="help">
                 {% if urlMaxSizeInt !== maxSizeInt -%}
                 Maximum file size per URL is <span id="urlMaxSize">{{ urlMaxSizeInt }} MB</span>.
-                {%- endif %}
+                {{- ' ' }}{% endif -%}
 
-                {% if urlExtensionsFilter.length and (urlExtensionsFilterMode === 'blacklist') -%}
-                Blacklisted extensions: {{ urlExtensionsFilter | join(', ') }}.
-                {%- elif urlExtensionsFilter.length and (urlExtensionsFilterMode === 'whitelist') -%}
-                Whitelisted extensions: {{ urlExtensionsFilter | join(', ') }}.
-                {%- endif %}
+                {% if urlExtensionsFilterEnabled -%}
+                  {% if urlExtensionsFilterMode === 'blacklist' -%}
+                  Blacklist:
+                  {%- elif urlExtensionsFilterMode === 'whitelist' -%}
+                  Whitelist:
+                  {%- endif %}{{ ' ' -}}
+                  {% set comma = joiner(', ') %}
+                  {%- for extension in urlExtensionsFilter -%}
+                  {{ comma() }}{{ extension | replace('.', '') | upper }}
+                  {%- endfor %}.
+                {{- ' ' }}{% endif -%}
 
-                {%- if urlDisclaimerMessage %}
+                {%- if urlDisclaimerMessage -%}
                 {{ urlDisclaimerMessage | safe }}
-                {% endif -%}
+                {%- endif %}
               </p>
             </div>
             <div class="field">
