@@ -4,7 +4,11 @@ const utils = require('./../controllers/utilsController')
 const config = require('./../config')
 
 routes.get('/nojs', async (req, res, next) => {
-  return res.render('nojs', { config, gitHash: utils.gitHash })
+  return res.render('nojs', {
+    config,
+    versions: utils.versionStrings,
+    gitHash: utils.gitHash
+  })
 })
 
 routes.post('/nojs', (req, res, next) => {
