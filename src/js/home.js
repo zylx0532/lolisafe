@@ -115,7 +115,7 @@ page.onAxiosError = error => {
   return swal(`${error.response.status} ${statusText}`, description, 'error')
 }
 
-page.checkIfPublic = onFailure => {
+page.checkIfPublic = () => {
   let renderShown = false
   return axios.get('api/check', {
     onDownloadProgress: () => {
@@ -133,7 +133,7 @@ page.checkIfPublic = onFailure => {
     page.chunkSize = parseInt(response.data.chunkSize)
     page.temporaryUploadAges = response.data.temporaryUploadAges
     page.fileIdentifierLength = response.data.fileIdentifierLength
-    return page.preparePage(onFailure)
+    return page.preparePage()
   }).catch(page.onInitError)
 }
 

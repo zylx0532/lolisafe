@@ -8,6 +8,7 @@ const gulpif = require('gulp-if')
 const nodemon = require('gulp-nodemon')
 const postcss = require('gulp-postcss')
 const postcssPresetEnv = require('postcss-preset-env')
+const replace = require('gulp-replace')
 const sourcemaps = require('gulp-sourcemaps')
 const stylelint = require('gulp-stylelint')
 const terser = require('gulp-terser')
@@ -18,6 +19,14 @@ const terser = require('gulp-terser')
 const dist = process.env.NODE_ENV === 'development'
   ? './dist-dev'
   : './dist'
+
+const postcssPlugins = [
+  postcssPresetEnv()
+]
+
+// Minify on production
+if (process.env.NODE_ENV !== 'development')
+  postcssPlugins.push(cssnano())
 
 /** TASKS: LINT */
 
@@ -65,19 +74,23 @@ gulp.task('clean', gulp.parallel('clean:css', 'clean:js', 'clean:rest'))
 /** TASKS: BUILD */
 
 gulp.task('build:css', () => {
-  const plugins = [
-    postcssPresetEnv()
-  ]
-
-  // Minify on production
-  if (process.env.NODE_ENV !== 'development')
-    plugins.push(cssnano())
-
-  return gulp.src('./src/**/*.css')
+  return gulp.src('./src/**/*.css', {
+    ignore: './src/libs/fontello/fontello.css'
+  })
     .pipe(sourcemaps.init())
-    .pipe(postcss(plugins))
+    .pipe(postcss(postcssPlugins))
     .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest(dist))
+})
+
+gulp.task('build:fontello', () => {
+  const version = require('./src/versions.json')[5]
+  return gulp.src('./src/libs/fontello/fontello.css')
+    .pipe(sourcemaps.init())
+    .pipe(gulpif(version !== undefined, replace(/(fontello\.(eot|woff2?|woff|ttf|svg))/g, `$1?_=${version}`)))
+    .pipe(postcss(postcssPlugins))
+    .pipe(sourcemaps.write('.'))
+    .pipe(gulp.dest(`${dist}/libs/fontello`))
 })
 
 gulp.task('build:js', () => {
@@ -90,7 +103,9 @@ gulp.task('build:js', () => {
     .pipe(gulp.dest(dist))
 })
 
-gulp.task('build', gulp.parallel('build:css', 'build:js'))
+gulp.task('build', gulp.parallel('build:css', 'build:fontello', 'build:js'))
+
+/** TASKS: VERSION STRINGS */
 
 gulp.task('exec:bump-versions', cb => {
   exec('node ./scripts/bump-versions.js 1', (error, stdout, stderr) => {

@@ -14,16 +14,21 @@ const self = {
   const location = process.argv[1].replace(process.cwd() + '/', '')
   const args = process.argv.slice(2)
 
+  const min = 1
+  const max = 5
+
   self.types = {}
   for (const arg of args) {
     const lower = arg.toLowerCase()
     if (lower === 'a') {
-      self.types = { 1: '', 2: '', 3: '', 4: '' }
+      self.types = {}
+      for (let i = min; i <= max; i++)
+        self.types[i] = ''
       break
     }
     const parsed = parseInt(lower)
     // Only accept 1 to 4
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= 4)
+    if (!isNaN(parsed) && parsed >= min && parsed <= max)
       self.types[parsed] = ''
   }
 
@@ -35,11 +40,12 @@ const self = {
       node ${location} <types>
 
       types:
-      Space separated list of types (accepts 1 to 4).
+      Space separated list of types (accepts ${min} to ${max}).
       1: CSS and JS files (lolisafe core assets + fontello.css).
       2: Icons, images and config files (manifest.json, browserconfig.xml, etc).
       3: CSS and JS files (libs from /public/libs, such as bulma, lazyload, etc).
       4: Renders from /public/render/* directories (to be used with /src/js/misc/render.js).
+      5: Fontello font files.
       a: Shortcut to update all types.
     `))
 
@@ -70,7 +76,7 @@ const self = {
   const data = Object.assign(old, self.types)
 
   // Stringify new versions
-  const stringified = JSON.stringify(data, null, 2)
+  const stringified = JSON.stringify(data, null, 2) + '\n'
 
   // Write to file
   await self.writeFile(file, stringified)
