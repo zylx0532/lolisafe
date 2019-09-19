@@ -17,9 +17,9 @@ Normal priority:
 * [x] Show expiry date in thumbs view.
 * [ ] Add Select all checkbox somewhere in thumbs view.
 * [x] Display renders after API check.
-* [ ] Enforce pass min/max lengths in dashboard's change password form.
+* [x] Enforce pass min/max lengths in dashboard's change password form.
 * [ ] Add a copy all links to clipboard when there are more than 2 uploads in history.
-* [*] Update fb_share.png.
+* [x] Update fb_share.png.
 
 Low priority:
 

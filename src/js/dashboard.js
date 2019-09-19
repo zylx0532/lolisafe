@@ -1656,13 +1656,13 @@ page.changePassword = (params = {}) => {
       <div class="field">
         <label class="label">New password:</label>
         <div class="control">
-          <input id="password" class="input" type="password" min="6" max="64">
+          <input id="password" class="input" type="password" minlength="6" maxlength="64">
         </div>
       </div>
       <div class="field">
         <label class="label">Re-type new password:</label>
         <div class="control">
-          <input id="passwordConfirm" class="input" type="password" min="6" max="64">
+          <input id="passwordConfirm" class="input" type="password" minlength="6" maxlength="64">
         </div>
       </div>
       <div class="field">
@@ -1681,6 +1681,7 @@ page.changePassword = (params = {}) => {
   page.updateTrigger(params.trigger, 'active')
 
   document.querySelector('#sendChangePassword').addEventListener('click', event => {
+    if (!page.dom.querySelector('form').checkValidity()) return
     if (document.querySelector('#password').value === document.querySelector('#passwordConfirm').value)
       page.sendNewPassword(document.querySelector('#password').value, event.currentTarget)
     else
