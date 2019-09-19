@@ -20,6 +20,7 @@ Normal priority:
 * [x] Enforce pass min/max lengths in dashboard's change password form.
 * [ ] Add a copy all links to clipboard when there are more than 2 uploads in history.
 * [x] Update fb_share.png.
+* [ ] Support [fragments](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Identifying_resources_on_the_Web#Fragment) for dashboard sidebar menus.
 
 Low priority:
 
