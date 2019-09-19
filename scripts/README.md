@@ -50,7 +50,7 @@ mode:
 
 ## thumbs.js
 
-[\[...\]](https://github.com/BobbyWibowo/lolisafe#script-for-missing-thumbnails#script-for-missing-thumbnails)
+[\[...\]](https://github.com/BobbyWibowo/lolisafe#script-for-missing-thumbnails)
 
 ## bump-versions.js
 
