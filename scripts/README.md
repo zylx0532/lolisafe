@@ -50,7 +50,7 @@ mode:
 
 ## thumbs.js
 
-[\[...\]](..#script-for-missing-thumbnails)
+[\[...\]](../#script-for-missing-thumbnails)
 
 ## bump-versions.js
 
