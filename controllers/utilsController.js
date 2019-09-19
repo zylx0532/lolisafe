@@ -281,7 +281,7 @@ self.generateThumbs = async (name, extname, force) => {
       return false
     }
   } catch (error) {
-    // Suppress error logging for errors these patterns
+    // Suppress error logging for errors matching these patterns
     const errorString = error.toString()
     const suppress = [
       /Input file contains unsupported image format/,
@@ -683,7 +683,7 @@ self.stats = async (req, res, next) => {
       }
 
       if (os.platform !== 'linux') {
-      // If not Linux platform, rely on DB for total size
+        // If not Linux platform, rely on DB for total size
         const uploads = await db.table('files')
           .select('size')
         stats.uploads.total = uploads.length

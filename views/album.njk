@@ -1,7 +1,14 @@
-{% set title = album.name %}
-{% extends "_layout.njk" %}
+{% set metaTitle %}
+{{- album.name | truncate(60, true, '…') + ' – ' + files.length + ' file' + ('s' if files.length !== 1) -}}
+{% endset %}
+{% set metaDesc = album.description | truncate(200, true, '…') %}
+{% set metaUrl = '/' + album.url %}
 
 {% set fileRoot = config.domain %}
+{% set metaImage = fileRoot + '/' + album.thumb %}
+
+{% extends "_layout.njk" %}
+
 {% set generateZips = config.uploads.generateZips %}
 {% set usingCdn = config.cloudflare and config.cloudflare.purgeCache %}
 
@@ -22,22 +29,6 @@
 {% endif %}
 {% endblock %}
 
-{% block opengraph %}
-<!-- Open Graph tags -->
-<meta property="og:type" content="website" />
-<meta property="og:title" content="{{ album.name | safe }} &#8211; {{ files.length }} files" />
-<meta property="og:url" content="{{ root }}/{{ album.url }}" />
-<meta property="og:description" content="{{ album.description }}" />
-<meta property="og:image" content="{{ fileRoot }}/{{ album.thumb }}" />
-<meta property="og:locale" content="en_US" />
-
-<!-- Twitter Card tags -->
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="{{ album.name | safe }} &#8211; {{ files.length }} files">
-<meta name="twitter:description" content="{{ album.description }}">
-<meta name="twitter:image" content="{{ fileRoot }}/{{ album.thumb }}">
-{% endblock %}
-
 {% block content %}
 {{ super() }}
 <section class="section">
@@ -46,7 +37,7 @@
       <div class="level-left">
         <div class="level-item">
           <h1 id="title" class="title">
-            {{ album.name | safe }}
+            {{ album.name | truncate(70, true, '…') }}
           </h1>
         </div>
         <div class="level-item">

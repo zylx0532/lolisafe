@@ -76,7 +76,7 @@ const executeMulter = multer({
       delete req.body[key]
     }
 
-    if (req.body.chunkindex && !chunkedUploads)
+    if (req.body.chunkindex !== undefined && !chunkedUploads)
       return cb('Chunked uploads are disabled at the moment.')
     else
       return cb(null, true)
@@ -111,8 +111,7 @@ const executeMulter = multer({
       return cb(null, name)
     }
   })
-}).array('files[]', {
-})
+}).array('files[]')
 
 self.isExtensionFiltered = extname => {
   // If empty extension needs to be filtered
@@ -340,7 +339,7 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
       })
     }
 
-    // If not errors found, clear cache of downloaded files
+    // If no errors found, clear cache of downloaded files
     downloaded.length = 0
 
     if (utils.clamd.scanner) {
@@ -467,6 +466,7 @@ self.actuallyFinishChunks = async (req, res, user) => {
       if (chunksData[file.uuid] !== undefined)
         // Continue even when encountering errors
         await self.cleanUpChunks(file.uuid).catch(logger.error)
+    // Re-throw error
     throw error
   }
 }
@@ -492,8 +492,7 @@ self.combineChunks = async (destination, uuid) => {
   writeStream.end()
 
   // Re-throw error
-  if (errorObj)
-    throw errorObj
+  if (errorObj) throw errorObj
 }
 
 self.cleanUpChunks = async (uuid) => {
@@ -700,8 +699,7 @@ self.list = async (req, res) => {
   const user = await utils.authorize(req, res)
   if (!user) return
 
-  // Headers is string-only, this seem to be the safest and lightest
-  const all = req.headers.all === '1'
+  const all = Boolean(req.headers.all)
   const filters = req.headers.filters
   const ismoderator = perms.is(user, 'moderator')
   if ((all || filters) && !ismoderator)

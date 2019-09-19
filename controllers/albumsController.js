@@ -12,7 +12,7 @@ const db = require('knex')(config.database)
 const self = {
   // Don't forget to update max length of text inputs in
   // home.js & dashboard.js when changing these values
-  titleMaxLength: 280,
+  titleMaxLength: 70,
   descMaxLength: 4000,
 
   onHold: new Set()
@@ -21,7 +21,7 @@ const self = {
 const homeDomain = config.homeDomain || config.domain
 
 const zipMaxTotalSize = parseInt(config.cloudflare.zipMaxTotalSize)
-const zipMaxTotalSizeBytes = config.cloudflare.zipMaxTotalSize * 1000000
+const zipMaxTotalSizeBytes = zipMaxTotalSize * 1e6
 const zipOptions = config.uploads.jsZipOptions
 
 // Force 'type' option to 'nodebuffer'
@@ -32,8 +32,10 @@ if (zipOptions.streamFiles === undefined)
   zipOptions.streamFiles = true
 if (zipOptions.compression === undefined)
   zipOptions.compression = 'DEFLATE'
-if (zipOptions.compressionOptions === undefined || zipOptions.compressionOptions.level === undefined)
-  zipOptions.compressionOptions = { level: 1 }
+if (zipOptions.compressionOptions === undefined)
+  zipOptions.compressionOptions = {}
+if (zipOptions.compressionOptions.level === undefined)
+  zipOptions.compressionOptions.level = 1
 
 self.zipEmitters = new Map()
 

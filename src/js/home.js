@@ -48,7 +48,7 @@ const page = {
   imageExts: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.tiff', '.tif', '.svg'],
   videoExts: ['.webm', '.mp4', '.wmv', '.avi', '.mov', '.mkv'],
 
-  albumTitleMaxLength: 280,
+  albumTitleMaxLength: 70,
   albumDescMaxLength: 4000
 }
 
@@ -594,7 +594,7 @@ page.prepareUploadConfig = () => {
 
   const numConfig = {
     chunkSize: { min: 1, max: 95 },
-    parallelUploads: { min: 1, max: 8 }
+    parallelUploads: { min: 1, max: 10 }
   }
 
   document.querySelector('#chunkSizeDiv .help').innerHTML =
@@ -684,6 +684,7 @@ page.prepareUploadConfig = () => {
   }
 
   page.previewImages = localStorage[lsKeys.previewImages] !== '0'
+  if (!page.previewImages) document.querySelector('#previewImages').value = '0'
 
   document.querySelector('#saveConfig').addEventListener('click', () => {
     if (!form.checkValidity())

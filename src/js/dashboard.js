@@ -86,7 +86,7 @@ const page = {
   isTriggerLoading: null,
   fadingIn: null,
 
-  albumTitleMaxLength: 280,
+  albumTitleMaxLength: 70,
   albumDescMaxLength: 4000
 }
 

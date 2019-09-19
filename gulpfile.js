@@ -119,7 +119,10 @@ gulp.task('nodemon', done => {
       'config.js',
       'controllers/',
       'database/',
-      'routes/'
+      'routes/',
+      'views/_globals.njk',
+      'views/_layout.njk',
+      'views/album.njk'
     ],
     ext: 'js',
     done

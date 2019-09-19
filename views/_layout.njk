@@ -1,7 +1,17 @@
-{% import '_globals.njk' as globals %}
+{%- import '_globals.njk' as globals -%}
 
 {# Set root domain here to inherit values from config file #}
-{% set root = config.homeDomain or config.domain %}
+{%- set root = config.homeDomain or config.domain -%}
+
+{%- set title -%}
+{%- if metaTitle -%}
+{{ metaTitle + ' | ' + globals.name }}
+{%- else -%}
+{{ globals.name + ' – ' + globals.motto }}
+{%- endif %}
+{%- endset -%}
+
+{%- set url = root + (metaUrl or '') -%}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -12,11 +22,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    {% if title -%}
-    <title>{{ title + ' | ' + globals.name }}</title>
-    {%- else -%}
-    <title>{{ globals.name + ' – ' + globals.motto }}</title>
-    {%- endif %}
+    <title>{{ title }}</title>
 
     {% block stylesheets %}
     <!-- Stylesheets -->
@@ -26,10 +32,13 @@
 
     {% block opengraph %}
     <!-- Open Graph tags -->
-    <meta property="og:url" content="{{ root }}" />
+    <meta property="og:url" content="{{ url }}" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="{{ globals.name }} – {{ globals.motto }}" />
-    <meta property="og:description" content="{{ globals.description }}" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ metaDesc or globals.description }}" />
+    {%- if metaImage %}
+    <meta property="og:image" content="{{ metaImage }}" />
+    {%- endif %}
     <meta property="og:image" content="{{ root }}/icons/600px.png?v={{ globals.v2 }}" />
     <meta property="og:image:width" content="600" />
     <meta property="og:image:height" content="600" />
@@ -40,9 +49,13 @@
 
     <!-- Twitter Card tags -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="{{ globals.name }} – {{ globals.motto }}">
-    <meta name="twitter:description" content="{{ globals.description }}">
+    <meta name="twitter:title" content="{{ title }}">
+    <meta name="twitter:description" content="{{ metaDesc or globals.description }}">
+    {%- if metaImage %}
+    <meta name="twitter:image" content="{{ metaImage }}">
+    {% else %}
     <meta name="twitter:image" content="{{ root }}/icons/600px.png?v={{ globals.v2 }}">
+    {%- endif %}
     {% endblock %}
 
     <!-- Icons, configs, etcetera -->
