@@ -90,6 +90,11 @@ const page = {
   albumDescMaxLength: 4000
 }
 
+page.unhide = () => {
+  document.querySelector('#loader').classList.add('is-hidden')
+  document.querySelector('#dashboard').classList.remove('is-hidden')
+}
+
 // Handler for regular JS errors
 page.onError = error => {
   console.error(error)
@@ -218,7 +223,7 @@ page.prepareDashboard = () => {
   document.querySelector('#itemLogout').innerHTML = `Logout ( ${page.username} )`
 
   // Finally display dashboard
-  document.querySelector('#dashboard').classList.remove('is-hidden')
+  page.unhide()
 
   // Load albums sidebar
   page.getAlbumsSidebar()
