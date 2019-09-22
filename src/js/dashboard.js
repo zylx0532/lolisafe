@@ -645,8 +645,11 @@ page.getUploads = (params = {}) => {
 
         table.appendChild(div)
         page.checkboxes[page.currentView] = table.querySelectorAll('.checkbox[data-action="select"]')
-        page.lazyLoad.update()
       }
+
+      // Scrolling from bottom to top
+      // will cause all thumbs to be loaded in advance anyway
+      page.lazyLoad.update()
     } else {
       page.dom.innerHTML = `
         ${pagination}

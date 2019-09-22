@@ -122,7 +122,7 @@ gulp.task('default', gulp.series('lint', 'clean', 'build', 'exec:bump-versions')
 gulp.task('watch:css', () => {
   return gulp.watch([
     'src/**/*.css'
-  ], gulp.series('clean:css', 'build:css'))
+  ], gulp.series('clean:css', 'build:css', 'build:fontello'))
 })
 
 gulp.task('watch:js', () => {
