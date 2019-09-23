@@ -22,6 +22,8 @@ const maxSize = parseInt(config.uploads.maxSize)
 const maxSizeBytes = maxSize * 1e6
 const urlMaxSizeBytes = parseInt(config.uploads.urlMaxSize) * 1e6
 
+const maxFilesPerUpload = 20
+
 const chunkedUploads = Boolean(config.uploads.chunkSize)
 const chunksData = {}
 //  Hard-coded min chunk size of 1 MB (e.i. 50 MB = max 50 chunks)
@@ -62,7 +64,7 @@ const executeMulter = multer({
     // Chunked uploads still need to provide only 1 file field.
     // Otherwise, only one of the files will end up being properly stored,
     // and that will also be as a chunk.
-    files: 20
+    files: maxFilesPerUpload
   },
   fileFilter (req, file, cb) {
     file.extname = utils.extname(file.originalname)
@@ -258,9 +260,10 @@ self.actuallyUploadFiles = async (req, res, user, albumid, age) => {
 
   if (config.filterEmptyFile && infoMap.some(file => file.data.size === 0)) {
     // Unlink all files when at least one file is an empty file
-    for (const info of infoMap)
-      // Continue even when encountering errors
-      await utils.unlinkFile(info.data.filename).catch(logger.error)
+    // Should continue even when encountering errors
+    await Promise.all(infoMap.map(info =>
+      utils.unlinkFile(info.data.filename).catch(logger.error)
+    ))
 
     throw 'Empty files are not allowed.'
   }
@@ -282,10 +285,13 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
   if (!urls || !(urls instanceof Array))
     throw 'Missing "urls" property (array).'
 
+  if (urls.length > maxFilesPerUpload)
+    throw `Maximum ${maxFilesPerUpload} URLs at a time.`
+
   const downloaded = []
   const infoMap = []
   try {
-    for (let url of urls) {
+    await Promise.all(urls.map(async url => {
       const original = path.basename(url).split(/[?#]/)[0]
       const extname = utils.extname(original)
 
@@ -337,9 +343,9 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
           age
         }
       })
-    }
+    }))
 
-    // If no errors found, clear cache of downloaded files
+    // If no errors encountered, clear cache of downloaded files
     downloaded.length = 0
 
     if (utils.clamd.scanner) {
@@ -351,10 +357,11 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
     await self.sendUploadResponse(req, res, result)
   } catch (error) {
     // Unlink all downloaded files when at least one file threw an error from the for-loop
+    // Should continue even when encountering errors
     if (downloaded.length)
-      for (const file of downloaded)
-        // Continue even when encountering errors
-        await utils.unlinkFile(file).catch(logger.error)
+      await Promise.all(downloaded.map(file =>
+        utils.unlinkFile(file).catch(logger.error)
+      ))
 
     // Re-throw error
     throw error
@@ -400,7 +407,7 @@ self.actuallyFinishChunks = async (req, res, user) => {
 
   const infoMap = []
   try {
-    for (const file of files) {
+    await Promise.all(files.map(async file => {
       if (chunksData[file.uuid].chunks.length > maxChunksCount)
         throw 'Too many chunks.'
 
@@ -451,7 +458,7 @@ self.actuallyFinishChunks = async (req, res, user) => {
       }
 
       infoMap.push({ path: destination, data })
-    }
+    }))
 
     if (utils.clamd.scanner) {
       const scanResult = await self.scanFiles(req, infoMap)
@@ -462,10 +469,12 @@ self.actuallyFinishChunks = async (req, res, user) => {
     await self.sendUploadResponse(req, res, result)
   } catch (error) {
     // Clean up leftover chunks
-    for (const file of files)
+    // Should continue even when encountering errors
+    await Promise.all(files.map(async file => {
       if (chunksData[file.uuid] !== undefined)
-        // Continue even when encountering errors
         await self.cleanUpChunks(file.uuid).catch(logger.error)
+    }))
+
     // Re-throw error
     throw error
   }
@@ -497,8 +506,9 @@ self.combineChunks = async (destination, uuid) => {
 
 self.cleanUpChunks = async (uuid) => {
   // Unlink chunks
-  for (const chunk of chunksData[uuid].chunks)
-    await paths.unlink(path.join(chunksData[uuid].root, chunk))
+  await Promise.all(chunksData[uuid].chunks.map(chunk =>
+    paths.unlink(path.join(chunksData[uuid].root, chunk))
+  ))
   // Remove UUID dir
   await paths.rmdir(chunksData[uuid].root)
   // Delete cached date
@@ -509,6 +519,8 @@ self.scanFiles = async (req, infoMap) => {
   let foundThreat
   let lastIteration
   let errorString
+  // TODO: Should these be processed concurrently?
+  // Not sure if it'll be too much load on ClamAV.
   for (let i = 0; i < infoMap.length; i++) {
     let reply
     try {
@@ -518,6 +530,7 @@ self.scanFiles = async (req, infoMap) => {
       errorString = `[ClamAV]: ${error.code !== undefined ? `${error.code}, p` : 'P'}lease contact the site owner.`
       break
     }
+
     if (!reply.includes('OK') || reply.includes('FOUND')) {
       // eslint-disable-next-line no-control-regex
       foundThreat = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
@@ -531,9 +544,10 @@ self.scanFiles = async (req, infoMap) => {
     return false
 
   // Unlink all files when at least one threat is found
-  for (const info of infoMap)
-    // Continue even when encountering errors
-    await utils.unlinkFile(info.data.filename).catch(logger.error)
+  // Should ontinue even when encountering errors
+  await Promise.all(infoMap.map(info =>
+    utils.unlinkFile(info.data.filename).catch(logger.error)
+  ))
 
   return errorString ||
     `Threat found: ${foundThreat}${lastIteration ? '' : ', and maybe more'}.`
@@ -543,7 +557,7 @@ self.storeFilesToDb = async (req, res, user, infoMap) => {
   const files = []
   const exists = []
   const albumids = []
-  for (const info of infoMap) {
+  await Promise.all(infoMap.map(async info => {
     // Create hash of the file
     const hash = await new Promise((resolve, reject) => {
       const result = crypto.createHash('md5')
@@ -579,7 +593,7 @@ self.storeFilesToDb = async (req, res, user, infoMap) => {
         dbFile.original = info.data.originalname
 
       exists.push(dbFile)
-      continue
+      return
     }
 
     const timestamp = Math.floor(Date.now() / 1000)
@@ -609,7 +623,7 @@ self.storeFilesToDb = async (req, res, user, infoMap) => {
     // Generate thumbs, but do not wait
     if (utils.mayGenerateThumb(info.data.extname))
       utils.generateThumbs(info.data.filename, info.data.extname).catch(logger.error)
-  }
+  }))
 
   if (files.length) {
     let authorizedIds = []

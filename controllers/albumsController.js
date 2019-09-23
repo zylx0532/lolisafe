@@ -394,14 +394,20 @@ self.generateZip = async (req, res, next) => {
     if ((isNaN(versionString) || versionString <= 0) && album.editedAt)
       return res.redirect(`${album.identifier}?v=${album.editedAt}`)
 
-    if (album.zipGeneratedAt > album.editedAt) {
-      const filePath = path.join(paths.zips, `${identifier}.zip`)
-      const exists = await new Promise(resolve => fs.access(filePath, error => resolve(!error)))
-      if (exists) {
-        const fileName = `${album.name}.zip`
-        return download(filePath, fileName)
+    // TODO: editedAt column will now be updated whenever
+    // a user is simply editing the album's name/description.
+    // Perhaps add a new timestamp column that will only be updated
+    // when the files in the album are actually modified?
+    if (album.zipGeneratedAt > album.editedAt)
+      try {
+        const filePath = path.join(paths.zips, `${identifier}.zip`)
+        await paths.access(filePath)
+        return download(filePath, `${album.name}.zip`)
+      } catch (error) {
+        // Re-throw error
+        if (error.code !== 'ENOENT')
+          throw error
       }
-    }
 
     if (self.zipEmitters.has(identifier)) {
       logger.log(`Waiting previous zip task for album: ${identifier}.`)
@@ -447,10 +453,13 @@ self.generateZip = async (req, res, next) => {
     const archive = new Zip()
 
     try {
-      for (const file of files) {
+      // Since we are adding all files concurrently,
+      // their order in the ZIP file may not be in alphabetical order.
+      // However, ZIP viewers in general should sort the files themselves.
+      await Promise.all(files.map(async file => {
         const data = await paths.readFile(path.join(paths.uploads, file.name))
         archive.file(file.name, data)
-      }
+      }))
       await new Promise((resolve, reject) => {
         archive.generateNodeStream(zipOptions)
           .pipe(fs.createWriteStream(zipPath))

@@ -333,7 +333,9 @@ self.unlinkFile = async (filename, predb) => {
 }
 
 self.bulkDeleteFromDb = async (field, values, user) => {
-  if (!user || !['id', 'name'].includes(field)) return
+  // Always return an empty array on failure
+  if (!user || !['id', 'name'].includes(field) || !values.length)
+    return []
 
   // SQLITE_LIMIT_VARIABLE_NUMBER, which defaults to 999
   // Read more: https://www.sqlite.org/limits.html
@@ -349,20 +351,21 @@ self.bulkDeleteFromDb = async (field, values, user) => {
     let unlinkeds = []
     const albumids = []
 
-    for (let i = 0; i < chunks.length; i++) {
+    await Promise.all(chunks.map(async chunk => {
       const files = await db.table('files')
-        .whereIn(field, chunks[i])
+        .whereIn(field, chunk)
         .where(function () {
           if (!ismoderator)
             this.where('userid', user.id)
         })
 
       // Push files that could not be found in db
-      failed = failed.concat(chunks[i].filter(value => !files.find(file => file[field] === value)))
+      failed = failed.concat(chunk.filter(value => !files.find(file => file[field] === value)))
 
       // Unlink all found files
       const unlinked = []
-      for (const file of files)
+
+      await Promise.all(files.map(async file => {
         try {
           await self.unlinkFile(file.name, true)
           unlinked.push(file)
@@ -370,9 +373,9 @@ self.bulkDeleteFromDb = async (field, values, user) => {
           logger.error(error)
           failed.push(file[field])
         }
+      }))
 
-      if (!unlinked.length)
-        continue
+      if (!unlinked.length) return
 
       // Delete all unlinked files from db
       await db.table('files')
@@ -395,7 +398,7 @@ self.bulkDeleteFromDb = async (field, values, user) => {
 
       // Push unlinked files
       unlinkeds = unlinkeds.concat(unlinked)
-    }
+    }))
 
     if (unlinkeds.length) {
       // Update albums if necessary, but do not wait
@@ -448,6 +451,7 @@ self.purgeCloudflareCache = async (names, uploads, thumbs) => {
 
   // Split array into multiple arrays with max length of 30 URLs
   // https://api.cloudflare.com/#zone-purge-files-by-url
+  // TODO: Handle API rate limits
   const MAX_LENGTH = 30
   const chunks = []
   while (names.length)
@@ -456,7 +460,7 @@ self.purgeCloudflareCache = async (names, uploads, thumbs) => {
   const url = `https://api.cloudflare.com/client/v4/zones/${config.cloudflare.zoneId}/purge_cache`
   const results = []
 
-  for (const chunk of chunks) {
+  await Promise.all(chunks.map(async chunk => {
     const result = {
       success: false,
       files: chunk,
@@ -482,7 +486,7 @@ self.purgeCloudflareCache = async (names, uploads, thumbs) => {
     }
 
     results.push(result)
-  }
+  }))
 
   return results
 }
@@ -791,7 +795,7 @@ self.stats = async (req, res, next) => {
         if (album.zipGeneratedAt) identifiers.push(album.identifier)
       }
 
-      for (const identifier of identifiers)
+      await Promise.all(identifiers.map(async identifier => {
         try {
           await paths.access(path.join(paths.zips, `${identifier}.zip`))
           stats.albums.zipGenerated++
@@ -800,6 +804,7 @@ self.stats = async (req, res, next) => {
           if (error.code !== 'ENOENT')
             throw error
         }
+      }))
 
       // Update cache
       statsCache.albums.cache = stats.albums

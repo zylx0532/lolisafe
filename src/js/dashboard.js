@@ -721,7 +721,7 @@ page.getUploads = (params = {}) => {
     }
 
     const selectAll = document.querySelector('#selectAll')
-    if (selectAll && !unselected) {
+    if (selectAll && !unselected && files.length) {
       selectAll.checked = true
       selectAll.title = 'Unselect all'
     }

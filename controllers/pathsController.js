@@ -51,7 +51,7 @@ const verify = [
 
 self.init = async () => {
   // Check & create directories
-  for (const p of verify)
+  await Promise.all(verify.map(async p => {
     try {
       await self.access(p)
     } catch (err) {
@@ -63,16 +63,18 @@ self.init = async () => {
           logger.log(`Created directory: ${p}`)
       }
     }
+  }))
 
   // Purge any leftover in chunks directory
   const uuidDirs = await self.readdir(self.chunks)
-  for (const uuid of uuidDirs) {
+  await Promise.all(uuidDirs.map(async uuid => {
     const root = path.join(self.chunks, uuid)
     const chunks = await self.readdir(root)
-    for (const chunk of chunks)
-      await self.unlink(path.join(root, chunk))
+    await Promise.all(chunks.map(async chunk =>
+      self.unlink(path.join(root, chunk))
+    ))
     await self.rmdir(root)
-  }
+  }))
 }
 
 module.exports = self
