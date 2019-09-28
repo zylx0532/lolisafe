@@ -70,7 +70,7 @@ self.init = async () => {
   await Promise.all(uuidDirs.map(async uuid => {
     const root = path.join(self.chunks, uuid)
     const chunks = await self.readdir(root)
-    await Promise.all(chunks.map(async chunk =>
+    await Promise.all(chunks.map(chunk =>
       self.unlink(path.join(root, chunk))
     ))
     await self.rmdir(root)

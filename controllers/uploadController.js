@@ -470,9 +470,9 @@ self.actuallyFinishChunks = async (req, res, user) => {
   } catch (error) {
     // Clean up leftover chunks
     // Should continue even when encountering errors
-    await Promise.all(files.map(async file => {
+    await Promise.all(files.map(file => {
       if (chunksData[file.uuid] !== undefined)
-        await self.cleanUpChunks(file.uuid).catch(logger.error)
+        return self.cleanUpChunks(file.uuid).catch(logger.error)
     }))
 
     // Re-throw error

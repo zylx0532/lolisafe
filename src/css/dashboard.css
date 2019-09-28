@@ -174,8 +174,8 @@ li[data-action="page-ellipsis"] {
   cursor: progress
 }
 
-#statistics tr *:nth-child(2) {
-  min-width: 50%
+#statistics tr *:nth-child(1) {
+  width: 50%
 }
 
 .expirydate {
