@@ -86,7 +86,7 @@ ul#albumsContainer li {
   background-color: #eff0f1
 }
 
-.pagination a.pagination-link.is-loading:hover::after,
+.pagination a.is-loading:hover::after,
 .pagination a.pagination-link.is-current.is-loading::after {
   border-bottom-color: #000;
   border-left-color: #000
