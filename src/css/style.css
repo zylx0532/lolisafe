@@ -1,5 +1,5 @@
 html {
-  background-color: #232629;
+  background-color: #000;
   overflow-y: auto
 }
 
@@ -29,15 +29,15 @@ body {
 }
 
 a {
-  color: #3794d2
+  color: #209cee
 }
 
 a:hover {
-  color: #60a8dc
+  color: #67c3ff
 }
 
 hr {
-  background-color: #898b8d
+  background-color: #585858
 }
 
 code,
@@ -58,24 +58,38 @@ code,
   color: #bdc3c7
 }
 
+.input,
+.select select,
+.textarea {
+  color: #eff0f1;
+  border-color: #585858;
+  background-color: #000
+}
+
 .input::-moz-placeholder,
 .textarea::-moz-placeholder {
-  color: #7f8c8d
+  color: #bdc3c7
 }
 
 .input::-webkit-input-placeholder,
 .textarea::-webkit-input-placeholder {
-  color: #7f8c8d
+  color: #bdc3c7
 }
 
 .input:-moz-placeholder,
 .textarea:-moz-placeholder {
-  color: #7f8c8d
+  color: #bdc3c7
 }
 
 .input:-ms-input-placeholder,
 .textarea:-ms-input-placeholder {
-  color: #7f8c8d
+  color: #bdc3c7
+}
+
+.input:hover,
+.select select:hover,
+.textarea:hover {
+  border-color: #209cee
 }
 
 .input.is-active,
@@ -86,20 +100,20 @@ code,
 .textarea.is-focused,
 .textarea:active,
 .textarea:focus {
-  border-color: #3794d2
+  border-color: #209cee
 }
 
-.table.is-hoverable tbody tr:not(.is-selected):hover {
-  background-color: #4d4d4d
-}
-
-.table td,
-.table th {
-  vertical-align: middle
+.label {
+  color: #eff0f1;
+  font-weight: normal
 }
 
 .help {
-  color: #7f8c8d
+  color: #bdc3c7
+}
+
+.progress {
+  background-color: #030303
 }
 
 .button.is-info.is-hovered [class^="icon-"]::before,
@@ -114,8 +128,16 @@ code,
   color: #7f8c8d
 }
 
+.select:not(.is-multiple):not(.is-loading)::after {
+  border-color: #eff0f1
+}
+
+.select:not(.is-multiple):not(.is-loading):hover::after {
+  border-color: #eff0f1
+}
+
 .message {
-  background-color: #31363b
+  background-color: #030303
 }
 
 .message-body {

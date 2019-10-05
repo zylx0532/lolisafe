@@ -4,11 +4,10 @@
   width: 224px;
   height: 224px;
   margin: 0.75rem;
-  padding: 12px;
-  background-color: #31363b;
+  padding: 11px;
   overflow: hidden;
   align-items: center;
-  box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05), 0 5px 10px rgba(10, 10, 10, 0.1), 0 1px 1px rgba(10, 10, 10, 0.2)
+  border: 1px solid #585858
 }
 
 .image-container .title {
@@ -18,8 +17,8 @@
 
 .image-container .image {
   display: flex;
-  height: 100%;
-  width: 100%;
+  height: 200px;
+  width: 200px;
   align-items: center;
   justify-content: center
 }
@@ -31,28 +30,12 @@
   width: auto
 }
 
-.image-container .controls {
-  display: flex;
-  position: absolute;
-  top: 12px;
-  right: 12px
-}
-
-.image-container .controls .button {
-  border-radius: 0
-}
-
-.image-container .controls .button:not(:active):not(:hover) {
-  color: #fff;
-  background-color: rgba(49, 54, 59, 0.75)
-}
-
 .image-container .details {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
-  right: 12px;
-  background-color: rgba(49, 54, 59, 0.75);
+  left: 11px;
+  bottom: 11px;
+  right: 11px;
+  background-color: #0000008f;
   color: #eff0f1;
   padding: 3px;
   font-size: 0.75rem

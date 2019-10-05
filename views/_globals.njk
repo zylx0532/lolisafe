@@ -3,14 +3,14 @@
 {% set description = "A pomf-like file uploading service that doesn't suck." %}
 {% set keywords = "upload,lolisafe,file,images,hosting,bobby,fiery" %}
 
+{# Used in home.njk and nojs.njk #}
 {% set home_subtitle = "A <strong>modern</strong> self-hosted file upload service" %}
 
-{% set google_site_verification = null %}
-
 {#
-  These will be the links in the homepage and the No-JS uploader.
-  You may remove icons by changing "home_icons" to false.
-  It will then automatically use "attrs.title" as the display text.
+  These are the footer links in the homepage and the No-JS uploader (home.njk & nojs.njk respectively).
+  In the homepage uploader, they will be displayed as icons,
+  but you can choose to display them as texts by setting "home_icons" to false.
+  It will then use the text in "attrs.title" of each links.
   Note: No-JS uploader page will have icons disabled by default (it will also not load fontello.css).
 #}
 {% set home_icons = true %}

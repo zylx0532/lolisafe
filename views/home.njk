@@ -8,13 +8,6 @@
 {% set urlExtensionsFilterEnabled = urlExtensionsFilterMode and urlExtensionsFilterMode !== 'inherit' and urlExtensionsFilter.length %}
 {% set temporaryUploadAges = config.uploads.temporaryUploadAges %}
 
-{% block endmeta %}
-{{ super() }}
-{% if globals.google_site_verification %}
-<meta name="google-site-verification" content="{{ globals.google_site_verification }}" />
-{% endif %}
-{% endblock %}
-
 {% block stylesheets %}
 {{ super() }}
 <link rel="stylesheet" href="libs/fontello/fontello.css{{ versions[1] }}">

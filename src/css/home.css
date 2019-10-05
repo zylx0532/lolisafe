@@ -112,7 +112,7 @@
 }
 
 .uploads > div > .icon:not(.icon-block) {
-  color: #3794d2
+  color: #209cee
 }
 
 .uploads > div > .icon.icon-block {
@@ -130,7 +130,7 @@
 
 .name {
   font-size: 1rem;
-  color: #bdc3c7;
+  color: #eff0f1;
   word-break: break-all
 }
 
@@ -177,33 +177,28 @@
 }
 
 #tabs ul {
-  border-bottom: 1px solid #898b8d
+  border-bottom: 1px solid #585858
 }
 
 #tabs li a {
   color: #bdc3c7;
-  border-bottom-color: #898b8d
+  border-bottom-color: #585858
 }
 
 #tabs.is-boxed li.is-active a {
-  color: #3794d2;
-  background: #232629;
-  border-color: #898b8d;
-  border-bottom-color: #232629
+  color: #209cee;
+  background: #000;
+  border-color: #585858;
+  border-bottom-color: #000
 }
 
 #tabs.is-boxed li:not(.is-active) a:hover {
-  background: #4d4d4d
+  background: #585858
 }
 
 .tab-content {
   margin-bottom: -0.75rem;
   animation: fadeInOpacity 0.5s
-}
-
-.tab-content .label {
-  color: #bdc3c7;
-  font-weight: normal
 }
 
 #tab-config.tab-content form {

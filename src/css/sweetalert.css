@@ -1,5 +1,5 @@
 .swal-modal {
-  background-color: #31363b
+  background-color: #2f2f2f
 }
 
 .swal-modal .field {
@@ -37,11 +37,11 @@
 }
 
 .swal-button:hover {
-  background-color: #60a8dc
+  background-color: #1496ed
 }
 
 .swal-button:focus {
-  box-shadow: 0 0 0 1px #31363b, 0 0 0 3px rgba(55, 148, 210, 0.29)
+  box-shadow: 0 0 0 1px #030303, 0 0 0 3px rgba(55, 148, 210, 0.29)
 }
 
 .swal-button--loading {
@@ -129,12 +129,12 @@
 }
 
 .swal-icon--success__hide-corners {
-  background-color: #31363b
+  background-color: #2f2f2f
 }
 
 .swal-icon--success::after,
 .swal-icon--success::before {
-  background: #31363b
+  background: #2f2f2f
 }
 
 .swal-display-thumb-container {

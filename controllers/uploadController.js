@@ -534,7 +534,7 @@ self.scanFiles = async (req, infoMap) => {
     if (!reply.includes('OK') || reply.includes('FOUND')) {
       // eslint-disable-next-line no-control-regex
       foundThreat = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
-      logger.log(`[ClamAV]: ${infoMap[i].path.data.filename}: ${foundThreat} FOUND.`)
+      logger.log(`[ClamAV]: ${infoMap[i].data.filename}: ${foundThreat} FOUND.`)
       lastIteration = i === infoMap.length - 1
       break
     }

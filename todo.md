@@ -24,6 +24,7 @@ Normal priority:
 * [x] I forsaked all `Promise.all()` in favor of `await-in-for-loop` a while back. I personally think it was fine, considering a lot of them were tasks that required serial processing (continuation be dependant on previous iterations), but maybe I should review the current codes to find any sections that would do just fine, or maybe even great, with `Promise.all()`.
 * [ ] Find a way to detect whether a user had disabled their browser's built-in smooth scrolling capability. We will then use that to decide whether we should use smooth scrolling when auto-scrolling during navigation (for now smooth scrolling is always enabled; and polified if applicable).
 * [ ] Parallel URL uploads.
+* [x] Black-ish colorscheme.
 
 Low priority:
 
