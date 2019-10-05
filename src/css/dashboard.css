@@ -73,11 +73,6 @@ ul#albumsContainer li {
   background: none
 }
 
-.pagination a.is-loading:not(.is-current):not([disabled])::after {
-  border-bottom-color: #eff0f1;
-  border-left-color: #eff0f1
-}
-
 .pagination a.pagination-link:hover,
 .pagination a.pagination-next:not([disabled]):hover,
 .pagination a.pagination-previous:not([disabled]):hover {
