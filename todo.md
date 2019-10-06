@@ -25,6 +25,7 @@ Normal priority:
 * [ ] Find a way to detect whether a user had disabled their browser's built-in smooth scrolling capability. We will then use that to decide whether we should use smooth scrolling when auto-scrolling during navigation (for now smooth scrolling is always enabled; and polified if applicable).
 * [ ] Parallel URL uploads.
 * [x] Black-ish colorscheme.
+* [ ] When registering a new account, check for existing account(s) with the same username case-insesitively (for people who forgets how exactly they wrote their username). But still forces case-sensitivity when trying to login (cause this is a considerable security layer).
 
 Low priority:
 
