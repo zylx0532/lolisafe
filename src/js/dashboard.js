@@ -2056,7 +2056,7 @@ page.disableUser = id => {
 
 page.deleteUser = id => {
   const user = page.cache.users[id]
-  if (!user || !user.enabled) return
+  if (!user) return
 
   const content = document.createElement('div')
   content.innerHTML = `
