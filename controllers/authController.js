@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt')
+const path = require('path')
 const randomstring = require('randomstring')
+const paths = require('./pathsController')
 const perms = require('./permissionController')
 const tokens = require('./tokenController')
 const utils = require('./utilsController')
@@ -135,9 +137,22 @@ self.changePassword = async (req, res, next) => {
   }
 }
 
+self.assertPermission = (user, target) => {
+  if (!target)
+    throw new Error('Could not get user with the specified ID.')
+  else if (!perms.higher(user, target))
+    throw new Error('The user is in the same or higher group as you.')
+  else if (target.username === 'root')
+    throw new Error('Root user may not be tampered with.')
+}
+
 self.editUser = async (req, res, next) => {
   const user = await utils.authorize(req, res)
   if (!user) return
+
+  const isadmin = perms.is(user, 'admin')
+  if (!isadmin)
+    return res.status(403).end()
 
   const id = parseInt(req.body.id)
   if (isNaN(id))
@@ -147,23 +162,14 @@ self.editUser = async (req, res, next) => {
     const target = await db.table('users')
       .where('id', id)
       .first()
-
-    if (!target)
-      return res.json({ success: false, description: 'Could not get user with the specified ID.' })
-    else if (!perms.higher(user, target))
-      return res.json({ success: false, description: 'The user is in the same or higher group as you.' })
-    else if (target.username === 'root')
-      return res.json({ success: false, description: 'Root user may not be edited.' })
+    self.assertPermission(user, target)
 
     const update = {}
 
     if (req.body.username !== undefined) {
       update.username = String(req.body.username).trim()
       if (update.username.length < self.user.min || update.username.length > self.user.max)
-        return res.json({
-          success: false,
-          description: `Username must have ${self.user.min}-${self.user.max} characters.`
-        })
+        throw new Error(`Username must have ${self.user.min}-${self.user.max} characters.`)
     }
 
     if (req.body.enabled !== undefined)
@@ -191,13 +197,96 @@ self.editUser = async (req, res, next) => {
     return res.json(response)
   } catch (error) {
     logger.error(error)
-    return res.status(500).json({ success: false, description: 'An unexpected error occurred. Try again?' })
+    return res.status(500).json({
+      success: false,
+      description: error.message || 'An unexpected error occurred. Try again?'
+    })
   }
 }
 
 self.disableUser = async (req, res, next) => {
   req.body = { id: req.body.id, enabled: false }
   return self.editUser(req, res, next)
+}
+
+self.deleteUser = async (req, res, next) => {
+  const user = await utils.authorize(req, res)
+  if (!user) return
+
+  const isadmin = perms.is(user, 'admin')
+  if (!isadmin)
+    return res.status(403).end()
+
+  const id = parseInt(req.body.id)
+  const purge = req.body.purge
+  if (isNaN(id))
+    return res.json({ success: false, description: 'No user specified.' })
+
+  try {
+    const target = await db.table('users')
+      .where('id', id)
+      .first()
+    self.assertPermission(user, target)
+
+    const files = await db.table('files')
+      .where('userid', id)
+      .select('id')
+
+    if (files.length) {
+      const fileids = files.map(file => file.id)
+      if (purge) {
+        const failed = await utils.bulkDeleteFromDb('id', fileids, user)
+        if (failed.length)
+          return res.json({ success: false, failed })
+        utils.invalidateStatsCache('uploads')
+      } else {
+        // Clear out userid attribute from the files
+        await db.table('files')
+          .whereIn('id', fileids)
+          .update('userid', null)
+      }
+    }
+
+    // TODO: Figure out obstacles of just deleting the albums
+    const albums = await db.table('albums')
+      .where('userid', id)
+      .where('enabled', 1)
+      .select('id', 'identifier')
+
+    if (albums.length) {
+      const albumids = albums.map(album => album.id)
+      await db.table('albums')
+        .whereIn('id', albumids)
+        .del()
+      utils.invalidateAlbumsCache(albumids)
+
+      // Unlink their archives
+      await Promise.all(albums.map(async album => {
+        try {
+          await paths.unlink(path.join(paths.zips, `${album.identifier}.zip`))
+        } catch (error) {
+          if (error.code !== 'ENOENT')
+            throw error
+        }
+      }))
+    }
+
+    await db.table('users')
+      .where('id', id)
+      .del()
+    utils.invalidateStatsCache('users')
+
+    return res.json({ success: true })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      description: error.message || 'An unexpected error occurred. Try again?'
+    })
+  }
+}
+
+self.bulkDeleteUsers = async (req, res, next) => {
+  // TODO
 }
 
 self.listUsers = async (req, res, next) => {

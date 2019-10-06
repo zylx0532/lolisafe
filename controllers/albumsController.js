@@ -183,6 +183,7 @@ self.delete = async (req, res, next) => {
         if (failed.length)
           return res.json({ success: false, failed })
       }
+      utils.invalidateStatsCache('uploads')
     }
 
     await db.table('albums')
@@ -245,53 +246,48 @@ self.edit = async (req, res, next) => {
       // Old rename API
       return res.json({ success: false, description: 'You did not specify a new name.' })
 
-    await db.table('albums')
-      .where({
-        id,
-        userid: user.id
-      })
-      .update({
-        name,
-        editedAt: Math.floor(Date.now() / 1000),
-        download: Boolean(req.body.download),
-        public: Boolean(req.body.public),
-        description: typeof req.body.description === 'string'
-          ? utils.escape(req.body.description.trim().substring(0, self.descMaxLength))
-          : ''
-      })
-    utils.invalidateAlbumsCache([id])
-
-    if (!req.body.requestLink)
-      return res.json({ success: true, name })
-
-    const oldIdentifier = album.identifier
-    const newIdentifier = await self.getUniqueRandomName()
-
-    await db.table('albums')
-      .where({
-        id,
-        userid: user.id
-      })
-      .update('identifier', newIdentifier)
-    utils.invalidateStatsCache('albums')
-    self.onHold.delete(newIdentifier)
-
-    // Rename zip archive of the album if it exists
-    try {
-      const oldZip = path.join(paths.zips, `${oldIdentifier}.zip`)
-      // await paths.access(oldZip)
-      const newZip = path.join(paths.zips, `${newIdentifier}.zip`)
-      await paths.rename(oldZip, newZip)
-    } catch (err) {
-      // Re-throw error
-      if (err.code !== 'ENOENT')
-        throw err
+    const update = {
+      name,
+      editedAt: Math.floor(Date.now() / 1000),
+      download: Boolean(req.body.download),
+      public: Boolean(req.body.public),
+      description: typeof req.body.description === 'string'
+        ? utils.escape(req.body.description.trim().substring(0, self.descMaxLength))
+        : ''
     }
 
-    return res.json({
-      success: true,
-      identifier: newIdentifier
-    })
+    if (req.body.requestLink)
+      update.identifier = await self.getUniqueRandomName()
+
+    await db.table('albums')
+      .where({
+        id,
+        userid: user.id
+      })
+      .update(update)
+    utils.invalidateAlbumsCache([id])
+
+    if (req.body.requestLink) {
+      self.onHold.delete(update.identifier)
+
+      // Rename zip archive of the album if it exists
+      try {
+        const oldZip = path.join(paths.zips, `${album.identifier}.zip`)
+        const newZip = path.join(paths.zips, `${update.identifier}.zip`)
+        await paths.rename(oldZip, newZip)
+      } catch (err) {
+        // Re-throw error
+        if (err.code !== 'ENOENT')
+          throw err
+      }
+
+      return res.json({
+        success: true,
+        identifier: update.identifier
+      })
+    } else {
+      return res.json({ success: true, name })
+    }
   } catch (error) {
     logger.error(error)
     return res.status(500).json({ success: false, description: 'An unexpected error occurred. Try again?' })

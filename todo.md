@@ -28,7 +28,7 @@ Normal priority:
 
 Low priority:
 
-* [ ] Delete user feature.
+* [x] Delete user feature.
 * [ ] Bulk delete user feature.
 * [ ] Bulk disable user feature.
 * [ ] Strip EXIF from images. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)

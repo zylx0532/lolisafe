@@ -329,6 +329,8 @@ page.domClick = event => {
       return page.editUser(id)
     case 'disable-user':
       return page.disableUser(id)
+    case 'delete-user':
+      return page.deleteUser(id)
     case 'filters-help':
       return page.filtersHelp(element)
     case 'filter-uploads':
@@ -743,6 +745,7 @@ page.getUploads = (params = {}) => {
 page.setUploadsView = (view, element) => {
   localStorage[lsKeys.viewType[page.currentView]] = view
   page.views[page.currentView].type = view
+
   // eslint-disable-next-line compat/compat
   page.getUploads(Object.assign({
     trigger: element
@@ -964,7 +967,7 @@ page.filtersHelp = element => {
 }
 
 page.filterUploads = element => {
-  const filters = document.querySelector('#filters').value
+  const filters = document.querySelector('#filters').value.trim()
   page.getUploads({ all: true, filters }, element)
 }
 
@@ -1516,14 +1519,18 @@ page.deleteAlbum = id => {
       id,
       purge: proceed === 'purge'
     }).then(response => {
-      if (response.data.success === false)
-        if (response.data.description === 'No token provided') {
+      if (response.data.success === false) {
+        const failed = Array.isArray(response.data.failed)
+          ? response.data.failed
+          : []
+
+        if (response.data.description === 'No token provided')
           return page.verifyToken(page.token)
-        } else if (Array.isArray(response.data.failed) && response.data.failed.length) {
-          return swal('An error occurred!', 'Unable to delete ', 'error')
-        } else {
+        else if (failed.length)
+          return swal('An error occurred!', `Unable to delete ${failed.length} of the album's upload${failed.length === 1 ? '' : 's'}.`, 'error')
+        else
           return swal('An error occurred!', response.data.description, 'error')
-        }
+      }
 
       swal('Deleted!', 'Your album has been deleted.', 'success')
       page.getAlbumsSidebar()
@@ -1746,11 +1753,14 @@ page.getUsers = (params = {}) => {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    if (params.pageNum && (response.data.users.length === 0)) {
-      // Only remove loading class here, since beyond this the entire page will be replaced anyways
-      page.updateTrigger(params.trigger)
-      return swal('An error occurred!', `There are no more users to populate page ${params.pageNum + 1}.`, 'error')
-    }
+    if (params.pageNum && (response.data.users.length === 0))
+      if (params.autoPage) {
+        params.pageNum = Math.ceil(response.data.count / 25) - 1
+        return page.getUsers(params)
+      } else {
+        page.updateTrigger(params.trigger)
+        return swal('An error occurred!', `There are no more users to populate page ${params.pageNum + 1}.`, 'error')
+      }
 
     page.currentView = 'users'
     page.cache.users = {}
@@ -1828,7 +1838,6 @@ page.getUsers = (params = {}) => {
           </tbody>
         </table>
       </div>
-      <hr>
       ${pagination}
     `
 
@@ -1880,7 +1889,7 @@ page.getUsers = (params = {}) => {
               <i class="icon-hammer"></i>
             </span>
           </a>
-          <a class="button is-small is-danger is-outlined is-hidden" title="Delete user (WIP)" data-action="delete-user" disabled>
+          <a class="button is-small is-danger is-outlined" title="Delete user" data-action="delete-user">
             <span class="icon">
               <i class="icon-trash"></i>
             </span>
@@ -2010,7 +2019,10 @@ page.disableUser = id => {
   if (!user || !user.enabled) return
 
   const content = document.createElement('div')
-  content.innerHTML = `You will be disabling a user with the username <b>${page.cache.users[id].username}</b>.`
+  content.innerHTML = `
+    <p>You will be disabling a user named <b>${page.cache.users[id].username}</b>.</p>
+    <p>Their files will remain.</p>
+  `
 
   swal({
     title: 'Are you sure?',
@@ -2036,8 +2048,69 @@ page.disableUser = id => {
         else
           return swal('An error occurred!', response.data.description, 'error')
 
-      swal('Success!', 'The user has been disabled.', 'success')
+      swal('Success!', `${page.cache.users[id].username} has been disabled.`, 'success')
       page.getUsers(page.views.users)
+    }).catch(page.onAxiosError)
+  })
+}
+
+page.deleteUser = id => {
+  const user = page.cache.users[id]
+  if (!user || !user.enabled) return
+
+  const content = document.createElement('div')
+  content.innerHTML = `
+    <p>You will be deleting a user named <b>${page.cache.users[id].username}</b>.<p>
+    <p>Their files will remain, unless you choose otherwise.</p>
+  `
+
+  swal({
+    title: 'Are you sure?',
+    icon: 'warning',
+    content,
+    dangerMode: true,
+    buttons: {
+      cancel: true,
+      confirm: {
+        text: 'Yes, delete it!',
+        closeModal: false
+      },
+      purge: {
+        text: 'Yes, and the uploads too!',
+        value: 'purge',
+        className: 'swal-button--danger',
+        closeModal: false
+      }
+    }
+  }).then(proceed => {
+    if (!proceed) return
+
+    axios.post('api/users/delete', {
+      id,
+      purge: proceed === 'purge'
+    }).then(response => {
+      if (!response) return
+
+      if (response.data.success === false) {
+        const failed = Array.isArray(response.data.failed)
+          ? response.data.failed
+          : []
+
+        if (response.data.description === 'No token provided')
+          return page.verifyToken(page.token)
+        else if (failed.length)
+          return swal('An error occurred!', `Unable to delete ${failed.length} of the user's upload${failed.length === 1 ? '' : 's'}.`, 'error')
+        else
+          return swal('An error occurred!', response.data.description, 'error')
+      }
+
+      swal('Success!', `${page.cache.users[id].username} has been deleted.`, 'success')
+
+      // Reload users list
+      // eslint-disable-next-line compat/compat
+      page.getUsers(Object.assign({
+        autoPage: true
+      }, page.views.users))
     }).catch(page.onAxiosError)
   })
 }
