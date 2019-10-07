@@ -86,9 +86,13 @@ code,
   color: #bdc3c7
 }
 
-.input:hover,
-.select select:hover,
-.textarea:hover {
+.input:not([disabled]):hover,
+.select fieldset:not([disabled]) select:hover,
+.select select:not([disabled]):hover,
+.textarea:not([disabled]):hover,
+fieldset:not([disabled]) .input:hover,
+fieldset:not([disabled]) .select select:hover,
+fieldset:not([disabled]) .textarea:hover {
   border-color: #209cee
 }
 
@@ -101,6 +105,17 @@ code,
 .textarea:active,
 .textarea:focus {
   border-color: #209cee
+}
+
+.input[disabled],
+.select fieldset[disabled] select,
+.select select[disabled],
+.textarea[disabled],
+fieldset[disabled] .input,
+fieldset[disabled] .select select,
+fieldset[disabled] .textarea {
+  border-color: #585858;
+  background-color: #2f2f2f
 }
 
 .label {

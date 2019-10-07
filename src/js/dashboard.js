@@ -431,10 +431,11 @@ page.getUploads = (params = {}) => {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
+    const pages = Math.ceil(response.data.count / 25)
     const files = response.data.files
     if (params.pageNum && (files.length === 0))
       if (params.autoPage) {
-        params.pageNum = Math.ceil(response.data.count / 25) - 1
+        params.pageNum = pages - 1
         return page.getUploads(params)
       } else {
         page.updateTrigger(params.trigger)
@@ -483,7 +484,7 @@ page.getUploads = (params = {}) => {
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="jumpToPage" class="input is-small" type="number" value="${params.pageNum + 1}">
+                <input id="jumpToPage" class="input is-small" type="number" min="1" max="${pages}" value="${params.pageNum + 1}"${pages === 1 ? ' disabled' : ''}>
               </div>
               <div class="control">
                 <button type="submit" class="button is-small is-info is-outlined" title="Jump to page" data-action="jump-to-page">
@@ -1753,9 +1754,10 @@ page.getUsers = (params = {}) => {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
+    const pages = Math.ceil(response.data.count / 25)
     if (params.pageNum && (response.data.users.length === 0))
       if (params.autoPage) {
-        params.pageNum = Math.ceil(response.data.count / 25) - 1
+        params.pageNum = pages - 1
         return page.getUsers(params)
       } else {
         page.updateTrigger(params.trigger)
@@ -1774,7 +1776,7 @@ page.getUsers = (params = {}) => {
           <form class="prevent-default">
             <div class="field has-addons">
               <div class="control is-expanded">
-                <input id="jumpToPage" class="input is-small" type="number" value="${params.pageNum + 1}">
+                <input id="jumpToPage" class="input is-small" type="number" min="1" max="${pages}" value="${params.pageNum + 1}"${pages === 1 ? ' disabled' : ''}>
               </div>
               <div class="control">
                 <button type="submit" class="button is-small is-info is-outlined" title="Jump to page" data-action="jump-to-page">
@@ -2158,8 +2160,8 @@ page.paginate = (totalItems, itemsPerPage, currentPage) => {
 
   return `
     <nav class="pagination is-centered is-small">
-      <a class="button pagination-previous" data-action="page-prev">Previous</a>
-      <a class="button pagination-next" data-action="page-next">Next page</a>
+      <a class="button pagination-previous" data-action="page-prev"${currentPage === 1 ? ' disabled' : ''}>Previous</a>
+      <a class="button pagination-next" data-action="page-next"${currentPage === numPages ? ' disabled' : ''}>Next page</a>
       <ul class="pagination-list">${template}</ul>
     </nav>
   `
