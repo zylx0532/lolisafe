@@ -23,7 +23,6 @@ Normal priority:
 * [x] Update fb_share.png.
 * [x] I forsaked all `Promise.all()` in favor of `await-in-for-loop` a while back. I personally think it was fine, considering a lot of them were tasks that required serial processing (continuation be dependant on previous iterations), but maybe I should review the current codes to find any sections that would do just fine, or maybe even great, with `Promise.all()`.
 * [x] Black-ish colorscheme.
-* [ ] When registering a new account, check for existing account(s) with the same username case-insesitively (for people who forgets how exactly they wrote their username). But still forces case-sensitivity when trying to login (cause this is a considerable security layer).
 
 Low priority:
 
@@ -34,10 +33,12 @@ Low priority:
 * [ ] Strip EXIF from images. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)
 * [ ] DMCA request logs (bare text file will do), and link it in FAQ.
 
-Lower priority:
+Lowest priority:
 
 * [ ] Find a way to detect whether a user had disabled their browser's built-in smooth scrolling capability. We will then use that to decide whether we should use smooth scrolling when auto-scrolling during navigation (for now smooth scrolling is always enabled; and polified if applicable).
 * [ ] Support [fragments](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Identifying_resources_on_the_Web#Fragment) for dashboard sidebar menus.
+* [ ] When registering a new account, check for existing account(s) with the same username case-insesitively (for people who forgets how exactly they wrote their username). But still forces case-sensitivity when trying to login (cause this is a considerable security layer).  
+**Downgraded to lowest priority:** This seems pretty annoying to implement (using either `like` operator or `upper` function seem pretty slow-ish). It seems to be a much better idea to force [nocase collation](https://www.sqlite.org/datatype3.html#collating_sequences) onto username column instead. It'll also improve performance when querying users table by username. But that requires rebuilding existing users table and sacrificing duplicates, which makes it not that good of an idea either.
 * [ ] Perhaps consider switching from [Express](https://github.com/expressjs/express) to [Fastify](https://github.com/fastify/fastify)?
 * [ ] Multi-level sub dirs for uploads. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)
 * [ ] Mime type blacklist. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)
