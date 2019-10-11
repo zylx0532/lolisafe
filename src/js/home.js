@@ -25,7 +25,7 @@ const page = {
   // store album id that will be used with upload requests
   album: null,
 
-  parallelUploads: null,
+  parallelUploads: 2,
   previewImages: null,
   fileLength: null,
   uploadAge: null,
@@ -587,129 +587,256 @@ page.createAlbum = () => {
 page.prepareUploadConfig = () => {
   const fallback = {
     chunkSize: page.chunkSize,
-    parallelUploads: 2
+    parallelUploads: page.parallelUploads
   }
 
-  page.chunkSize = parseInt(localStorage[lsKeys.chunkSize]) || fallback.chunkSize
-  page.parallelUploads = parseInt(localStorage[lsKeys.parallelUploads]) || fallback.parallelUploads
-  document.querySelector('#chunkSize').value = page.chunkSize
-  document.querySelector('#parallelUploads').value = page.parallelUploads
+  const temporaryUploadAges = Array.isArray(page.temporaryUploadAges) && page.temporaryUploadAges.length
+  const fileIdentifierLength = page.fileIdentifierLength &&
+    typeof page.fileIdentifierLength.min === 'number' &&
+    typeof page.fileIdentifierLength.max === 'number'
 
-  const numConfig = {
-    chunkSize: { min: 1, max: 95 },
-    parallelUploads: { min: 1, max: 10 }
-  }
-
-  document.querySelector('#chunkSizeDiv .help').innerHTML =
-    `Default is ${fallback.chunkSize} MB. Max is ${numConfig.chunkSize.max} MB.`
-  document.querySelector('#parallelUploadsDiv .help').innerHTML =
-    `Default is ${fallback.parallelUploads}. Max is ${numConfig.parallelUploads.max}.`
-
-  const fileLengthDiv = document.querySelector('#fileLengthDiv')
-  if (page.fileIdentifierLength && fileLengthDiv) {
-    const element = document.querySelector('#fileLength')
-    const stored = parseInt(localStorage[lsKeys.fileLength])
-
-    fallback.fileLength = page.fileIdentifierLength.default
-    let helpText = `Default is ${page.fileIdentifierLength.default}.`
-
-    const range = typeof page.fileIdentifierLength.min === 'number' &&
-      typeof page.fileIdentifierLength.max === 'number'
-
-    if (range) {
-      helpText += ` Min is ${page.fileIdentifierLength.min}. Max is ${page.fileIdentifierLength.max}`
-      numConfig.fileLength = {
+  const config = {
+    siBytes: {
+      label: 'File size display',
+      select: [
+        { value: 'default', text: '1000 B = 1 kB = 1 Kilobyte' },
+        { value: '0', text: '1024 B = 1 KiB = 1 Kibibyte' }
+      ],
+      help: 'This will be used in our homepage, dashboard, and album public pages.',
+      valueHandler () {} // Do nothing
+    },
+    fileLength: {
+      display: fileIdentifierLength,
+      label: 'File identifier length',
+      number: fileIdentifierLength ? {
         min: page.fileIdentifierLength.min,
-        max: page.fileIdentifierLength.max
+        max: page.fileIdentifierLength.max,
+        round: true
+      } : undefined,
+      help: true, // true means auto-generated, for number-based configs only
+      disabled: fileIdentifierLength && page.fileIdentifierLength.force
+    },
+    uploadAge: {
+      display: temporaryUploadAges,
+      label: 'Upload age',
+      select: [],
+      help: 'This allows your files to automatically be deleted after a certain period of time.'
+    },
+    chunkSize: {
+      display: !isNaN(page.chunkSize),
+      label: 'Upload chunk size (MB)',
+      number: {
+        min: 1,
+        max: 95,
+        suffix: ' MB',
+        round: true
+      },
+      help: true
+    },
+    parallelUploads: {
+      label: 'Parallel uploads',
+      number: {
+        min: 1,
+        max: 10,
+        round: true
+      },
+      help: true
+    },
+    uploadsHistoryOrder: {
+      label: 'Uploads history order',
+      select: [
+        { value: 'default', text: 'Older files on top' },
+        { value: '0', text: 'Newer files on top' }
+      ],
+      help: `Newer files on top will use <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/flex-direction#Accessibility_Concerns" target="_blank" rel="noopener">a CSS technique</a>.<br>
+        Trying to select their texts manually from top to bottom will end up selecting the texts from bottom to top instead.`,
+      valueHandler (value) {
+        if (value === '0') {
+          const uploadFields = document.querySelectorAll('.tab-content > .uploads')
+          for (let i = 0; i < uploadFields.length; i++)
+            uploadFields[i].classList.add('is-reversed')
+        }
+      }
+    },
+    previewImages: {
+      label: 'Load images for preview',
+      select: [
+        { value: 'default', text: 'Yes' },
+        { value: '0', text: 'No' }
+      ],
+      help: 'By default, uploaded images will be loaded as their previews.',
+      valueHandler (value) {
+        page.previewImages = value !== '0'
       }
     }
-
-    if (page.fileIdentifierLength.force) {
-      helpText += ' This option is currently disabled.'
-      element.disabled = true
-    }
-
-    if (page.fileIdentifierLength.force ||
-      isNaN(stored) ||
-      !range ||
-      stored < page.fileIdentifierLength.min ||
-      stored > page.fileIdentifierLength.max) {
-      element.value = fallback.fileLength
-      page.fileLength = null
-    } else {
-      element.value = stored
-      page.fileLength = stored
-    }
-
-    fileLengthDiv.classList.remove('is-hidden')
-    fileLengthDiv.querySelector('.help').innerHTML = helpText
   }
 
-  Object.keys(numConfig).forEach(key => {
-    document.querySelector(`#${key}`).setAttribute('min', numConfig[key].min)
-    document.querySelector(`#${key}`).setAttribute('max', numConfig[key].max)
-  })
-
-  const uploadAgeDiv = document.querySelector('#uploadAgeDiv')
-  if (Array.isArray(page.temporaryUploadAges) && page.temporaryUploadAges.length && uploadAgeDiv) {
-    const element = document.querySelector('#uploadAge')
+  if (temporaryUploadAges) {
     const stored = parseFloat(localStorage[lsKeys.uploadAge])
     for (let i = 0; i < page.temporaryUploadAges.length; i++) {
       const age = page.temporaryUploadAges[i]
-      const option = document.createElement('option')
-      option.value = i === 0 ? 'default' : age
-      option.innerHTML = page.getPrettyUploadAge(age) +
-        (i === 0 ? ' (default)' : '')
-      element.appendChild(option)
-      if (age === stored) {
-        element.value = option.value
-        page.uploadAge = stored
-      }
+      config.uploadAge.select.push({
+        value: i === 0 ? 'default' : String(age),
+        text: page.getPrettyUploadAge(age)
+      })
+      if (age === stored)
+        config.uploadAge.value = stored
     }
-    uploadAgeDiv.classList.remove('is-hidden')
+  }
+
+  if (fileIdentifierLength) {
+    fallback.fileLength = page.fileIdentifierLength.default || undefined
+    const stored = parseInt(localStorage[lsKeys.fileLength])
+    if (!page.fileIdentifierLength.force &&
+      !isNaN(stored) &&
+      stored >= page.fileIdentifierLength.min &&
+      stored <= page.fileIdentifierLength.max)
+      config.fileLength.value = stored
   }
 
   const tabContent = document.querySelector('#tab-config')
-  const form = tabContent.querySelector('form')
-  form.addEventListener('submit', event => {
-    event.preventDefault()
-  })
+  const form = document.createElement('form')
+  form.addEventListener('submit', event => event.preventDefault())
 
-  const siBytes = localStorage[lsKeys.siBytes] !== '0'
-  if (!siBytes) document.querySelector('#siBytes').value = '0'
+  const configKeys = Object.keys(config)
+  for (let i = 0; i < configKeys.length; i++) {
+    const key = configKeys[i]
+    const conf = config[key]
 
-  const olderOnTop = localStorage[lsKeys.uploadsHistoryOrder] !== '0'
-  if (!olderOnTop) {
-    document.querySelector('#uploadsHistoryOrder').value = '0'
-    const uploadFields = document.querySelectorAll('.tab-content > .uploads')
-    for (let i = 0; i < uploadFields.length; i++)
-      uploadFields[i].classList.add('is-reversed')
+    // Skip only if display attribute is explicitly set to false
+    if (conf.display === false)
+      continue
+
+    const field = document.createElement('div')
+    field.className = 'field'
+
+    let value
+    if (!conf.disabled) {
+      if (conf.value !== undefined) {
+        value = conf.value
+      } else if (conf.number !== undefined) {
+        const parsed = parseInt(localStorage[lsKeys[key]])
+        if (!isNaN(parsed))
+          value = parsed
+      } else {
+        value = localStorage[lsKeys[key]]
+      }
+
+      // If valueHandler function exists, defer to the function,
+      // otherwise pass value to global page object
+      if (typeof conf.valueHandler === 'function')
+        conf.valueHandler(value)
+      else if (value !== undefined)
+        page[key] = value
+    }
+
+    let control
+    if (Array.isArray(conf.select)) {
+      control = document.createElement('div')
+      control.className = 'select is-fullwidth'
+
+      const opts = []
+      for (let j = 0; j < conf.select.length; j++) {
+        const opt = conf.select[j]
+        const selected = value && (opt.value === String(value))
+        opts.push(`
+          <option value="${opt.value}"${selected ? ' selected' : ''}>
+            ${opt.text}${opt.value === 'default' ? ' (default)' : ''}
+          </option>
+        `)
+      }
+
+      control.innerHTML = `
+        <select id="${key}">
+          ${opts.join('\n')}
+        </select>
+      `
+    } else if (conf.number !== undefined) {
+      control = document.createElement('input')
+      control.id = control.name = key
+      control.className = 'input is-fullwidth'
+      control.type = 'number'
+
+      if (conf.number.min !== undefined)
+        control.min = conf.number.min
+      if (conf.number.max !== undefined)
+        control.max = conf.number.max
+      if (typeof value === 'number')
+        control.value = value
+      else if (fallback[key] !== undefined)
+        control.value = fallback[key]
+    }
+
+    let help
+    if (conf.disabled) {
+      control.disabled = conf.disabled
+      help = 'This option is currently disabled.'
+    } else if (typeof conf.help === 'string') {
+      help = conf.help
+    } else if (conf.help === true && conf.number !== undefined) {
+      const tmp = []
+
+      if (fallback[key] !== undefined)
+        tmp.push(`Default is ${fallback[key]}${conf.number.suffix || ''}.`)
+      if (conf.number.min !== undefined)
+        tmp.push(`Min is ${conf.number.min}${conf.number.suffix || ''}.`)
+      if (conf.number.max !== undefined)
+        tmp.push(`Max is ${conf.number.max}${conf.number.suffix || ''}.`)
+
+      help = tmp.join(' ')
+    }
+
+    field.innerHTML = `
+      <label class="label">${conf.label}</label>
+      <div class="control"></div>
+      ${help ? `<p class="help">${help}</p>` : ''}
+    `
+    field.querySelector('div.control').appendChild(control)
+
+    form.appendChild(field)
   }
 
-  page.previewImages = localStorage[lsKeys.previewImages] !== '0'
-  if (!page.previewImages) document.querySelector('#previewImages').value = '0'
+  const submit = document.createElement('div')
+  submit.className = 'field'
+  submit.innerHTML = `
+    <p class="control">
+      <button id="saveConfig" type="submit" class="button is-danger is-outlined is-fullwidth">
+        <span class="icon">
+          <i class="icon-floppy"></i>
+        </span>
+        <span>Save & reload</span>
+      </button>
+    </p>
+    <p class="help">
+      This configuration will only be used in this browser.<br>
+      After reloading the page, some of them will also be applied to the ShareX config that you can download by clicking on the ShareX icon below.
+    </p>
+  `
 
-  document.querySelector('#saveConfig').addEventListener('click', () => {
+  form.appendChild(submit)
+  form.querySelector('#saveConfig').addEventListener('click', () => {
     if (!form.checkValidity())
       return
 
-    const prefKeys = ['siBytes', 'uploadsHistoryOrder', 'previewImages', 'uploadAge']
-    for (let i = 0; i < prefKeys.length; i++) {
-      const value = form.elements[prefKeys[i]].value
-      if (value !== 'default' && value !== fallback[prefKeys[i]])
-        localStorage[lsKeys[prefKeys[i]]] = value
-      else
-        localStorage.removeItem(lsKeys[prefKeys[i]])
-    }
+    const keys = Object.keys(config)
+      .filter(key => config[key].display !== false && config[key].disabled !== true)
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
 
-    const numKeys = Object.keys(numConfig)
-    for (let i = 0; i < numKeys.length; i++) {
-      const parsed = parseInt(form.elements[numKeys[i]].value) || 0
-      const value = Math.min(Math.max(parsed, numConfig[numKeys[i]].min), numConfig[numKeys[i]].max)
-      if (value > 0 && value !== fallback[numKeys[i]])
-        localStorage[lsKeys[numKeys[i]]] = value
+      let value
+      if (config[key].select !== undefined) {
+        if (form.elements[key].value !== 'default')
+          value = form.elements[key].value
+      } else if (config[key].number !== undefined) {
+        const parsed = parseInt(form.elements[key].value)
+        if (!isNaN(parsed))
+          value = Math.min(Math.max(parsed, config[key].number.min), config[key].number.max)
+      }
+
+      if (value !== undefined && value !== fallback[key])
+        localStorage[lsKeys[key]] = value
       else
-        localStorage.removeItem(lsKeys[numKeys[i]])
+        localStorage.removeItem(lsKeys[key])
     }
 
     swal({
@@ -720,6 +847,8 @@ page.prepareUploadConfig = () => {
       location.reload()
     })
   })
+
+  tabContent.appendChild(form)
 }
 
 page.getPrettyUploadAge = hours => {
