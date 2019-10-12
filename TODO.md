@@ -23,6 +23,12 @@ Normal priority:
 * [x] Update fb_share.png.
 * [x] I forsaked all `Promise.all()` in favor of `await-in-for-loop` a while back. I personally think it was fine, considering a lot of them were tasks that required serial processing (continuation be dependant on previous iterations), but maybe I should review the current codes to find any sections that would do just fine, or maybe even great, with `Promise.all()`.
 * [x] Black-ish colorscheme.
+* [ ] Colorscheme options. Bring back the old dark grey colorscheme, and also add lolisafe's stock light colorscheme.  
+I think it may be fair to load the colorscheming JS file before `style.css` gets loaded. Meaning the colorscheme script in particular needs to be in HEAD tag, as opposed to the standard where we put all JS files at the end of BODY tag.  
+Once this is implemented, default colorscheme should be the old dark grey.
+* [ ] Turn `render.js` into a standalone script (don't use `page` window variable).  
+Due to the fact that it needs to have `page` variable defined first, it can't ever be loaded before `home.js`.  
+This may prevent proper async load of JS assets, which I'd like to look into, in pursuit of even more speed.
 
 Low priority:
 
@@ -31,7 +37,8 @@ Low priority:
 * [ ] Bulk delete user feature.
 * [ ] Bulk disable user feature.
 * [ ] Strip EXIF from images. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)
-* [ ] DMCA request logs (bare text file will do), and link it in FAQ.
+* [ ] DMCA request logs (bare text file will do), and link it in FAQ.  
+This should also include list of files that also had to be manually deleted due to triggering Google's SafeSearch (harmful downloads, etc).
 
 Lowest priority:
 
