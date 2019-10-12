@@ -112,6 +112,20 @@ module.exports = {
   */
   rateLimits: [
     {
+      // 10 requests in 1 second
+      routes: [
+        '/api/'
+      ],
+      config: {
+        windowMs: 1000,
+        max: 10,
+        message: {
+          success: false,
+          description: 'Rate limit reached, please try again in a while.'
+        }
+      }
+    },
+    {
       // 2 requests in 5 seconds
       routes: [
         '/api/login',
@@ -120,21 +134,34 @@ module.exports = {
       config: {
         windowMs: 5 * 1000,
         max: 2,
-        statusCode: 200,
         message: {
           success: false,
-          description: 'Rate limit reached, please try again in a while.'
+          description: 'Rate limit reached, please try again in 5 seconds.'
         }
       }
     },
     {
-      // 2 requests in 30 seconds
+      // 4 requests in 30 seconds
       routes: [
         '/api/album/zip'
       ],
       config: {
         windowMs: 30 * 1000,
-        max: 2
+        max: 4
+      }
+    },
+    {
+      // 1 request in 60 seconds
+      routes: [
+        '/api/tokens/change'
+      ],
+      config: {
+        windowMs: 60 * 1000,
+        max: 1,
+        message: {
+          success: false,
+          description: 'Rate limit reached, please try again in 60 seconds.'
+        }
       }
     }
   ],
