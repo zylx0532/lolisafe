@@ -35,6 +35,7 @@ gulp.task('lint:js', () => {
     ignore: './src/libs/**/*'
   })
     .pipe(eslint())
+    .pipe(eslint.format('stylish'))
     .pipe(eslint.failAfterError())
 })
 
@@ -42,10 +43,18 @@ gulp.task('lint:css', () => {
   return gulp.src('./src/**/*.css', {
     ignore: './src/libs/**/*'
   })
-    .pipe(stylelint())
+    .pipe(stylelint({
+      failAfterError: true,
+      reporters: [{ formatter: 'verbose', console: true }]
+    }))
 })
 
+// Set _settle to true, so that if one of the parallel tasks fails,
+// the other one won't exit prematurely (this is a bit awkward).
+// https://github.com/gulpjs/gulp/issues/1487#issuecomment-466621047
+gulp._settle = true
 gulp.task('lint', gulp.parallel('lint:js', 'lint:css'))
+gulp._settle = false
 
 /** TASKS: CLEAN */
 
