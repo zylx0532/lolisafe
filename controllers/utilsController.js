@@ -248,15 +248,16 @@ self.generateThumbs = async (name, extname, force) => {
       }
     } else if (self.videoExts.includes(extname)) {
       const metadata = await self.ffprobe(input)
+      const duration = parseInt(metadata.format.duration)
 
-      // Skip files that do not have video streams/channels
-      if (!metadata.streams || !metadata.streams.some(s => s.codec_type === 'video'))
-        throw 'File does not contain any video stream'
+      // Skip files that have neither video streams/channels nor valid duration metadata
+      if (!metadata.streams || !metadata.streams.some(s => s.codec_type === 'video') || isNaN(duration))
+        throw 'File does not have valid required data'
 
       await new Promise((resolve, reject) => {
         ffmpeg(input)
           .inputOptions([
-              `-ss ${parseInt(metadata.format.duration) * 20 / 100}`
+              `-ss ${duration * 20 / 100}`
           ])
           .output(thumbname)
           .outputOptions([
@@ -286,7 +287,7 @@ self.generateThumbs = async (name, extname, force) => {
     const suppress = [
       /Input file contains unsupported image format/,
       /Invalid data found when processing input/,
-      /File does not contain any video stream/
+      /File does not have valid required data/
     ]
 
     if (!suppress.some(t => t.test(errorString)))
