@@ -26,7 +26,6 @@ const api = require('./routes/api')
 const nojs = require('./routes/nojs')
 
 const db = require('knex')(config.database)
-require('./database/db.js')(db)
 
 safe.use(helmet())
 if (config.trustProxy) safe.set('trust proxy', 1)
@@ -106,6 +105,9 @@ safe.use('/api', api)
 
 ;(async () => {
   try {
+    // Init database
+    await require('./database/db.js')(db)
+
     // Verify paths, create missing ones, clean up temp ones
     await paths.init()
 

@@ -23,6 +23,10 @@ Configuration file of lolisafe, `config.js`, is also NOT fully compatible with t
 5. Run `yarn install --production` to install all production dependencies (Yes, use [yarn](https://yarnpkg.com)).
 6. Run `yarn start` to start the service.
 
+> Default admin account:  
+> Username: `root`  
+> Password: `changeme`
+
 You can also start it with `yarn pm2` if you have [PM2](https://pm2.keymetrics.io/).
 
 When running in production mode, the safe will use pre-built client-side CSS/JS files from `dist` directory, while the actual source codes are in `src` directory.
