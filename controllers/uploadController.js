@@ -766,34 +766,29 @@ self.list = async (req, res) => {
   }
 
   function filter () {
-    if (req.params.id !== undefined) {
+    if (req.params.id !== undefined)
       this.where('albumid', req.params.id)
-    } else if (!all) {
+    else if (!all)
       this.where('userid', user.id)
-    } else {
+    else
       // Fisrt, look for uploads matching ANY of the supplied 'user' OR 'ip' filters
       // Then, refine the matches using the supplied 'name' filters
-      const raw = []
-      const source = []
-      if (_filters.uploaders.length)
-        source.push(`\`userid\` in (${_filters.uploaders.map(v => `'${v.id}'`).join(', ')})`)
-      if (_filters.ips.length)
-        source.push(`\`ip\` in (${_filters.ips.map(v => `'${v}'`).join(', ')})`)
-      if (_filters.flags.nouser)
-        source.push('(`userid` is null or \'\')')
-      if (_filters.flags.noip)
-        source.push('(`ip` is null or \'\')')
-      if (source.length)
-        raw.push(`(${source.join(' or ')})`)
-      if (_filters.names.length)
-        raw.push(`(${_filters.names.map(v => {
-          if (v.includes('*'))
-            return `\`name\` like '${v.replace(/\*/g, '%')}'`
+      this.where(function () {
+        if (_filters.uploaders.length)
+          this.orWhereIn('userid', _filters.uploaders.map(v => v.id))
+        if (_filters.ips.length)
+          this.orWhereIn('ip', _filters.ips)
+        if (_filters.flags.nouser)
+          this.orWhereNull('userid')
+        if (_filters.flags.noip)
+          this.orWhereNull('ip')
+      }).andWhere(function () {
+        for (const name of _filters.names)
+          if (name.includes('*'))
+            this.orWhere('name', 'like', name.replace(/\*/g, '%'))
           else
-            return `\`name\` = '${v}'`
-        }).join(' or ')})`)
-      this.whereRaw(raw.join(' and '))
-    }
+            this.orWhere('name', name)
+      })
   }
 
   // Query uploads count for pagination

@@ -704,12 +704,18 @@ self.stats = async (req, res, next) => {
       }
 
       stats.uploads.images = await db.table('files')
-        .whereRaw(self.imageExts.map(ext => `\`name\` like '%${ext}'`).join(' or '))
+        .where(function () {
+          for (const ext of self.imageExts)
+            this.orWhere('name', 'like', `%${ext}`)
+        })
         .count('id as count')
         .then(rows => rows[0].count)
 
       stats.uploads.videos = await db.table('files')
-        .whereRaw(self.videoExts.map(ext => `\`name\` like '%${ext}'`).join(' or '))
+        .where(function () {
+          for (const ext of self.videoExts)
+            this.orWhere('name', 'like', `%${ext}`)
+        })
         .count('id as count')
         .then(rows => rows[0].count)
 
