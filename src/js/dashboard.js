@@ -1158,7 +1158,10 @@ page.postBulkDeleteUploads = (params = {}) => {
       else if (failed.length && failed.length < params.values.length)
         swal('Warning!', `From ${objective}, unable to delete ${failed.length} of them.`, 'warning')
       else
-        swal('Deleted!', `${objective} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success')
+        swal('Deleted!', `${objective} ${count === 1 ? 'has' : 'have'} been deleted.`, 'success', {
+          buttons: false,
+          timer: 1500
+        })
 
       if (typeof params.cb === 'function')
         params.cb(failed)
@@ -1256,7 +1259,10 @@ page.addUploadsToAlbum = (ids, callback) => {
       if (!added)
         return swal('An error occurred!', `Could not add the ${suffix} to the album.`, 'error')
 
-      swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success')
+      swal('Woohoo!', `Successfully ${albumid < 0 ? 'removed' : 'added'} ${added} ${suffix} ${albumid < 0 ? 'from' : 'to'} the album.`, 'success', {
+        buttons: false,
+        timer: 1500
+      })
       callback(add.data.failed)
     }).catch(page.onAxiosError)
   })
@@ -1486,7 +1492,10 @@ page.editAlbum = id => {
       else if (response.data.name !== album.name)
         swal('Success!', `Your album was renamed to: ${response.data.name}.`, 'success')
       else
-        swal('Success!', 'Your album was edited!', 'success')
+        swal('Success!', 'Your album was edited!', 'success', {
+          buttons: false,
+          timer: 1500
+        })
 
       page.getAlbumsSidebar()
       page.getAlbums()
@@ -1533,7 +1542,10 @@ page.deleteAlbum = id => {
           return swal('An error occurred!', response.data.description, 'error')
       }
 
-      swal('Deleted!', 'Your album has been deleted.', 'success')
+      swal('Deleted!', 'Your album has been deleted.', 'success', {
+        buttons: false,
+        timer: 1500
+      })
       page.getAlbumsSidebar()
       page.getAlbums()
     }).catch(page.onAxiosError)
@@ -1557,7 +1569,10 @@ page.submitAlbum = element => {
         return swal('An error occurred!', response.data.description, 'error')
       }
 
-    swal('Woohoo!', 'Album was created successfully.', 'success')
+    swal('Woohoo!', 'Album was created successfully.', 'success', {
+      buttons: false,
+      timer: 1500
+    })
     page.getAlbumsSidebar()
     page.getAlbums()
   }).catch(error => {
@@ -1725,7 +1740,9 @@ page.sendNewPassword = (pass, element) => {
     swal({
       title: 'Woohoo!',
       text: 'Your password was successfully changed.',
-      icon: 'success'
+      icon: 'success',
+      buttons: false,
+      timer: 1500
     }).then(() => {
       page.changePassword()
     })
@@ -2006,9 +2023,12 @@ page.editUser = id => {
           content: div
         })
       } else if (response.data.update && response.data.update.username !== user.username) {
-        swal('Success!', `${user.username} was renamed into: ${response.data.update.name}.`, 'success')
+        swal('Success!', `${user.username} was renamed into: ${response.data.update.username}.`, 'success')
       } else {
-        swal('Success!', 'The user was edited!', 'success')
+        swal('Success!', 'The user was edited!', 'success', {
+          buttons: false,
+          timer: 1500
+        })
       }
 
       page.getUsers(page.views.users)
@@ -2050,7 +2070,10 @@ page.disableUser = id => {
         else
           return swal('An error occurred!', response.data.description, 'error')
 
-      swal('Success!', `${page.cache.users[id].username} has been disabled.`, 'success')
+      swal('Success!', `${page.cache.users[id].username} has been disabled.`, 'success', {
+        buttons: false,
+        timer: 1500
+      })
       page.getUsers(page.views.users)
     }).catch(page.onAxiosError)
   })
@@ -2106,7 +2129,10 @@ page.deleteUser = id => {
           return swal('An error occurred!', response.data.description, 'error')
       }
 
-      swal('Success!', `${page.cache.users[id].username} has been deleted.`, 'success')
+      swal('Success!', `${page.cache.users[id].username} has been deleted.`, 'success', {
+        buttons: false,
+        timer: 1500
+      })
 
       // Reload users list
       // eslint-disable-next-line compat/compat
@@ -2300,7 +2326,10 @@ window.onload = () => {
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
   page.clipboardJS.on('success', () => {
-    return swal('Copied!', 'The link has been copied to clipboard.', 'success')
+    return swal('', 'The link has been copied to clipboard.', 'success', {
+      buttons: false,
+      timer: 1500
+    })
   })
 
   page.clipboardJS.on('error', page.onError)

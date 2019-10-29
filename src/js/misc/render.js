@@ -90,7 +90,10 @@ page.doRenderSwal = () => {
         localStorage[lsKeys.render] = newValue
       else
         localStorage.removeItem(lsKeys.render)
-      swal('Success!', `Random render is now ${newValue ? 'disabled' : 'enabled'}.`, 'success')
+      swal('', `Random render is now ${newValue ? 'disabled' : 'enabled'}.`, 'success', {
+        buttons: false,
+        timer: 1500
+      })
       const element = document.querySelector('body > .render')
       element.remove()
       page.doRender()

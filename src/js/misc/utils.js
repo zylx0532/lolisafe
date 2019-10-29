@@ -36,6 +36,7 @@ ${headers.join(',\n')}
 }`
 
   const sharexBlob = new Blob([sharexFile], { type: 'application/octet-binary' })
+  /* eslint-disable-next-line compat/compat */
   sharexElement.setAttribute('href', URL.createObjectURL(sharexBlob))
   sharexElement.setAttribute('download', `${originClean}.sxcu`)
 }

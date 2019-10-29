@@ -873,6 +873,7 @@ window.addEventListener('paste', event => {
     const item = items[index[i]]
     if (item.kind === 'file') {
       const blob = item.getAsFile()
+      /* eslint-disable-next-line compat/compat */
       const file = new File([blob], `pasted-image.${blob.type.match(/(?:[^/]*\/)([^;]*)/)[1]}`, {
         type: blob.type
       })
@@ -887,7 +888,10 @@ window.onload = () => {
   page.clipboardJS = new ClipboardJS('.clipboard-js')
 
   page.clipboardJS.on('success', () => {
-    return swal('Copied!', 'The link has been copied to clipboard.', 'success')
+    return swal('', 'The link has been copied to clipboard.', 'success', {
+      buttons: false,
+      timer: 1500
+    })
   })
 
   page.clipboardJS.on('error', page.onError)
