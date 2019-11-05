@@ -269,7 +269,7 @@ self.actuallyUploadFiles = async (req, res, user, albumid, age) => {
   }
 
   if (utils.clamd.scanner) {
-    const scanResult = await self.scanFiles(req, infoMap)
+    const scanResult = await self.scanFiles(req, user, infoMap)
     if (scanResult) throw scanResult
   }
 
@@ -349,7 +349,7 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
     downloaded.length = 0
 
     if (utils.clamd.scanner) {
-      const scanResult = await self.scanFiles(req, infoMap)
+      const scanResult = await self.scanFiles(req, user, infoMap)
       if (scanResult) throw scanResult
     }
 
@@ -461,7 +461,7 @@ self.actuallyFinishChunks = async (req, res, user) => {
     }))
 
     if (utils.clamd.scanner) {
-      const scanResult = await self.scanFiles(req, infoMap)
+      const scanResult = await self.scanFiles(req, user, infoMap)
       if (scanResult) throw scanResult
     }
 
@@ -515,42 +515,35 @@ self.cleanUpChunks = async (uuid) => {
   delete chunksData[uuid]
 }
 
-self.scanFiles = async (req, infoMap) => {
-  let foundThreat
-  let lastIteration
-  let errorString
-  // TODO: Should these be processed concurrently?
-  // Not sure if it'll be too much load on ClamAV.
-  for (let i = 0; i < infoMap.length; i++) {
-    let reply
-    try {
-      reply = await utils.clamd.scanner.scanFile(infoMap[i].path, utils.clamd.timeout, utils.clamd.chunkSize)
-    } catch (error) {
-      logger.error(`[ClamAV]: ${error.toString()}.`)
-      errorString = `[ClamAV]: ${error.code !== undefined ? `${error.code}, p` : 'P'}lease contact the site owner.`
-      break
-    }
-
-    if (!reply.includes('OK') || reply.includes('FOUND')) {
-      // eslint-disable-next-line no-control-regex
-      foundThreat = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
-      logger.log(`[ClamAV]: ${infoMap[i].data.filename}: ${foundThreat} FOUND.`)
-      lastIteration = i === infoMap.length - 1
-      break
-    }
-  }
-
-  if (!foundThreat && !errorString)
+self.scanFiles = async (req, user, infoMap) => {
+  if (user && utils.clamd.groupBypass && perms.is(user, utils.clamd.groupBypass))
     return false
 
-  // Unlink all files when at least one threat is found
-  // Should ontinue even when encountering errors
-  await Promise.all(infoMap.map(info =>
-    utils.unlinkFile(info.data.filename).catch(logger.error)
-  ))
+  const foundThreats = []
+  const results = await Promise.all(infoMap.map(async info => {
+    const reply = await utils.clamd.scanner.scanFile(info.path, utils.clamd.timeout, utils.clamd.chunkSize)
+    if (!reply.includes('OK') || reply.includes('FOUND')) {
+      // eslint-disable-next-line no-control-regex
+      const foundThreat = reply.replace(/^stream: /, '').replace(/ FOUND\u0000$/, '')
+      logger.log(`[ClamAV]: ${info.data.filename}: ${foundThreat} FOUND.`)
+      foundThreats.push(foundThreat)
+    }
+  })).then(() => {
+    if (foundThreats.length)
+      return `Threat found: ${foundThreats[0]}${foundThreats.length > 1 ? ', and more' : ''}.`
+  }).catch(error => {
+    logger.error(`[ClamAV]: ${error.toString()}`)
+    return 'An unexpected error occurred with ClamAV, please contact the site owner.'
+  })
 
-  return errorString ||
-    `Threat found: ${foundThreat}${lastIteration ? '' : ', and maybe more'}.`
+  if (results)
+    // Unlink all files when at least one threat is found OR any errors occurred
+    // Should continue even when encountering errors
+    await Promise.all(infoMap.map(info =>
+      utils.unlinkFile(info.data.filename).catch(logger.error)
+    ))
+
+  return results
 }
 
 self.storeFilesToDb = async (req, res, user, infoMap) => {

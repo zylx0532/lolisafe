@@ -277,13 +277,20 @@ module.exports = {
 
     /*
       Scan files using ClamAV through clamd.
+      https://github.com/NingLin-P/clamdjs#scannerscanfilepath-timeout-chunksize
+
+      groupBypass: Name of the lowest ranked group whose files will not be scanned.
+      Lowest ranked meanning that group AND any groups higher than it are included.
+      Example: 'moderator' = moderators, admins & superadmins.
+      More about groups at controllers/permissionController.js.
     */
     scan: {
       enabled: false,
       ip: '127.0.0.1',
       port: 3310,
       timeout: 180 * 1000,
-      chunkSize: 64 * 1024
+      chunkSize: 64 * 1024,
+      groupBypass: 'admin'
     },
 
     /*

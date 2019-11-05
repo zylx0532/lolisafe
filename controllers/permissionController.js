@@ -8,6 +8,7 @@ self.permissions = {
   // Groups will inherit permissions from groups which have lower value
 }
 
+// returns true if user is in the group OR higher
 self.is = (user, group) => {
   // root bypass
   if (user.username === 'root')

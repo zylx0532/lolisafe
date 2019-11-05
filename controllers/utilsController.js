@@ -15,7 +15,8 @@ const self = {
   clamd: {
     scanner: null,
     timeout: config.uploads.scan.timeout || 5000,
-    chunkSize: config.uploads.scan.chunkSize || 64 * 1024
+    chunkSize: config.uploads.scan.chunkSize || 64 * 1024,
+    groupBypass: config.uploads.scan.groupBypass || null
   },
   gitHash: null,
   idSet: null,
