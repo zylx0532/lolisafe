@@ -204,7 +204,7 @@ self.upload = async (req, res, next) => {
   if (temporaryUploads) {
     age = self.parseUploadAge(req.headers.age)
     if (!age && !config.uploads.temporaryUploadAges.includes(0))
-      return res.json({ success: false, description: 'Permanent uploads are prohibited.' })
+      return res.json({ success: false, description: 'Permanent uploads are not permitted.' })
   }
 
   try {
@@ -309,7 +309,7 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
         filtered = self.isExtensionFiltered(extname)
 
       if (filtered)
-        throw `${extname ? `${extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted due to security reasons.`
+        throw `${extname ? `${extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted.`
 
       if (config.uploads.urlProxy)
         url = config.uploads.urlProxy
@@ -413,12 +413,12 @@ self.actuallyFinishChunks = async (req, res, user) => {
 
       file.extname = typeof file.original === 'string' ? utils.extname(file.original) : ''
       if (self.isExtensionFiltered(file.extname))
-        throw `${file.extname ? `${file.extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted due to security reasons.`
+        throw `${file.extname ? `${file.extname.substr(1).toUpperCase()} files` : 'Files with no extension'} are not permitted.`
 
       if (temporaryUploads) {
         file.age = self.parseUploadAge(file.age)
         if (!file.age && !config.uploads.temporaryUploadAges.includes(0))
-          throw 'Permanent uploads are prohibited.'
+          throw 'Permanent uploads are not permitted.'
       }
 
       file.size = chunksData[file.uuid].size
