@@ -347,19 +347,23 @@ page.domClick = event => {
   }
 }
 
-page.fadeAndScroll = content => {
+page.fadeAndScroll = disableFading => {
   if (page.fadingIn) {
     clearTimeout(page.fadingIn)
     page.dom.classList.remove('fade-in')
   }
 
-  page.dom.classList.add('fade-in')
-  page.fadingIn = setTimeout(() => {
-    page.dom.classList.remove('fade-in')
-  }, 500)
+  const behavior = disableFading ? 'auto' : 'smooth'
+
+  if (!disableFading) {
+    page.dom.classList.add('fade-in')
+    page.fadingIn = setTimeout(() => {
+      page.dom.classList.remove('fade-in')
+    }, 500)
+  }
 
   page.dom.scrollIntoView({
-    behavior: 'smooth',
+    behavior,
     block: 'start',
     inline: 'nearest'
   })
@@ -370,7 +374,9 @@ page.switchPage = (action, element) => {
   const params = Object.assign({
     trigger: element
   }, page.views[page.currentView])
+
   const func = page.currentView === 'users' ? page.getUsers : page.getUploads
+
   switch (action) {
     case 'page-prev':
       params.pageNum = page.views[page.currentView].pageNum - 1
@@ -649,10 +655,6 @@ page.getUploads = (params = {}) => {
         table.appendChild(div)
         page.checkboxes[page.currentView] = table.querySelectorAll('.checkbox[data-action="select"]')
       }
-
-      // Scrolling from bottom to top
-      // will cause all thumbs to be loaded in advance anyway
-      page.lazyLoad.update()
     } else {
       page.dom.innerHTML = `
         ${pagination}
@@ -729,7 +731,13 @@ page.getUploads = (params = {}) => {
       selectAll.title = 'Unselect all'
     }
 
-    page.fadeAndScroll()
+    if (page.views[page.currentView].type === 'thumbs') {
+      page.fadeAndScroll(true)
+      page.lazyLoad.update()
+    } else {
+      page.fadeAndScroll()
+    }
+
     page.updateTrigger(params.trigger, 'active')
 
     if (page.currentView === 'uploads')
