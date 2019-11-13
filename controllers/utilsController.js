@@ -579,20 +579,22 @@ self.stats = async (req, res, next) => {
       } else {
         statsCache.disk.generating = true
 
-        // We pre-assign the keys below to guarantee their order
         stats.disk = {
           _types: {
             byte: ['uploads', 'thumbs', 'zips', 'chunks'],
             byteUsage: ['drive']
           },
           drive: null,
+          // We pre-assign the keys below to fix their order
           uploads: 0,
           thumbs: 0,
           zips: 0,
           chunks: 0
         }
 
-        // Get size of directories in uploads path
+        const subdirs = []
+
+        // Get size of uploads path (excluding sub-directories)
         await new Promise((resolve, reject) => {
           const proc = spawn('du', [
             '--apparent-size',
@@ -607,14 +609,17 @@ self.stats = async (req, res, next) => {
             const formatted = String(data)
               .trim()
               .split(/\s+/)
-            if (formatted.length !== 2) return
+            for (let i = 0; i < formatted.length; i += 2) {
+              const path = formatted[i + 1]
+              if (!path) return
 
-            const basename = path.basename(formatted[1])
-            stats.disk[basename] = parseInt(formatted[0])
+              if (path !== paths.uploads) {
+                subdirs.push(path)
+                continue
+              }
 
-            // Add to types if necessary
-            if (!stats.disk._types.byte.includes(basename))
-              stats.disk._types.byte.push(basename)
+              stats.disk.uploads = parseInt(formatted[i])
+            }
           })
 
           const stderr = []
@@ -625,6 +630,40 @@ self.stats = async (req, res, next) => {
             resolve()
           })
         })
+
+        await Promise.all(subdirs.map(subdir => {
+          return new Promise((resolve, reject) => {
+            const proc = spawn('du', [
+              '--apparent-size',
+              '--block-size=1',
+              '--dereference',
+              '--summarize',
+              subdir
+            ])
+
+            proc.stdout.on('data', data => {
+              const formatted = String(data)
+                .trim()
+                .split(/\s+/)
+              if (formatted.length !== 2) return
+
+              const basename = path.basename(formatted[1])
+              stats.disk[basename] = parseInt(formatted[0])
+
+              // Add to types if necessary
+              if (!stats.disk._types.byte.includes(basename))
+                stats.disk._types.byte.push(basename)
+            })
+
+            const stderr = []
+            proc.stderr.on('data', data => stderr.push(data))
+
+            proc.on('exit', code => {
+              if (code !== 0) return reject(stderr)
+              resolve()
+            })
+          })
+        }))
 
         // Get disk usage of whichever disk uploads path resides on
         await new Promise((resolve, reject) => {

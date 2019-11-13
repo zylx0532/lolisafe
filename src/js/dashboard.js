@@ -353,8 +353,6 @@ page.fadeAndScroll = disableFading => {
     page.dom.classList.remove('fade-in')
   }
 
-  const behavior = disableFading ? 'auto' : 'smooth'
-
   if (!disableFading) {
     page.dom.classList.add('fade-in')
     page.fadingIn = setTimeout(() => {
@@ -363,7 +361,7 @@ page.fadeAndScroll = disableFading => {
   }
 
   page.dom.scrollIntoView({
-    behavior,
+    behavior: disableFading ? 'auto' : 'smooth',
     block: 'start',
     inline: 'nearest'
   })

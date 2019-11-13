@@ -6,7 +6,7 @@ Normal priority:
 * [x] Use [native lazy-load tag](https://web.dev/native-lazy-loading) on nojs album pages.
 * [x] Use incremental version numbering instead of randomized strings.
 * [ ] Use versioning in /api/check. To elaborate, make it so that when a version string reported by server is higher than expected, force user to reload the page (which should be all that is needed for users to be loading latest front-end assets). Possibly also use it in /api/tokens/verify, for dashboard page.
-* [ ] Better `df` handling (system disk stats). To elaborate, either properly show disk usages of directories that have sub-directories, or only show disk usages of whitelisted directories (thumbs, chunks, etc).
+* [x] Better `df` handling (system disk stats). To elaborate, either properly show disk usages of directories that have sub-directories, or only show disk usages of whitelisted directories (thumbs, chunks, etc).
 * [x] Use loading spinners on dashboard's sidebar menus.
 * [x] Disable all other sidebar menus when a menu is still loading.
 * [ ] Collapsible dashboard's sidebar albums menus.
