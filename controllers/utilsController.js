@@ -623,7 +623,7 @@ self.stats = async (req, res, next) => {
           })
 
           const stderr = []
-          proc.stderr.on('data', data => stderr.push(data))
+          proc.stderr.on('data', data => stderr.push(String(data)))
 
           proc.on('exit', code => {
             if (code !== 0) return reject(stderr)
@@ -656,7 +656,7 @@ self.stats = async (req, res, next) => {
             })
 
             const stderr = []
-            proc.stderr.on('data', data => stderr.push(data))
+            proc.stderr.on('data', data => stderr.push(String(data)))
 
             proc.on('exit', code => {
               if (code !== 0) return reject(stderr)
@@ -695,7 +695,7 @@ self.stats = async (req, res, next) => {
           })
 
           const stderr = []
-          proc.stderr.on('data', data => stderr.push(data))
+          proc.stderr.on('data', data => stderr.push(String(data)))
 
           proc.on('exit', code => {
             if (code !== 0) return reject(stderr)
