@@ -704,7 +704,7 @@ self.stats = async (req, res, next) => {
         })
 
         // Update cache
-        statsCache.disk.cache = stats.system
+        statsCache.disk.cache = stats.disk
         statsCache.disk.generating = false
       }
 
