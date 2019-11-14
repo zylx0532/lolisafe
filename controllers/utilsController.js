@@ -34,11 +34,13 @@ const self = {
 const statsCache = {
   system: {
     cache: null,
-    generating: false
+    generating: false,
+    generatedAt: 0
   },
   disk: {
     cache: null,
-    generating: false
+    generating: false,
+    generatedAt: 0
   },
   albums: {
     cache: null,
@@ -539,10 +541,12 @@ self.stats = async (req, res, next) => {
     // System info
     if (!statsCache.system.cache && statsCache.system.generating) {
       stats.system = false
-    } else if (statsCache.system.generating) {
+    } else if (((Date.now() - statsCache.system.generatedAt) <= 1000) || statsCache.system.generating) {
+      // Use cache for 1000 ms (1 second)
       stats.system = statsCache.system.cache
     } else {
       statsCache.system.generating = true
+      statsCache.system.generatedAt = Date.now()
 
       const currentLoad = await si.currentLoad()
       const mem = await si.mem()
@@ -574,10 +578,12 @@ self.stats = async (req, res, next) => {
     if (os.platform === 'linux')
       if (!statsCache.disk.cache && statsCache.disk.generating) {
         stats.disk = false
-      } else if (statsCache.disk.generating) {
+      } else if (((Date.now() - statsCache.disk.generatedAt) <= 60000) || statsCache.disk.generating) {
+        // Use cache for 60000 ms (60 seconds)
         stats.disk = statsCache.disk.cache
       } else {
         statsCache.disk.generating = true
+        statsCache.disk.generatedAt = Date.now()
 
         stats.disk = {
           _types: {
