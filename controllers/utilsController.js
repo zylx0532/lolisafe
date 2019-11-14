@@ -861,6 +861,10 @@ self.stats = async (req, res, next) => {
     return res.json({ success: true, stats })
   } catch (error) {
     logger.error(error)
+    // Reset generating state when encountering any errors
+    Object.keys(statsCache).forEach(key => {
+      statsCache[key].generating = false
+    })
     return res.status(500).json({ success: false, description: 'An unexpected error occurred. Try again?' })
   }
 }
