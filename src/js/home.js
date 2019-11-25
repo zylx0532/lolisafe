@@ -306,6 +306,69 @@ page.prepareDropzone = () => {
     chunking: Boolean(page.chunkSize),
     chunkSize: page.chunkSize * 1e6, // the option below expects Bytes
     parallelChunkUploads: false, // when set to true, it often hangs with hundreds of parallel uploads
+    timeout: 0,
+    init () {
+      this.on('addedfile', file => {
+        // Set active tab to file uploads, if necessary
+        if (page.activeTab !== 0)
+          page.setActiveTab(0)
+        // Add file entry
+        tabDiv.querySelector('.uploads').classList.remove('is-hidden')
+        file.previewElement.querySelector('.name').innerHTML = file.name
+      })
+
+      this.on('sending', (file, xhr) => {
+        // Add timeout listener (hacky method due to lack of built-in timeout handler)
+        if (!xhr.ontimeout)
+          xhr.ontimeout = () => {
+            const instances = page.dropzone.getUploadingFiles()
+              .filter(instance => instance.xhr === xhr)
+            page.dropzone._handleUploadError(instances, xhr, 'Connection timed out. Try to reduce upload chunk size.')
+          }
+
+        // Skip adding additional headers if chunked uploads
+        if (file.upload.chunked) return
+
+        // Continue otherwise
+        if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
+        if (page.fileLength !== null) xhr.setRequestHeader('filelength', page.fileLength)
+        if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
+      })
+
+      // Update the total progress bar
+      this.on('uploadprogress', (file, progress) => {
+        // For some reason, chunked uploads fire 100% progress event
+        // for each chunk's successful uploads
+        if (file.upload.chunked && progress === 100) return
+        file.previewElement.querySelector('.progress').setAttribute('value', progress)
+        file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
+      })
+
+      this.on('success', (file, response) => {
+        if (!response) return
+        file.previewElement.querySelector('.progress').classList.add('is-hidden')
+
+        if (response.success === false)
+          file.previewElement.querySelector('.error').innerHTML = response.description
+
+        if (response.files && response.files[0])
+          page.updateTemplate(file, response.files[0])
+      })
+
+      this.on('error', (file, error) => {
+        // Clean up file size errors
+        if ((typeof error === 'string' && /^File is too big/.test(error)) ||
+          (typeof error === 'object' && /File too large/.test(error.description)))
+          error = `File too large (${page.getPrettyBytes(file.size)}).`
+
+        page.updateTemplateIcon(file.previewElement, 'icon-block')
+        file.previewElement.querySelector('.progress').classList.add('is-hidden')
+        file.previewElement.querySelector('.name').innerHTML = file.name
+        file.previewElement.querySelector('.error').innerHTML = error.description || error
+      })
+
+      this.on('timeout', console.log)
+    },
     chunksUploaded (file, done) {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
       file.previewElement.querySelector('.progress').innerHTML = '100%'
@@ -340,55 +403,6 @@ page.prepareDropzone = () => {
         return done()
       })
     }
-  })
-
-  page.dropzone.on('addedfile', file => {
-    // Set active tab to file uploads, if necessary
-    if (page.activeTab !== 0)
-      page.setActiveTab(0)
-    // Add file entry
-    tabDiv.querySelector('.uploads').classList.remove('is-hidden')
-    file.previewElement.querySelector('.name').innerHTML = file.name
-  })
-
-  page.dropzone.on('sending', (file, xhr) => {
-    if (file.upload.chunked) return
-    // Add headers if not uploading chunks
-    if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
-    if (page.fileLength !== null) xhr.setRequestHeader('filelength', page.fileLength)
-    if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
-  })
-
-  // Update the total progress bar
-  page.dropzone.on('uploadprogress', (file, progress) => {
-    // For some reason, chunked uploads fire 100% progress event
-    // for each chunk's successful uploads
-    if (file.upload.chunked && progress === 100) return
-    file.previewElement.querySelector('.progress').setAttribute('value', progress)
-    file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
-  })
-
-  page.dropzone.on('success', (file, response) => {
-    if (!response) return
-    file.previewElement.querySelector('.progress').classList.add('is-hidden')
-
-    if (response.success === false)
-      file.previewElement.querySelector('.error').innerHTML = response.description
-
-    if (response.files && response.files[0])
-      page.updateTemplate(file, response.files[0])
-  })
-
-  page.dropzone.on('error', (file, error) => {
-    // Clean up file size errors
-    if ((typeof error === 'string' && /^File is too big/.test(error)) ||
-      (typeof error === 'object' && /File too large/.test(error.description)))
-      error = `File too large (${page.getPrettyBytes(file.size)}).`
-
-    page.updateTemplateIcon(file.previewElement, 'icon-block')
-    file.previewElement.querySelector('.progress').classList.add('is-hidden')
-    file.previewElement.querySelector('.name').innerHTML = file.name
-    file.previewElement.querySelector('.error').innerHTML = error.description || error
   })
 }
 
