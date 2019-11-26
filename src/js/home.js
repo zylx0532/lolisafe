@@ -341,36 +341,45 @@ page.prepareDropzone = () => {
           if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
         }
 
-        if (file.upload.chunked)
-          file.previewElement.querySelector('.descriptive-progress').innerHTML =
-            `Uploading chunk ${file.upload.chunks.length}/${file.upload.totalChunkCount}\u2026${file._percentage ? ` ${file._percentage}%` : ''}`
-        else
+        if (!file.upload.chunked)
           file.previewElement.querySelector('.descriptive-progress').innerHTML = 'Uploading\u2026'
+        else if (file.upload.chunks.length === 1)
+          file.previewElement.querySelector('.descriptive-progress').innerHTML = `Uploading chunk 1/${file.upload.totalChunkCount}\u2026`
       })
 
       // Update descriptive progress
       this.on('uploadprogress', (file, progress) => {
         // Total bytes will eventually be bigger than file size when chunked
         const total = Math.max(file.size, file.upload.total)
-        file._percentage = (file.upload.bytesSent / total * 100).toFixed(0)
-
-        const prefix = file.upload.chunked
-          ? `Uploading chunk ${file.upload.chunks.length}/${file.upload.totalChunkCount}\u2026`
-          : 'Uploading\u2026'
+        const percentage = (file.upload.bytesSent / total * 100).toFixed(0)
 
         const upl = file.upload.chunked
           ? file.upload.chunks[file.upload.chunks.length - 1]
           : file.upload
         const xhr = upl.xhr || file.xhr
 
-        const bytesSent = upl.bytesSent
-        const elapsed = (Date.now() - xhr._start) / 1000
+        let prefix = 'Uploading\u2026'
+        let skipProgress = false
+        if (file.upload.chunked) {
+          const done = upl.bytesSent === upl.total
+          const last = file.upload.chunks.length === file.upload.totalChunkCount
+          let chunkIndex = file.upload.chunks.length
+          if (done && !last) {
+            chunkIndex++
+            skipProgress = true
+          }
+          prefix = `Uploading chunk ${chunkIndex}/${file.upload.totalChunkCount}\u2026`
+        }
 
-        const bytesPerSec = elapsed ? (bytesSent / elapsed) : 0
-        const prettyBytesPerSec = page.getPrettyBytes(bytesPerSec)
+        let prettyBytesPerSec
+        if (!skipProgress) {
+          const elapsed = (Date.now() - xhr._start) / 1000
+          const bytesPerSec = elapsed ? (upl.bytesSent / elapsed) : 0
+          prettyBytesPerSec = page.getPrettyBytes(bytesPerSec)
+        }
 
         file.previewElement.querySelector('.descriptive-progress').innerHTML =
-          `${prefix} ${file._percentage}%${prettyBytesPerSec ? ` at ~${prettyBytesPerSec}/s` : ''}`
+          `${prefix} ${percentage}%${prettyBytesPerSec ? ` at ~${prettyBytesPerSec}/s` : ''}`
       })
 
       this.on('success', (file, response) => {
