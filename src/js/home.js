@@ -366,8 +366,6 @@ page.prepareDropzone = () => {
         file.previewElement.querySelector('.name').innerHTML = file.name
         file.previewElement.querySelector('.error').innerHTML = error.description || error
       })
-
-      this.on('timeout', console.log)
     },
     chunksUploaded (file, done) {
       file.previewElement.querySelector('.progress').setAttribute('value', 100)
