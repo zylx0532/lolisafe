@@ -82,14 +82,18 @@
   }
 }
 
-.uploads.is-reversed {
+.uploads {
   display: flex;
+  flex-direction: column
+}
+
+.uploads.is-reversed {
   flex-direction: column-reverse
 }
 
 .uploads > div {
   animation: fadeInOpacity 0.5s;
-  margin: 1rem
+  margin: 0.75rem !important
 }
 
 .uploads.is-reversed > div {
