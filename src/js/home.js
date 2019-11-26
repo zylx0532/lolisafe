@@ -341,8 +341,10 @@ page.prepareDropzone = () => {
           if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
         }
 
-        // If not chunked uploads OR first chunk
-        if (!file.upload.chunked || file.upload.chunks.length === 1)
+        if (file.upload.chunked)
+          file.previewElement.querySelector('.descriptive-progress').innerHTML =
+            `Uploading chunk ${file.upload.chunks.length}/${file.upload.totalChunkCount}\u2026${file._percentage ? ` ${file._percentage}%` : ''}`
+        else
           file.previewElement.querySelector('.descriptive-progress').innerHTML = 'Uploading\u2026'
       })
 
@@ -350,7 +352,7 @@ page.prepareDropzone = () => {
       this.on('uploadprogress', (file, progress) => {
         // Total bytes will eventually be bigger than file size when chunked
         const total = Math.max(file.size, file.upload.total)
-        const percentage = (file.upload.bytesSent / total * 100).toFixed(0)
+        file._percentage = (file.upload.bytesSent / total * 100).toFixed(0)
 
         const prefix = file.upload.chunked
           ? `Uploading chunk ${file.upload.chunks.length}/${file.upload.totalChunkCount}\u2026`
@@ -368,7 +370,7 @@ page.prepareDropzone = () => {
         const prettyBytesPerSec = page.getPrettyBytes(bytesPerSec)
 
         file.previewElement.querySelector('.descriptive-progress').innerHTML =
-          `${prefix} ${percentage}%${prettyBytesPerSec ? ` at ~${prettyBytesPerSec}/s` : ''}`
+          `${prefix} ${file._percentage}%${prettyBytesPerSec ? ` at ~${prettyBytesPerSec}/s` : ''}`
       })
 
       this.on('success', (file, response) => {
