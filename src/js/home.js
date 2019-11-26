@@ -304,17 +304,21 @@ page.prepareDropzone = () => {
     autoProcessQueue: true,
     headers: { token: page.token },
     chunking: Boolean(page.chunkSize),
-    chunkSize: page.chunkSize * 1e6, // the option below expects Bytes
-    parallelChunkUploads: false, // when set to true, it often hangs with hundreds of parallel uploads
+    chunkSize: page.chunkSize * 1e6, // this option expects Bytes
+    parallelChunkUploads: false, // for now, enabling this breaks descriptive upload progress
     timeout: 0,
+
     init () {
       this.on('addedfile', file => {
         // Set active tab to file uploads, if necessary
         if (page.activeTab !== 0)
           page.setActiveTab(0)
+
         // Add file entry
         tabDiv.querySelector('.uploads').classList.remove('is-hidden')
+
         file.previewElement.querySelector('.name').innerHTML = file.name
+        file.previewElement.querySelector('.descriptive-progress').innerHTML = 'Waiting in queue\u2026'
       })
 
       this.on('sending', (file, xhr) => {
@@ -326,30 +330,55 @@ page.prepareDropzone = () => {
             page.dropzone._handleUploadError(instances, xhr, 'Connection timed out. Try to reduce upload chunk size.')
           }
 
-        // Skip adding additional headers if chunked uploads
-        if (file.upload.chunked) return
+        // Add start timestamp of upload attempt
+        if (xhr._start === undefined)
+          xhr._start = Date.now()
 
-        // Continue otherwise
-        if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
-        if (page.fileLength !== null) xhr.setRequestHeader('filelength', page.fileLength)
-        if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
+        // If not chunked uploads, add extra headers
+        if (!file.upload.chunked) {
+          if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
+          if (page.fileLength !== null) xhr.setRequestHeader('filelength', page.fileLength)
+          if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
+        }
+
+        // If not chunked uploads OR first chunk
+        if (!file.upload.chunked || file.upload.chunks.length === 1)
+          file.previewElement.querySelector('.descriptive-progress').innerHTML = 'Uploading\u2026'
       })
 
-      // Update the total progress bar
+      // Update descriptive progress
       this.on('uploadprogress', (file, progress) => {
-        // For some reason, chunked uploads fire 100% progress event
-        // for each chunk's successful uploads
-        if (file.upload.chunked && progress === 100) return
-        file.previewElement.querySelector('.progress').setAttribute('value', progress)
-        file.previewElement.querySelector('.progress').innerHTML = `${progress}%`
+        // Total bytes will eventually be bigger than file size when chunked
+        const total = Math.max(file.size, file.upload.total)
+        const percentage = (file.upload.bytesSent / total * 100).toFixed(0)
+
+        const prefix = file.upload.chunked
+          ? `Uploading chunk ${file.upload.chunks.length}/${file.upload.totalChunkCount}\u2026`
+          : 'Uploading\u2026'
+
+        const upl = file.upload.chunked
+          ? file.upload.chunks[file.upload.chunks.length - 1]
+          : file.upload
+        const xhr = upl.xhr || file.xhr
+
+        const bytesSent = upl.bytesSent
+        const elapsed = (Date.now() - xhr._start) / 1000
+
+        const bytesPerSec = elapsed ? (bytesSent / elapsed) : 0
+        const prettyBytesPerSec = page.getPrettyBytes(bytesPerSec)
+
+        file.previewElement.querySelector('.descriptive-progress').innerHTML =
+          `${prefix} ${percentage}%${prettyBytesPerSec ? ` at ~${prettyBytesPerSec}/s` : ''}`
       })
 
       this.on('success', (file, response) => {
         if (!response) return
-        file.previewElement.querySelector('.progress').classList.add('is-hidden')
+        file.previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
 
-        if (response.success === false)
+        if (response.success === false) {
           file.previewElement.querySelector('.error').innerHTML = response.description
+          file.previewElement.querySelector('.error').classList.remove('is-hidden')
+        }
 
         if (response.files && response.files[0])
           page.updateTemplate(file, response.files[0])
@@ -362,14 +391,18 @@ page.prepareDropzone = () => {
           error = `File too large (${page.getPrettyBytes(file.size)}).`
 
         page.updateTemplateIcon(file.previewElement, 'icon-block')
-        file.previewElement.querySelector('.progress').classList.add('is-hidden')
+
+        file.previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
         file.previewElement.querySelector('.name').innerHTML = file.name
+
         file.previewElement.querySelector('.error').innerHTML = error.description || error
+        file.previewElement.querySelector('.error').classList.remove('is-hidden')
       })
     },
+
     chunksUploaded (file, done) {
-      file.previewElement.querySelector('.progress').setAttribute('value', 100)
-      file.previewElement.querySelector('.progress').innerHTML = '100%'
+      file.previewElement.querySelector('.descriptive-progress').innerHTML =
+        `Rebuilding ${file.upload.totalChunkCount} chunks\u2026`
 
       return axios.post('api/upload/finishchunks', {
         // This API supports an array of multiple files
@@ -381,7 +414,11 @@ page.prepareDropzone = () => {
           filelength: page.fileLength,
           age: page.uploadAge
         }]
-      }, { headers: { token: page.token } }).catch(error => {
+      }, {
+        headers: {
+          token: page.token
+        }
+      }).catch(error => {
         // Format error for display purpose
         return error.response.data ? error.response : {
           data: {
@@ -390,10 +427,12 @@ page.prepareDropzone = () => {
           }
         }
       }).then(response => {
-        file.previewElement.querySelector('.progress').classList.add('is-hidden')
+        file.previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
 
-        if (response.data.success === false)
+        if (response.data.success === false) {
           file.previewElement.querySelector('.error').innerHTML = response.data.description
+          file.previewElement.querySelector('.error').classList.remove('is-hidden')
+        }
 
         if (response.data.files && response.data.files[0])
           page.updateTemplate(file, response.data.files[0])
@@ -425,6 +464,7 @@ page.uploadUrls = button => {
     }
 
     const previewsContainer = tabDiv.querySelector('.uploads')
+
     const urls = document.querySelector('#urls').value
       .split(/\r?\n/)
       .filter(url => {
@@ -436,11 +476,15 @@ page.uploadUrls = button => {
       return done('You have not entered any URLs.')
 
     tabDiv.querySelector('.uploads').classList.remove('is-hidden')
+
     const files = urls.map(url => {
       const previewTemplate = document.createElement('template')
       previewTemplate.innerHTML = page.previewTemplate.trim()
+
       const previewElement = previewTemplate.content.firstChild
       previewElement.querySelector('.name').innerHTML = url
+      previewElement.querySelector('.descriptive-progress').innerHTML = 'Waiting in queue\u2026'
+
       previewsContainer.appendChild(previewElement)
       return { url, previewElement }
     })
@@ -450,18 +494,21 @@ page.uploadUrls = button => {
         return done()
 
       function posted (result) {
-        files[i].previewElement.querySelector('.progress').classList.add('is-hidden')
+        files[i].previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
+
         if (result.success) {
           page.updateTemplate(files[i], result.files[0])
         } else {
           page.updateTemplateIcon(files[i].previewElement, 'icon-block')
           files[i].previewElement.querySelector('.error').innerHTML = result.description
+          files[i].previewElement.querySelector('.error').classList.remove('is-hidden')
         }
+
         return post(i + 1)
       }
 
-      // Animate progress bar
-      files[i].previewElement.querySelector('.progress').removeAttribute('value')
+      files[i].previewElement.querySelector('.descriptive-progress').innerHTML =
+        'Waiting for server to fetch URL\u2026'
 
       return axios.post('api/upload', { urls: [files[i].url] }, { headers }).then(response => {
         return posted(response.data)
@@ -480,6 +527,7 @@ page.uploadUrls = button => {
 page.updateTemplateIcon = (templateElement, iconClass) => {
   const iconElement = templateElement.querySelector('.icon')
   if (!iconElement) return
+
   iconElement.classList.add(iconClass)
   iconElement.classList.remove('is-hidden')
 }
@@ -487,9 +535,12 @@ page.updateTemplateIcon = (templateElement, iconClass) => {
 page.updateTemplate = (file, response) => {
   if (!response.url) return
 
-  const a = file.previewElement.querySelector('.link > a')
+  const link = file.previewElement.querySelector('.link')
+  const a = link.querySelector('a')
   const clipboard = file.previewElement.querySelector('.clipboard-mobile > .clipboard-js')
   a.href = a.innerHTML = clipboard.dataset.clipboardText = response.url
+
+  link.classList.remove('is-hidden')
   clipboard.parentElement.classList.remove('is-hidden')
 
   const exec = /.[\w]+(\?|$)/.exec(response.url)

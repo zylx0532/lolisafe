@@ -31,7 +31,7 @@ Due to the fact that it needs to have `page` variable defined first, it can't ev
 This may prevent proper async load of JS assets, which I'd like to look into, in pursuit of even more speed.
 * [ ] Remember last pages of uploads & users lists.  
 Consider remembering last pages of each individual albums as well. When deleting an album, properly delete its remembered last page, if any. When listing albums sidebar and/or listing albums in Manage your albums, also delete remembered last pages of any missing albums (assume the albums were deleted from another device).
-* [ ] Descriptive upload progress, such as upload speed. Also tell user which chunk is currently being uploaded, to avoid confusion when progress "stops" when shifting to the next chunk.
+* [x] Descriptive upload progress, such as upload speed. Also tell user which chunk is currently being uploaded, to avoid confusion when progress "stops" when shifting to the next chunk.
 
 Low priority:
 

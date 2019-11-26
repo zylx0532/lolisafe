@@ -112,9 +112,8 @@
   color: #da4453
 }
 
-.uploads progress {
-  margin-top: 0.5rem;
-  margin-bottom: 1rem
+.uploads .descriptive-progress {
+  color: #bdc3c7
 }
 
 .uploads img {
