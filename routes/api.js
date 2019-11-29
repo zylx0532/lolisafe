@@ -13,7 +13,8 @@ routes.get('/check', (req, res, next) => {
     maxSize: config.uploads.maxSize,
     chunkSize: config.uploads.chunkSize,
     temporaryUploadAges: config.uploads.temporaryUploadAges,
-    fileIdentifierLength: config.uploads.fileIdentifierLength
+    fileIdentifierLength: config.uploads.fileIdentifierLength,
+    stripTags: config.uploads.stripTags
   })
 })
 

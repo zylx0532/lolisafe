@@ -151,6 +151,11 @@ fieldset[disabled] .textarea {
   border-color: #eff0f1
 }
 
+.select select[disabled]:hover,
+fieldset[disabled] .select select:hover {
+  border-color: #585858
+}
+
 .message {
   background-color: #2f2f2f
 }

@@ -10,6 +10,7 @@ page.prepareShareX = () => {
   } : {}
   values.filelength = page.fileLength || ''
   values.age = page.uploadAge || ''
+  values.striptags = page.stripTags || ''
 
   const headers = []
   const keys = Object.keys(values)

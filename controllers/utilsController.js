@@ -308,6 +308,52 @@ self.generateThumbs = async (name, extname, force) => {
   return true
 }
 
+self.stripTags = async (name, extname) => {
+  const fullpath = path.join(paths.uploads, name)
+
+  if (self.imageExts.includes(extname)) {
+    const tmpfile = path.join(paths.uploads, `tmp-${name}`)
+    await paths.rename(fullpath, tmpfile)
+
+    try {
+      await sharp(tmpfile)
+        .toFile(fullpath)
+      await paths.unlink(tmpfile)
+    } catch (error) {
+      await paths.unlink(tmpfile)
+      // Re-throw error
+      throw error
+    }
+  } else if (config.uploads.stripTags.video && self.videoExts.includes(extname)) {
+    const tmpfile = path.join(paths.uploads, `tmp-${name}`)
+    await paths.rename(fullpath, tmpfile)
+
+    try {
+      await new Promise((resolve, reject) => {
+        ffmpeg(tmpfile)
+          .output(fullpath)
+          .outputOptions([
+            // Experimental.
+            '-c copy',
+            '-map_metadata:g -1:g',
+            '-map_metadata:s:v -1:g',
+            '-map_metadata:s:a -1:g'
+          ])
+          .on('error', error => reject(error))
+          .on('end', () => resolve(true))
+          .run()
+      })
+      await paths.unlink(tmpfile)
+    } catch (error) {
+      await paths.unlink(tmpfile)
+      // Re-throw error
+      throw error
+    }
+  }
+
+  return true
+}
+
 self.unlinkFile = async (filename, predb) => {
   try {
     await paths.unlink(path.join(paths.uploads, filename))

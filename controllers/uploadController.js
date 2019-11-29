@@ -26,7 +26,7 @@ const maxFilesPerUpload = 20
 
 const chunkedUploads = Boolean(config.uploads.chunkSize)
 const chunksData = {}
-//  Hard-coded min chunk size of 1 MB (e.i. 50 MB = max 50 chunks)
+//  Hard-coded min chunk size of 1 MB (e.g. 50 MB = max 50 chunks)
 const maxChunksCount = maxSize
 
 const extensionsFilter = Array.isArray(config.extensionsFilter) &&
@@ -106,7 +106,7 @@ const executeMulter = multer({
           .catch(error => cb(error))
       }
 
-      // index.extension (e.i. 0, 1, ..., n - will prepend zeros depending on the amount of chunks)
+      // index.extension (i.e. 0, 1, ..., n - will prepend zeros depending on the amount of chunks)
       const digits = req.body.totalchunkcount !== undefined ? `${req.body.totalchunkcount - 1}`.length : 1
       const zeros = new Array(digits + 1).join('0')
       const name = (zeros + req.body.chunkindex).slice(-digits)
@@ -181,6 +181,16 @@ self.parseUploadAge = age => {
     return parsed
   else
     return null
+}
+
+self.parseStripTags = stripTags => {
+  if (!config.uploads.stripTags)
+    return false
+
+  if (config.uploads.stripTags.force || stripTags === undefined)
+    return config.uploads.stripTags.default
+
+  return Boolean(parseInt(stripTags))
 }
 
 self.upload = async (req, res, next) => {
@@ -272,6 +282,8 @@ self.actuallyUploadFiles = async (req, res, user, albumid, age) => {
     const scanResult = await self.scanFiles(req, user, infoMap)
     if (scanResult) throw scanResult
   }
+
+  await self.stripTags(req, infoMap)
 
   const result = await self.storeFilesToDb(req, res, user, infoMap)
   await self.sendUploadResponse(req, res, result)
@@ -471,6 +483,8 @@ self.actuallyFinishChunks = async (req, res, user) => {
       if (scanResult) throw scanResult
     }
 
+    await self.stripTags(req, infoMap)
+
     const result = await self.storeFilesToDb(req, res, user, infoMap)
     await self.sendUploadResponse(req, res, result)
   } catch (error) {
@@ -552,10 +566,31 @@ self.scanFiles = async (req, user, infoMap) => {
   return results
 }
 
+self.stripTags = async (req, infoMap) => {
+  if (!self.parseStripTags(req.headers.striptags))
+    return
+
+  try {
+    await Promise.all(infoMap.map(info =>
+      utils.stripTags(info.data.filename, info.data.extname)
+    ))
+  } catch (error) {
+    // Unlink all files when at least one threat is found OR any errors occurred
+    // Should continue even when encountering errors
+    await Promise.all(infoMap.map(info =>
+      utils.unlinkFile(info.data.filename).catch(logger.error)
+    ))
+
+    // Re-throw error
+    throw error
+  }
+}
+
 self.storeFilesToDb = async (req, res, user, infoMap) => {
   const files = []
   const exists = []
   const albumids = []
+
   await Promise.all(infoMap.map(async info => {
     // Create hash of the file
     const hash = await new Promise((resolve, reject) => {

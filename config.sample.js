@@ -325,7 +325,7 @@ module.exports = {
       Cache file identifiers.
 
       They will be used for stricter collision checks, such that a single identifier
-      may not be used by more than a single file (e.i. if "abcd.jpg" already exists, a new PNG
+      may not be used by more than a single file (e.g. if "abcd.jpg" already exists, a new PNG
       file may not be named as "abcd.png").
 
       If this is enabled, the safe will query files from the database during first launch,
@@ -333,11 +333,11 @@ module.exports = {
       Its downside is that it will use a bit more memory.
 
       If this is disabled, collision check will become less strict.
-      As in, the same identifier may be used by multiple different extensions (e.i. if "abcd.jpg"
+      As in, the same identifier may be used by multiple different extensions (e.g. if "abcd.jpg"
       already exists, new files can be possibly be named as "abcd.png", "abcd.mp4", etc).
       Its downside will be, in the rare chance that multiple image/video files are sharing the same
       identifier, they will end up with the same thumbnail in dashboard, since thumbnails will
-      only be saved as PNG in storage (e.i. "abcd.jpg" and "abcd.png" will share a single thumbnail
+      only be saved as PNG in storage (e.g. "abcd.jpg" and "abcd.png" will share a single thumbnail
       named "abcd.png" in thumbs directory, in which case, the file that's uploaded the earliest will
       be the source for the thumbnail).
 
@@ -367,6 +367,28 @@ module.exports = {
       image: true,
       video: false,
       placeholder: null
+    },
+
+    /*
+      Strip tags (e.g. EXIF).
+
+      "default" decides whether to strip tags or not by default,
+      as the behavior can be configured by users from home uploader's Config tab.
+      If "force" is set to true, the default behavior will be enforced.
+
+      "video" decides whether to also strip tags of vidoe files
+      (of course only if the default behavior is to strip tags).
+      However, this also requires ffmpeg (see option's note above),
+      and still experimental (thus use at your own risk).
+
+      NOTE: Other than setting both "default" and "force" to false,
+      you can also set stripTags itself to any falsy value to completely
+      disable this feature.
+    */
+    stripTags: {
+      default: false,
+      video: false,
+      force: false
     },
 
     /*

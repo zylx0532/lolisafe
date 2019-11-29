@@ -7,7 +7,8 @@ const lsKeys = {
   uploadsHistoryOrder: 'uploadsHistoryOrder',
   previewImages: 'previewImages',
   fileLength: 'fileLength',
-  uploadAge: 'uploadAge'
+  uploadAge: 'uploadAge',
+  stripTags: 'stripTags'
 }
 
 const page = {
@@ -21,6 +22,7 @@ const page = {
   chunkSize: null,
   temporaryUploadAges: null,
   fileIdentifierLength: null,
+  stripTagsConfig: null,
 
   // store album id that will be used with upload requests
   album: null,
@@ -137,6 +139,7 @@ page.checkIfPublic = () => {
     page.chunkSize = parseInt(response.data.chunkSize)
     page.temporaryUploadAges = response.data.temporaryUploadAges
     page.fileIdentifierLength = response.data.fileIdentifierLength
+    page.stripTagsConfig = response.data.stripTags
     return page.preparePage()
   }).catch(page.onInitError)
 }
@@ -343,6 +346,7 @@ page.prepareDropzone = () => {
           if (page.album !== null) xhr.setRequestHeader('albumid', page.album)
           if (page.fileLength !== null) xhr.setRequestHeader('filelength', page.fileLength)
           if (page.uploadAge !== null) xhr.setRequestHeader('age', page.uploadAge)
+          if (page.stripTags !== null) xhr.setRequestHeader('striptags', page.stripTags)
         }
 
         if (!file.upload.chunked)
@@ -430,7 +434,10 @@ page.prepareDropzone = () => {
         }]
       }, {
         headers: {
-          token: page.token
+          token: page.token,
+          // Unlike the options above (e.g. albumid, filelength, etc.),
+          // strip tags can not yet be configured per file with this API
+          striptags: page.stripTags
         }
       }).catch(error => {
         // Format error for display purpose
@@ -581,7 +588,7 @@ page.updateTemplate = (file, response) => {
       img.classList.remove('is-hidden')
       img.onerror = event => {
         // Hide image elements that fail to load
-        // Consequently include WEBP in browsers that do not have WEBP support (e.i. IE)
+        // Consequently include WEBP in browsers that do not have WEBP support (e.g. IE)
         event.currentTarget.classList.add('is-hidden')
         page.updateTemplateIcon(file.previewElement, 'icon-picture')
       }
@@ -708,7 +715,18 @@ page.prepareUploadConfig = () => {
       display: temporaryUploadAges,
       label: 'Upload age',
       select: [],
-      help: 'This allows your files to automatically be deleted after a certain period of time.'
+      help: 'Whether to automatically delete your uploads after a certain amount of time.'
+    },
+    stripTags: {
+      display: page.stripTagsConfig,
+      label: 'Strip tags',
+      select: page.stripTagsConfig ? [
+        { value: page.stripTagsConfig.default ? 'default' : '1', text: 'Yes' },
+        { value: page.stripTagsConfig.default ? '0' : 'default', text: 'No' }
+      ] : null,
+      help: `Whether to strip tags (e.g. EXIF) from your uploads.<br>
+        This only applies to regular image${page.stripTagsConfig && page.stripTagsConfig.video ? ' and video' : ''} uploads (i.e. not URL uploads).`,
+      disabled: page.stripTagsConfig && page.stripTagsConfig.force
     },
     chunkSize: {
       display: !isNaN(page.chunkSize),
@@ -736,8 +754,8 @@ page.prepareUploadConfig = () => {
         { value: 'default', text: 'Older files on top' },
         { value: '0', text: 'Newer files on top' }
       ],
-      help: `Newer files on top will use <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/flex-direction#Accessibility_Concerns" target="_blank" rel="noopener">a CSS technique</a>.<br>
-        Trying to select their texts manually from top to bottom will end up selecting the texts from bottom to top instead.`,
+      help: `"Newer files on top" will use a CSS technique, which unfortunately come with <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/flex-direction#Accessibility_Concerns" target="_blank" rel="noopener">some undesirable side effects</a>.<br>
+        This also affects text selection, such as when trying to select text from top to bottom will result in them being selected from bottom to top instead, and vice versa.`,
       valueHandler (value) {
         if (value === '0') {
           const uploadFields = document.querySelectorAll('.tab-content > .uploads')
@@ -807,7 +825,11 @@ page.prepareUploadConfig = () => {
         if (!isNaN(parsed))
           value = parsed
       } else {
-        value = localStorage[lsKeys[key]]
+        const stored = localStorage[lsKeys[key]]
+        if (Array.isArray(conf.select))
+          value = conf.select.find(sel => sel.value === stored) ? stored : undefined
+        else
+          value = stored
       }
 
       // If valueHandler function exists, defer to the function,
@@ -826,7 +848,8 @@ page.prepareUploadConfig = () => {
       const opts = []
       for (let j = 0; j < conf.select.length; j++) {
         const opt = conf.select[j]
-        const selected = value && (opt.value === String(value))
+        const selected = (value && (opt.value === String(value))) ||
+          (value === undefined && opt.value === 'default')
         opts.push(`
           <option value="${opt.value}"${selected ? ' selected' : ''}>
             ${opt.text}${opt.value === 'default' ? ' (default)' : ''}
@@ -857,8 +880,11 @@ page.prepareUploadConfig = () => {
 
     let help
     if (conf.disabled) {
-      control.disabled = conf.disabled
-      help = 'This option is currently disabled.'
+      if (Array.isArray(conf.select))
+        control.querySelector('select').disabled = conf.disabled
+      else
+        control.disabled = conf.disabled
+      help = 'This option is currently not configurable.'
     } else if (typeof conf.help === 'string') {
       help = conf.help
     } else if (conf.help === true && conf.number !== undefined) {

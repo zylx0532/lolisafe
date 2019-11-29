@@ -39,7 +39,7 @@ Low priority:
 * [x] Delete user feature.
 * [ ] Bulk delete user feature.
 * [ ] Bulk disable user feature.
-* [ ] Strip EXIF from images. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)
+* [x] Strip EXIF from images. [#51](https://github.com/BobbyWibowo/lolisafe/issues/51)
 * [ ] DMCA request logs (bare text file will do), and link it in FAQ.  
 This should also include list of files that also had to be manually deleted due to triggering Google's SafeSearch (harmful downloads, etc).
 
