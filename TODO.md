@@ -35,7 +35,7 @@ Consider remembering last pages of each individual albums as well. When deleting
 
 Low priority:
 
-* [ ] Parallel URL uploads.
+* [x] Parallel URL uploads.
 * [x] Delete user feature.
 * [ ] Bulk delete user feature.
 * [ ] Bulk disable user feature.

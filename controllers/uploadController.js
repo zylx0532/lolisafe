@@ -363,8 +363,14 @@ self.actuallyUploadUrls = async (req, res, user, albumid, age) => {
         utils.unlinkFile(file).catch(logger.error)
       ))
 
-    // Re-throw error
-    throw error
+    const errorString = error.toString()
+    const suppress = [
+      / over limit:/
+    ]
+    if (!suppress.some(t => t.test(errorString)))
+      throw error
+    else
+      throw errorString
   }
 }
 

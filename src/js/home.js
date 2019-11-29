@@ -43,6 +43,10 @@ const page = {
   clipboardJS: null,
   lazyLoad: null,
 
+  // additional vars for url uploads
+  urlsQueue: [],
+  activeUrlsQueue: 0,
+
   // Include BMP for uploads preview only, cause the real images will be used
   // Sharp isn't capable of making their thumbnails for dashboard and album public pages
   imageExts: ['.webp', '.jpg', '.jpeg', '.bmp', '.gif', '.png', '.tiff', '.tif', '.svg'],
@@ -215,7 +219,7 @@ page.prepareUpload = () => {
     page.urlMaxSizeBytes = page.urlMaxSize * 1e6
     urlMaxSize.innerHTML = page.getPrettyBytes(page.urlMaxSizeBytes)
     document.querySelector('#uploadUrls').addEventListener('click', event => {
-      page.uploadUrls(event.currentTarget)
+      page.addUrlsToQueue()
     })
   }
 
@@ -382,17 +386,17 @@ page.prepareDropzone = () => {
           `${prefix} ${percentage}%${prettyBytesPerSec ? ` at ~${prettyBytesPerSec}/s` : ''}`
       })
 
-      this.on('success', (file, response) => {
-        if (!response) return
+      this.on('success', (file, data) => {
+        if (!data) return
         file.previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
 
-        if (response.success === false) {
-          file.previewElement.querySelector('.error').innerHTML = response.description
+        if (data.success === false) {
+          file.previewElement.querySelector('.error').innerHTML = data.description
           file.previewElement.querySelector('.error').classList.remove('is-hidden')
         }
 
-        if (response.files && response.files[0])
-          page.updateTemplate(file, response.files[0])
+        if (Array.isArray(data.files) && data.files[0])
+          page.updateTemplate(file, data.files[0])
       })
 
       this.on('error', (file, error) => {
@@ -404,7 +408,6 @@ page.prepareDropzone = () => {
         page.updateTemplateIcon(file.previewElement, 'icon-block')
 
         file.previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
-        file.previewElement.querySelector('.name').innerHTML = file.name
 
         file.previewElement.querySelector('.error').innerHTML = error.description || error
         file.previewElement.querySelector('.error').classList.remove('is-hidden')
@@ -454,85 +457,96 @@ page.prepareDropzone = () => {
   })
 }
 
-page.uploadUrls = button => {
-  const tabDiv = document.querySelector('#tab-urls')
-  if (!tabDiv || button.classList.contains('is-loading'))
-    return
-
-  button.classList.add('is-loading')
-
-  function done (error) {
-    if (error) swal('An error occurred!', error, 'error')
-    button.classList.remove('is-loading')
-  }
-
-  function run () {
-    const headers = {
-      token: page.token,
-      albumid: page.album,
-      age: page.uploadAge,
-      filelength: page.fileLength
-    }
-
-    const previewsContainer = tabDiv.querySelector('.uploads')
-
-    const urls = document.querySelector('#urls').value
-      .split(/\r?\n/)
-      .filter(url => {
-        return url.trim().length
-      })
-    document.querySelector('#urls').value = urls.join('\n')
-
-    if (!urls.length)
-      return done('You have not entered any URLs.')
-
-    tabDiv.querySelector('.uploads').classList.remove('is-hidden')
-
-    const files = urls.map(url => {
-      const previewTemplate = document.createElement('template')
-      previewTemplate.innerHTML = page.previewTemplate.trim()
-
-      const previewElement = previewTemplate.content.firstChild
-      previewElement.querySelector('.name').innerHTML = url
-      previewElement.querySelector('.descriptive-progress').innerHTML = 'Waiting in queue\u2026'
-
-      previewsContainer.appendChild(previewElement)
-      return { url, previewElement }
+page.addUrlsToQueue = () => {
+  const urls = document.querySelector('#urls').value
+    .split(/\r?\n/)
+    .filter(url => {
+      return url.trim().length
     })
 
-    function post (i) {
-      if (i === files.length)
-        return done()
+  if (!urls.length)
+    return swal('An error occurred!', 'You have not entered any URLs.', 'error')
 
-      function posted (result) {
-        files[i].previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
+  const tabDiv = document.querySelector('#tab-urls')
+  tabDiv.querySelector('.uploads').classList.remove('is-hidden')
 
-        if (result.success) {
-          page.updateTemplate(files[i], result.files[0])
-        } else {
-          page.updateTemplateIcon(files[i].previewElement, 'icon-block')
-          files[i].previewElement.querySelector('.error').innerHTML = result.description
-          files[i].previewElement.querySelector('.error').classList.remove('is-hidden')
-        }
+  for (let i = 0; i < urls.length; i++) {
+    const previewTemplate = document.createElement('template')
+    previewTemplate.innerHTML = page.previewTemplate.trim()
 
-        return post(i + 1)
-      }
+    const previewElement = previewTemplate.content.firstChild
+    previewElement.querySelector('.name').innerHTML = urls[i]
+    previewElement.querySelector('.descriptive-progress').innerHTML = 'Waiting in queue\u2026'
 
-      files[i].previewElement.querySelector('.descriptive-progress').innerHTML =
-        'Waiting for server to fetch URL\u2026'
+    const previewsContainer = tabDiv.querySelector('.uploads')
+    previewsContainer.appendChild(previewElement)
 
-      return axios.post('api/upload', { urls: [files[i].url] }, { headers }).then(response => {
-        return posted(response.data)
-      }).catch(error => {
-        return posted({
-          success: false,
-          description: error.response ? error.response.data.description : error.toString()
-        })
-      })
-    }
-    return post(0)
+    page.urlsQueue.push({
+      url: urls[i],
+      previewElement
+    })
   }
-  return run()
+
+  page.processUrlsQueue()
+  document.querySelector('#urls').value = ''
+}
+
+page.processUrlsQueue = () => {
+  if (!page.urlsQueue.length) return
+
+  function finishedUrlUpload (file, data) {
+    file.previewElement.querySelector('.descriptive-progress').classList.add('is-hidden')
+
+    if (data.success === false) {
+      const match = data.description.match(/ over limit: (\d+)$/)
+      if (match && match[1])
+        data.description = `File exceeded limit of ${page.getPrettyBytes(match[1])}.`
+
+      file.previewElement.querySelector('.error').innerHTML = data.description
+      file.previewElement.querySelector('.error').classList.remove('is-hidden')
+    }
+
+    if (Array.isArray(data.files) && data.files[0])
+      page.updateTemplate(file, data.files[0])
+
+    page.activeUrlsQueue--
+    return shiftQueue()
+  }
+
+  function initUrlUpload (file) {
+    file.previewElement.querySelector('.descriptive-progress').innerHTML =
+      'Waiting for server to fetch URL\u2026'
+
+    return axios.post('api/upload', {
+      urls: [file.url]
+    }, {
+      headers: {
+        token: page.token,
+        albumid: page.album,
+        age: page.uploadAge,
+        filelength: page.fileLength
+      }
+    }).catch(error => {
+      // Format error for display purpose
+      return error.response.data ? error.response : {
+        data: {
+          success: false,
+          description: error.toString()
+        }
+      }
+    }).then(response => {
+      return finishedUrlUpload(file, response.data)
+    })
+  }
+
+  function shiftQueue () {
+    while (page.urlsQueue.length && (page.activeUrlsQueue < page.parallelUploads)) {
+      page.activeUrlsQueue++
+      initUrlUpload(page.urlsQueue.shift())
+    }
+  }
+
+  return shiftQueue()
 }
 
 page.updateTemplateIcon = (templateElement, iconClass) => {
