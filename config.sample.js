@@ -376,14 +376,15 @@ module.exports = {
       as the behavior can be configured by users from home uploader's Config tab.
       If "force" is set to true, the default behavior will be enforced.
 
-      "video" decides whether to also strip tags of vidoe files
+      "video" decides whether to also strip tags of video files
       (of course only if the default behavior is to strip tags).
-      However, this also requires ffmpeg (see option's note above),
-      and still experimental (thus use at your own risk).
+      However, this also requires ffmpeg (https://ffmpeg.org/),
+      and is still experimental (thus use at your own risk!).
 
-      NOTE: Other than setting both "default" and "force" to false,
-      you can also set stripTags itself to any falsy value to completely
-      disable this feature.
+      NOTE: Other than setting "default" to false, and "force" to true,
+      you can also set stripTags option itself to any falsy value to completely
+      disable this feature. This will also remove the option from
+      home uploader's Config tab, as the former would only grey out the option.
     */
     stripTags: {
       default: false,
