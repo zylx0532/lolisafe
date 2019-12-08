@@ -33,6 +33,9 @@ This may prevent proper async load of JS assets, which I'd like to look into, in
 Consider remembering last pages of each individual albums as well. When deleting an album, properly delete its remembered last page, if any. When listing albums sidebar and/or listing albums in Manage your albums, also delete remembered last pages of any missing albums (assume the albums were deleted from another device).
 * [x] Descriptive upload progress, such as upload speed. Also tell user which chunk is currently being uploaded, to avoid confusion when progress "stops" when shifting to the next chunk.
 * [ ] Delete own account feature. Since we already have delete user API endpoint, which also already includes the ability to delete uploads associated with the account, it should be easy to expand it a little to allow deleting own account and uploads.
+* [ ] Add uploads date filter, possibly with support for range and operators (e.g. less than, more than, etc). Should convert human-readable date inputs locally into unix timestamps, so users can just follow their local timezones, since dates will already be displayed using their browser's timezone.
+* [ ] Add uploads sorting feature. Attempt to make this work even when using filters.
+* [ ] Add expirydate flags for uploads filter.
 
 Low priority:
 
