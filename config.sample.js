@@ -101,7 +101,8 @@ module.exports = {
 
   /*
     Trust proxy.
-    Only enable if you are running this behind a proxy like Cloudflare, Incapsula, etc.
+    Enable this if you are using proxy such as Cloudflare or Incapsula,
+    and/or also when you are using reverse proxy such as nginx or Apache.
   */
   trustProxy: true,
 
@@ -141,13 +142,13 @@ module.exports = {
       }
     },
     {
-      // 4 requests in 30 seconds
+      // 6 requests in 30 seconds
       routes: [
         '/api/album/zip'
       ],
       config: {
         windowMs: 30 * 1000,
-        max: 4
+        max: 6
       }
     },
     {
@@ -449,6 +450,8 @@ module.exports = {
     ADVANCED: Use safe.fiery.me-exclusive cache control.
     This will only work properly with certain settings in nginx reverse proxy and Cloudflare.
     Do NOT enable unless you know what you are doing.
+    true: With CDN (Cloudflare)
+    2: When NOT using Cloudflare
   */
   cacheControl: false,
 
