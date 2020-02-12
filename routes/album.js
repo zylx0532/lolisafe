@@ -1,56 +1,101 @@
-const config = require('../config.js');
-const routes = require('express').Router();
-const db = require('knex')(config.database);
-const path = require('path');
-const utils = require('../controllers/utilsController.js');
+const routes = require('express').Router()
+const path = require('path')
+const paths = require('./../controllers/pathsController')
+const utils = require('./../controllers/utilsController')
+const config = require('./../config')
+const db = require('knex')(config.database)
 
 routes.get('/a/:identifier', async (req, res, next) => {
-	let identifier = req.params.identifier;
-	if (identifier === undefined) return res.status(401).json({ success: false, description: 'No identifier provided' });
+  const identifier = req.params.identifier
+  if (identifier === undefined)
+    return res.status(401).json({
+      success: false,
+      description: 'No identifier provided.'
+    })
 
-	const album = await db.table('albums').where({ identifier, enabled: 1 }).first();
-	if (!album) return res.status(404).sendFile('404.html', { root: './pages/error/' });
+  const album = await db.table('albums')
+    .where({
+      identifier,
+      enabled: 1
+    })
+    .select('id', 'name', 'identifier', 'editedAt', 'download', 'public', 'description')
+    .first()
 
-	const files = await db.table('files').select('name').where('albumid', album.id).orderBy('id', 'DESC');
-	let thumb = '';
-	const basedomain = config.domain;
+  if (!album)
+    return res.status(404).sendFile(path.join(paths.errorRoot, config.errorPages[404]))
+  else if (album.public === 0)
+    return res.status(403).json({
+      success: false,
+      description: 'This album is not available for public.'
+    })
 
-	for (let file of files) {
-		file.file = `${basedomain}/${file.name}`;
+  const nojs = req.query.nojs !== undefined
 
-		let ext = path.extname(file.name).toLowerCase();
-		if (utils.imageExtensions.includes(ext) || utils.videoExtensions.includes(ext)) {
-			file.thumb = `${basedomain}/thumbs/${file.name.slice(0, -ext.length)}.png`;
+  // Cache ID - we initialize a separate cache for No-JS version
+  const cacheid = nojs ? `${album.id}-nojs` : album.id
 
-			/*
-				If thumbnail for album is still not set, do it.
-				A potential improvement would be to let the user upload a specific image as an album cover
-				since embedding the first image could potentially result in nsfw content when pasting links.
-			*/
+  if (!utils.albumsCache[cacheid])
+    utils.albumsCache[cacheid] = {
+      cache: null,
+      generating: false,
+      // Cache will actually be deleted after the album has been updated,
+      // so storing this timestamp may be redundant, but just in case.
+      generatedAt: 0
+    }
 
-			if (thumb === '') {
-				thumb = file.thumb;
-			}
+  if (!utils.albumsCache[cacheid].cache && utils.albumsCache[cacheid].generating)
+    return res.json({
+      success: false,
+      description: 'This album is still generating its public page.'
+    })
+  else if ((album.editedAt < utils.albumsCache[cacheid].generatedAt) || utils.albumsCache[cacheid].generating)
+    return res.send(utils.albumsCache[cacheid].cache)
 
-			file.thumb = `<img src="${file.thumb}"/>`;
-		} else {
-			file.thumb = `<h1 class="title">.${ext}</h1>`;
-		}
-	}
+  // Use current timestamp to make sure cache is invalidated
+  // when an album is edited during this generation process.
+  utils.albumsCache[cacheid].generating = true
+  utils.albumsCache[cacheid].generatedAt = Math.floor(Date.now() / 1000)
 
+  const files = await db.table('files')
+    .select('name', 'size')
+    .where('albumid', album.id)
+    .orderBy('id', 'DESC')
 
-	let enableDownload = false;
-	if (config.uploads.generateZips) enableDownload = true;
+  album.thumb = ''
+  album.totalSize = 0
 
-	return res.render('album', {
-		layout: false,
-		title: album.name,
-		count: files.length,
-		thumb,
-		files,
-		identifier,
-		enableDownload
-	});
-});
+  for (const file of files) {
+    album.totalSize += parseInt(file.size)
 
-module.exports = routes;
+    file.extname = path.extname(file.name)
+    if (utils.mayGenerateThumb(file.extname)) {
+      file.thumb = `thumbs/${file.name.slice(0, -file.extname.length)}.png`
+      // If thumbnail for album is still not set, set it to current file's full URL.
+      // A potential improvement would be to let the user set a specific image as an album cover.
+      if (!album.thumb) album.thumb = file.name
+    }
+  }
+
+  album.downloadLink = album.download === 0
+    ? null
+    : `api/album/zip/${album.identifier}?v=${album.editedAt}`
+
+  album.url = `a/${album.identifier}`
+
+  return res.render('album', {
+    config,
+    versions: utils.versionStrings,
+    album,
+    files,
+    nojs
+  }, (error, html) => {
+    utils.albumsCache[cacheid].cache = error ? null : html
+    utils.albumsCache[cacheid].generating = false
+
+    // Express should already send error to the next handler
+    if (error) return
+    return res.send(utils.albumsCache[cacheid].cache)
+  })
+})
+
+module.exports = routes

@@ -1,14 +1,66 @@
-.DS_Store
-!.gitkeep
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
 node_modules/
-uploads/
-logs/
-database/db
-config.js
-start.json
-npm-debug.log
-pages/custom/**
-migrate.js
-yarn.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+
+# npm's package-lock (if npm is accidentally used)
 package-lock.json
-.vscode/
+
+# vscode's workspace settings
+/.vscode
+
+# Configuration file
+/config.js
+
+# Database
+/database/db
+
+# Uploads directory
+/uploads
+
+# Custom pages directory
+/pages/custom
+
+# Dist dev
+/dist-dev
+
+# User files
+.DS_Store
+.nvmrc
+!.gitkeep
+/start.json
+/migrate.js
+
+# User directories (renders)
+/public/render/**/original
+/public/render/**/wip

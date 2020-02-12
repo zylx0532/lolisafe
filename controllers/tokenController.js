@@ -1,34 +1,99 @@
-const config = require('../config.js');
-const db = require('knex')(config.database);
-const randomstring = require('randomstring');
-const utils = require('./utilsController.js');
+const randomstring = require('randomstring')
+const perms = require('./permissionController')
+const utils = require('./utilsController')
+const config = require('./../config')
+const logger = require('./../logger')
+const db = require('knex')(config.database)
 
-const tokenController = {};
+const self = {
+  tokenLength: 64,
+  tokenMaxTries: 3,
+  onHold: new Set()
+}
 
-tokenController.verify = async (req, res, next) => {
-	const token = req.body.token;
-	if (token === undefined) return res.status(401).json({ success: false, description: 'No token provided' });
+self.generateUniqueToken = async () => {
+  for (let i = 0; i < self.tokenMaxTries; i++) {
+    const token = randomstring.generate(self.tokenLength)
+    if (self.onHold.has(token))
+      continue
 
-	const user = await db.table('users').where('token', token).first();
-	if (!user) return res.status(401).json({ success: false, description: 'Invalid token' });
-	return res.json({ success: true, username: user.username });
-};
+    // Put token on-hold (wait for it to be inserted to DB)
+    self.onHold.add(token)
 
-tokenController.list = async (req, res, next) => {
-	const user = await utils.authorize(req, res);
-	return res.json({ success: true, token: user.token });
-};
+    const user = await db.table('users')
+      .where('token', token)
+      .select('id')
+      .first()
+    if (user) {
+      self.onHold.delete(token)
+      continue
+    }
 
-tokenController.change = async (req, res, next) => {
-	const user = await utils.authorize(req, res);
-	const newtoken = randomstring.generate(64);
+    return token
+  }
 
-	await db.table('users').where('token', user.token).update({
-		token: newtoken,
-		timestamp: Math.floor(Date.now() / 1000)
-	});
+  return null
+}
 
-	res.json({ success: true, token: newtoken });
-};
+self.verify = async (req, res, next) => {
+  const token = typeof req.body.token === 'string'
+    ? req.body.token.trim()
+    : ''
 
-module.exports = tokenController;
+  if (!token)
+    return res.json({ success: false, description: 'No token provided.' })
+
+  try {
+    const user = await db.table('users')
+      .where('token', token)
+      .select('username', 'permission')
+      .first()
+
+    if (!user)
+      return res.json({ success: false, description: 'Invalid token.' })
+
+    return res.json({
+      success: true,
+      username: user.username,
+      permissions: perms.mapPermissions(user)
+    })
+  } catch (error) {
+    logger.error(error)
+    return res.status(500).json({ success: false, description: 'An unexpected error occurred. Try again?' })
+  }
+}
+
+self.list = async (req, res, next) => {
+  const user = await utils.authorize(req, res)
+  if (!user) return
+  return res.json({ success: true, token: user.token })
+}
+
+self.change = async (req, res, next) => {
+  const user = await utils.authorize(req, res)
+  if (!user) return
+
+  const newToken = await self.generateUniqueToken()
+  if (!newToken)
+    return res.json({ success: false, description: 'Sorry, we could not allocate a unique token. Try again?' })
+
+  try {
+    await db.table('users')
+      .where('token', user.token)
+      .update({
+        token: newToken,
+        timestamp: Math.floor(Date.now() / 1000)
+      })
+    self.onHold.delete(newToken)
+
+    return res.json({
+      success: true,
+      token: newToken
+    })
+  } catch (error) {
+    logger.error(error)
+    return res.status(500).json({ success: false, description: 'An unexpected error occurred. Try again?' })
+  }
+}
+
+module.exports = self
