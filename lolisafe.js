@@ -27,8 +27,15 @@ const nojs = require('./routes/nojs')
 
 const db = require('knex')(config.database)
 
-safe.use(helmet())
-if (config.trustProxy) safe.set('trust proxy', 1)
+safe.use(helmet({
+  hsts: false
+}))
+
+if (config.hsts instanceof Object && Object.keys(config.hsts).length)
+  safe.use(helmet.hsts(config.hsts))
+
+if (config.trustProxy)
+  safe.set('trust proxy', 1)
 
 // https://mozilla.github.io/nunjucks/api.html#configure
 nunjucks.configure('views', {
