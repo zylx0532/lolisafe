@@ -221,7 +221,7 @@ safe.use('/api', api)
 
     // Cache control (safe.fiery.me)
     // Purge Cloudflare cache
-    if (config.cacheControl === 1)
+    if (config.cacheControl && config.cacheControl !== 2)
       if (config.cloudflare.purgeCache) {
         logger.log('Cache control enabled, purging Cloudflare\'s cache...')
         const results = await utils.purgeCloudflareCache(cdnPages)
