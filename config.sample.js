@@ -100,6 +100,19 @@ module.exports = {
   },
 
   /*
+    HTTP Strict Transport Security (HSTS).
+    This doesn't enforce HTTP users to switch to HTTPS.
+    It only tells HTTPS users to stick around (i.e. not to downgrade to HTTP).
+    When set, it's also added to HTTP responses because the header will be ignored anyway.
+    https://helmetjs.github.io/docs/hsts/#the-code
+  */
+  hsts: {
+    // maxAge: 63072000, // 2 years
+    // includeSubDomains: true,
+    // preload: true
+  },
+
+  /*
     Trust proxy.
     Enable this if you are using proxy such as Cloudflare or Incapsula,
     and/or also when you are using reverse proxy such as nginx or Apache.
